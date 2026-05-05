@@ -1,0 +1,65 @@
+# --- Données scrappées ---
+# On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
+data/raw/
+data/processed/
+*.csv
+*.json
+*.jsonl
+*.parquet
+*.db
+*.sqlite
+
+# Exception : on garde les petits fichiers d'exemple
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!**/sample_*.csv
+!**/sample_*.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environnements virtuels
+venv/
+env/
+.venv/
+.env
+
+# --- Quarto ---
+/.quarto/
+*_files/
+*_cache/
+/site_libs/
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- Éditeurs / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Secrets ---
+.env
+.env.local
+secrets.yaml
+config.local.*
+*.key
+*.pem
+
+# --- Logs ---
+logs/
+*.log
+
+# --- Sortie de modèles ---
+models/
+*.pkl
+*.joblib

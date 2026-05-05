@@ -1,0 +1,56 @@
+---
+title: "Démarrage du projet"
+author: "Corto"
+date: "2026-05-05"
+format:
+  html:
+    toc: true
+    code-fold: true
+---
+
+## Contexte
+
+Démarrage du mémoire de master sur l'analyse de l'impact des rachats de journaux français sur le contenu éditorial.
+
+**Question de recherche** : les rachats de journaux français modifient-ils la couverture thématique des articles ?
+
+## Décisions du jour
+
+### Organisation du travail
+
+- Mise en place d'un dépôt Git/GitHub privé : `stage-mids`
+- Langage principal : Python
+- Journal de bord : Quarto (`.qmd`) — un fichier par session/étape
+- Données stockées localement, **non versionnées** (volume + droits d'auteur)
+
+### Structure du dépôt
+
+```
+stage-mids/
+├── journal/         # ce fichier et les suivants
+├── scrapers/        # un sous-dossier par journal
+├── data/            # non versionné
+├── analysis/        # scripts statistiques
+├── notebooks/       # exploration
+└── docs/            # rédaction
+```
+
+## À faire ensuite
+
+- [ ] Définir la liste des journaux à étudier
+  - critères : tailles, lignes éditoriales contrastées, rachats récents documentés
+  - candidats potentiels à discuter : Le Monde, Le Figaro, Libération, Les Échos, La Provence, Paris Match, JDD, L'Express, L'Obs...
+- [ ] Pour chaque journal, identifier :
+  - structure du site (URL des articles, archives accessibles ?)
+  - présence d'un paywall
+  - format des pages (HTML statique vs JS-rendered)
+  - éventuelle API ou flux RSS
+  - date du/des rachat(s) connus
+- [ ] Choisir un journal pilote pour le premier prototype de scrapper
+- [ ] Définir le format de stockage des articles (JSON ? Parquet ? SQLite ?)
+
+## Notes
+
+- La liste des modèles de détection de ruptures sera fournie ultérieurement
+- Penser à conserver un horodatage précis du moment du scrapping pour chaque article
+- Vérifier les conditions générales d'utilisation et `robots.txt` de chaque site avant de scrapper
