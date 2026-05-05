@@ -1,5 +1,5 @@
 ---
-title: "Démarrage du projet"
+title: "Moissonage MIDS"
 author: "Corto"
 date: "2026-05-05"
 format:
@@ -10,32 +10,12 @@ format:
 
 ## Contexte
 
-Démarrage du mémoire de master sur l'analyse de l'impact des rachats de journaux français sur le contenu éditorial.
+Analyse de l'impact des rachats de journaux français sur le contenu éditorial.
 
-**Question de recherche** : les rachats de journaux français modifient-ils la couverture thématique des articles ?
+** Les rachats de journaux français modifient-ils la couverture thématique des articles ? **
 
-## Décisions du jour
 
-### Organisation du travail
-
-- Mise en place d'un dépôt Git/GitHub privé : `stage-mids`
-- Langage principal : Python
-- Journal de bord : Quarto (`.qmd`) — un fichier par session/étape
-- Données stockées localement, **non versionnées** (volume + droits d'auteur)
-
-### Structure du dépôt
-
-```
-stage-mids/
-├── journal/         # ce fichier et les suivants
-├── scrapers/        # un sous-dossier par journal
-├── data/            # non versionné
-├── analysis/        # scripts statistiques
-├── notebooks/       # exploration
-└── docs/            # rédaction
-```
-
-## À faire ensuite
+## À faire
 
 - [ ] Définir la liste des journaux à étudier
   - critères : tailles, lignes éditoriales contrastées, rachats récents documentés
@@ -49,8 +29,19 @@ stage-mids/
 - [ ] Choisir un journal pilote pour le premier prototype de scrapper
 - [ ] Définir le format de stockage des articles (JSON ? Parquet ? SQLite ?)
 
-## Notes
+## 05/05/2026 - Création répertoire GitHub, identification des journaux
 
-- La liste des modèles de détection de ruptures sera fournie ultérieurement
-- Penser à conserver un horodatage précis du moment du scrapping pour chaque article
-- Vérifier les conditions générales d'utilisation et `robots.txt` de chaque site avant de scrapper
+Répertoire Github : https://github.com/corto2corto/stage-mids
+
+Liste des journaux cibles : 
+- JDD : Cible d'un rachat médiatisé par le groupe Bolloré en 2021, puis d'une "prise de contrôle" en 2023. Sur le site web, on a seulement accés aux articles récents. Reste à voir comment trouver années précédentes. Une partie présente sur Gallica (1864-1899).
+- Le Monde : Rachat par Niel, Bergé, Pigasse en 2010, puis montée de Niel à partir de 2023. Facilement récupèrable, complétement disponible sur Gallica. 
+- Le Figaro : Rachat par Serge Dassault en 2004. A première vue, le scraping a l'air complexe : pas de système recherche propre, présence de paywall. Une partie présente sur Gallica.
+- Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propre depuis 1998 jusqu'à aujourd'hui. Paywall éventuels. 
+- Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propre depuis 1991 jusqu'à 2020. Paywall éventuels. 
+- La Provence : Rachat par Saadé en 2023. Pas de système de recherche propre, site web plutôt dense. 
+- Paris Match : Rachat par LVMH en 2024. Moyennement scrappable mais faisable. 
+- L'Express : Rachat par Drahi en 2015. Présence d'archives propre depuis 1953 jusqu'à 2026. Paywall éventuels. 
+- Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationels, mais seulement par mot et correspondances de mot. 
+
+
