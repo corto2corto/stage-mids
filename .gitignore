@@ -38,6 +38,8 @@ env/
 *_cache/
 /site_libs/
 
+2026-05-05.html 
+
 # --- Notebooks ---
 .ipynb_checkpoints/
 
