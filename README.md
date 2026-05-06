@@ -6,20 +6,6 @@ Mémoire de fin de master — Analyse de l'impact des rachats de journaux franç
 
 Les rachats de journaux français modifient-ils la couverture thématique des articles ? 
 
-## Structure du dépôt
-
-```
-stage-mids/
-├── journal/         # Journal de bord (Quarto .qmd)
-├── scrapers/        # Un sous-dossier par journal
-├── data/            # Données scrappées (NON versionnées)
-│   ├── raw/         # Articles bruts
-│   └── processed/   # Articles nettoyés
-├── analysis/        # Scripts d'analyse, modèles de rupture
-├── notebooks/       # Exploration interactive (Jupyter)
-└── docs/            # Notes méthodo, rédaction du mémoire
-```
-
 ## Installation
 
 ```bash
