@@ -12,7 +12,7 @@ format:
 
 Analyse de l'impact des rachats de journaux français sur le contenu éditorial.
 
-** Les rachats de journaux français modifient-ils la couverture thématique des articles ? **
+Les rachats de journaux français modifient-ils la couverture thématique des articles ? 
 
 
 ## À faire
@@ -34,14 +34,29 @@ Analyse de l'impact des rachats de journaux français sur le contenu éditorial.
 Répertoire Github : https://github.com/corto2corto/stage-mids
 
 Liste des journaux cibles : 
+
 - JDD : Cible d'un rachat médiatisé par le groupe Bolloré en 2021, puis d'une "prise de contrôle" en 2023. Sur le site web, on a seulement accés aux articles récents. Reste à voir comment trouver années précédentes. Une partie présente sur Gallica (1864-1899).
+
 - Le Monde : Rachat par Niel, Bergé, Pigasse en 2010, puis montée de Niel à partir de 2023. Facilement récupèrable, complétement disponible sur Gallica. 
+
 - Le Figaro : Rachat par Serge Dassault en 2004. A première vue, le scraping a l'air complexe : pas de système recherche propre, présence de paywall. Une partie présente sur Gallica.
+
 - Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propre depuis 1998 jusqu'à aujourd'hui. Paywall éventuels. 
+
 - Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propre depuis 1991 jusqu'à 2020. Paywall éventuels. 
+
 - La Provence : Rachat par Saadé en 2023. Pas de système de recherche propre, site web plutôt dense. 
+
 - Paris Match : Rachat par LVMH en 2024. Moyennement scrappable mais faisable. 
+
 - L'Express : Rachat par Drahi en 2015. Présence d'archives propre depuis 1953 jusqu'à 2026. Paywall éventuels. 
-- Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationels, mais seulement par mot et correspondances de mot. 
+
+- Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationels, mais seulement par mot et correspondances de mot.
+
+## Premier test de scrapping 
+
+### JDD
+
+
 
 
