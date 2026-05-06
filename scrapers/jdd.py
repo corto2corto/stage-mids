@@ -3,7 +3,7 @@ from playwright_stealth import stealth_sync
 from bs4 import BeautifulSoup
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)  # headless=False = navigateur visible
+    browser = p.chromium.launch(headless=False)  
     page = browser.new_page()
     stealth_sync(page)  # masque les traces d'automatisation
     page.goto("https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226")
