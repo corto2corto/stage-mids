@@ -1,20 +1,16 @@
-from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)  
-    page = browser.new_page()
-    stealth_sync(page)  # masque les traces d'automatisation
-    page.goto("https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226")
-    page.wait_for_load_state("domcontentloaded")
-    
-    html = page.content()
-    browser.close()
+PROFILE_PATH = r"C:\Users\E.E\AppData\Roaming\Mozilla\Firefox\Profiles\m5oos7by.default-release"
+URL = "https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226"
 
-soup = BeautifulSoup(html, "html.parser")
-paragraphes = soup.find_all("p")
+options = Options()
+options.add_argument("-profile")
+options.add_argument(PROFILE_PATH)
 
-for p in paragraphes:
-    text = str(p)
-    print(p)
+with webdriver.Firefox(options=options) as driver:
+    driver.get(URL)
+    html = driver.page_source
+
+with open("test.html", "w", encoding="utf-8") as f:
+    f.write(html)
