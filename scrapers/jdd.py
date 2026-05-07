@@ -1,9 +1,14 @@
-import requests
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
-response = requests.get("https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226")
-soup = BeautifulSoup(response.text, "html.parser")
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page()
+    page.goto("https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226")
+    page.wait_for_load_state()
+    html = page.content()
+    browser.close()
 
+soup = BeautifulSoup(html, "html.parser")
 paragraphes = soup.find_all("p")
 
-print(response.text[:2000])
+print(len(paragraphes))
