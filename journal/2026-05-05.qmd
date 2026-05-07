@@ -12,8 +12,7 @@ format:
 
 Analyse de l'impact des rachats de journaux français sur le contenu éditorial.
 
-Les rachats de journaux français modifient-ils la couverture thématique des articles ? 
-
+Les rachats de journaux français modifient-ils la couverture thématique des articles ?
 
 ## À faire
 
@@ -33,30 +32,106 @@ Les rachats de journaux français modifient-ils la couverture thématique des ar
 
 Répertoire Github : https://github.com/corto2corto/stage-mids
 
-Liste des journaux cibles : 
+Liste des journaux cibles :
 
 - JDD : Cible d'un rachat médiatisé par le groupe Bolloré en 2021, puis d'une "prise de contrôle" en 2023. Sur le site web, on a seulement accés aux articles récents. Reste à voir comment trouver années précédentes. Une partie présente sur Gallica (1864-1899).
 
-- Le Monde : Rachat par Niel, Bergé, Pigasse en 2010, puis montée de Niel à partir de 2023. Facilement récupèrable, complétement disponible sur Gallica. 
+- Le Monde : Rachat par Niel, Bergé, Pigasse en 2010, puis montée de Niel à partir de 2023. Facilement récupèrable, complétement disponible sur Gallica.
 
 - Le Figaro : Rachat par Serge Dassault en 2004. A première vue, le scraping a l'air complexe : pas de système recherche propre, présence de paywall. Une partie présente sur Gallica.
 
-- Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propre depuis 1998 jusqu'à aujourd'hui. Paywall éventuels. 
+- Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propre depuis 1998 jusqu'à aujourd'hui. Paywall éventuels.
 
-- Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propre depuis 1991 jusqu'à 2020. Paywall éventuels. 
+- Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propre depuis 1991 jusqu'à 2020. Paywall éventuels.
 
-- La Provence : Rachat par Saadé en 2023. Pas de système de recherche propre, site web plutôt dense. 
+- La Provence : Rachat par Saadé en 2023. Pas de système de recherche propre, site web plutôt dense.
 
-- Paris Match : Rachat par LVMH en 2024. Moyennement scrappable mais faisable. 
+- Paris Match : Rachat par LVMH en 2024. Moyennement scrappable mais faisable.
 
-- L'Express : Rachat par Drahi en 2015. Présence d'archives propre depuis 1953 jusqu'à 2026. Paywall éventuels. 
+- L'Express : Rachat par Drahi en 2015. Présence d'archives propre depuis 1953 jusqu'à 2026. Paywall éventuels.
 
 - Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationels, mais seulement par mot et correspondances de mot.
 
-## Premier test de scrapping 
+## Premier test de scrapping
 
 ### JDD
 
+On souhaite scrapper l'article du JDD suivant : <https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226>.
 
+#### V0.0 - Via Request
 
+```{python}
+import requests
+from bs4 import BeautifulSoup
 
+response = requests.get("https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226")
+soup = BeautifulSoup(response.text, "html.parser")
+
+paragraphes = soup.find_all("p")
+
+print(response.text[:2000])
+
+# Protection par Cloudflare 
+```
+
+En utilisant le module `request`, on ne peut pas récupérer le html directement à cause de la protection CloudFare.
+
+#### V0.1 - Via Playwright
+
+Plutôt qu'utiliser `request`, on émule un navigateur Chrome via la bibliothèque `playwright` ([lien](https://playwright.dev/python/)) qui va chercher à récupérer le html de la page.
+
+```{python}
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page()
+    page.goto("https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226")
+    page.wait_for_load_state()
+    html = page.content()
+    browser.close()
+
+soup = BeautifulSoup(html, "html.parser")
+paragraphes = soup.find_all("p")
+
+print(len(paragraphes))
+```
+
+La protection Cloudfare arrive à bloquer le navigateur, et le html n'est pas récupéré.
+
+#### V0.2 - Via Playwright Stealth
+
+Playwright propose une version furtive (*stealth*) de son API , et celle-ci va nous permettre de récupérer le html.
+
+```{python}
+from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync
+from bs4 import BeautifulSoup
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=False)  # headless=False = navigateur visible
+    page = browser.new_page()
+    stealth_sync(page)  # masque les traces d'automatisation
+    page.goto("https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226")
+    page.wait_for_load_state("domcontentloaded")
+    
+    html = page.content()
+    browser.close()
+    
+    # On télécharge le html dans un fichier, qu'on passera à BS4 ensuite
+
+with open("173226.html", "w", encoding="utf-8") as f:
+    f.write(html)
+```
+
+#### V1.0 - Version Paywall 
+
+En utilisant le dépôt <https://gitflic.ru/project/magnolia1234/bypass-paywalls-firefox-clean>, il est possible d'accéder aux articles protégé par un paywall.
+
+On a d'abord télécharger le fichier bypass.xpi, et on a configuré Firefox avec l'extension de Bypass + UBlock Origin (configuration avec les filtres `EasyList Cookies` et `I don't care about cookie`, afin que les bannières de consentement ne bloque pas le bypass).
+
+Grâce à cette configuration, on arrive bien à accéder à n'importe quels articles.
+
+Le problème est que Playwright émule un navigateur classique, et on voudrait plutôt utiliser notre navigateur avec la configuration anti-paywall spécifique.
+
+L'option la plus simple à première vue, est d'utiliser `Selenium` ([lien](https://selenium-python.readthedocs.io/)), qui permet non pas d'émuler un navigateur, mais plutôt de contrôler un navigateur local. L'idée est d'utiliser le combo Selenium + Firefox Bypass.
