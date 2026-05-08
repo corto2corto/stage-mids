@@ -1,5 +1,5 @@
 ---
-title: "Moissonage MIDS"
+title: "Moissonnage MIDS"
 author: "Corto"
 date: "2026-05-05"
 format:
@@ -28,7 +28,7 @@ Les rachats de journaux français modifient-ils la couverture thématique des ar
 - [ ] Choisir un journal pilote pour le premier prototype de scrapper
 - [ ] Définir le format de stockage des articles (JSON ? Parquet ? SQLite ?)
 
-## 05/05/2026 - Création répertoire GitHub, identification des journaux
+## Création répertoire GitHub, identification des journaux
 
 Répertoire Github : https://github.com/corto2corto/stage-mids
 
@@ -36,21 +36,23 @@ Liste des journaux cibles :
 
 - JDD : Cible d'un rachat médiatisé par le groupe Bolloré en 2021, puis d'une "prise de contrôle" en 2023. Sur le site web, on a seulement accés aux articles récents. Reste à voir comment trouver années précédentes. Une partie présente sur Gallica (1864-1899).
 
-- Le Monde : Rachat par Niel, Bergé, Pigasse en 2010, puis montée de Niel à partir de 2023. Facilement récupèrable, complétement disponible sur Gallica.
+- Le Monde : Rachat par Niel, Bergé, Pigasse en 2010, puis montée de Niel à partir de 2023. Facilement récupérable, complètement disponible sur Gallica.
 
 - Le Figaro : Rachat par Serge Dassault en 2004. A première vue, le scraping a l'air complexe : pas de système recherche propre, présence de paywall. Une partie présente sur Gallica.
 
-- Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propre depuis 1998 jusqu'à aujourd'hui. Paywall éventuels.
+- Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propres depuis 1998 jusqu'à aujourd'hui. Paywall éventuels.
 
-- Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propre depuis 1991 jusqu'à 2020. Paywall éventuels.
+- Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propres depuis 1991 jusqu'à 2020. Paywall éventuels.
 
 - La Provence : Rachat par Saadé en 2023. Pas de système de recherche propre, site web plutôt dense.
 
 - Paris Match : Rachat par LVMH en 2024. Moyennement scrappable mais faisable.
 
-- L'Express : Rachat par Drahi en 2015. Présence d'archives propre depuis 1953 jusqu'à 2026. Paywall éventuels.
+- L'Express : Rachat par Drahi en 2015. Présence d'archives propres depuis 1953 jusqu'à 2026. Paywall éventuels.
 
-- Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationels, mais seulement par mot et correspondances de mot.
+- Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationnels, mais seulement par mot et correspondances de mot.
+
+- Valeurs actuelles : Rachat par un trio d'investisseurs, dont Stérin.
 
 ## Premier test de scrapping
 
@@ -58,7 +60,7 @@ Liste des journaux cibles :
 
 On souhaite scrapper l'article du JDD suivant : <https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226>.
 
-#### V0.0 - Via Request
+#### v0.0.0 - Via Request
 
 ```{python}
 import requests
@@ -76,7 +78,7 @@ print(response.text[:2000])
 
 En utilisant le module `request`, on ne peut pas récupérer le html directement à cause de la protection CloudFare.
 
-#### V0.1 - Via Playwright
+#### v0.1.0 - Via Playwright
 
 Plutôt qu'utiliser `request`, on émule un navigateur Chrome via la bibliothèque `playwright` ([lien](https://playwright.dev/python/)) qui va chercher à récupérer le html de la page.
 
@@ -97,9 +99,9 @@ paragraphes = soup.find_all("p")
 print(len(paragraphes))
 ```
 
-La protection Cloudfare arrive à bloquer le navigateur, et le html n'est pas récupéré.
+La protection Cloudflare arrive à bloquer le navigateur, et le html n'est pas récupéré.
 
-#### V0.2 - Via Playwright Stealth
+#### v0.1.1 - Via Playwright Stealth
 
 Playwright propose une version furtive (*stealth*) de son API , et celle-ci va nous permettre de récupérer le html.
 
@@ -124,14 +126,119 @@ with open("173226.html", "w", encoding="utf-8") as f:
     f.write(html)
 ```
 
-#### V1.0 - Version Paywall 
+#### v0.2.0 - Version Paywall
 
-En utilisant le dépôt <https://gitflic.ru/project/magnolia1234/bypass-paywalls-firefox-clean>, il est possible d'accéder aux articles protégé par un paywall.
+En utilisant le dépôt <https://gitflic.ru/project/magnolia1234/bypass-paywalls-firefox-clean>, il est possible d'accéder aux articles protégés par un paywall.
 
-On a d'abord télécharger le fichier bypass.xpi, et on a configuré Firefox avec l'extension de Bypass + UBlock Origin (configuration avec les filtres `EasyList Cookies` et `I don't care about cookie`, afin que les bannières de consentement ne bloque pas le bypass).
+On a d'abord télécharger le fichier bypass.xpi, et on a configuré Firefox avec l'extension de Bypass + UBlock Origin (configuration avec les filtres `EasyList Cookies` et `I don't care about cookie`, afin que les bannières de consentement ne bloquent pas le bypass).
 
 Grâce à cette configuration, on arrive bien à accéder à n'importe quels articles.
 
 Le problème est que Playwright émule un navigateur classique, et on voudrait plutôt utiliser notre navigateur avec la configuration anti-paywall spécifique.
 
 L'option la plus simple à première vue, est d'utiliser `Selenium` ([lien](https://selenium-python.readthedocs.io/)), qui permet non pas d'émuler un navigateur, mais plutôt de contrôler un navigateur local. L'idée est d'utiliser le combo Selenium + Firefox Bypass.
+
+```{python}
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+
+PROFILE_PATH = r"C:\Users\E.E\AppData\Roaming\Mozilla\Firefox\Profiles\m5oos7by.default-release"
+URL = "https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226"
+
+options = Options()
+options.add_argument("-profile")
+options.add_argument(PROFILE_PATH)
+
+with webdriver.Firefox(options=options) as driver:
+    driver.get(URL)
+    html = driver.page_source
+
+with open("test.html", "w", encoding="utf-8") as f:
+    f.write(html)
+```
+
+### Le Monde
+
+En reprenant le même pattern Selenium + Firefox, il suffit d'ajouter un timer de 2 secondes qui nous fait rester légèrement plus longtemps sur la page, le temps que le bypass s'effectue, on peut récupérer un article du monde de la même manière :
+
+```{python}
+# Même principe que pour le JDD, mais on ajoute un timeur car le bypass est plus long.
+
+import time
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+
+PROFILE_PATH = r"C:\Users\E.E\AppData\Roaming\Mozilla\Firefox\Profiles\m5oos7by.default-release"
+URL = "https://www.lemonde.fr/international/article/2026/05/08/donald-trump-minore-la-mise-en-peril-du-cessez-le-feu-en-iran-apres-des-echanges-de-tirs_6686886_3210.html"
+
+options = Options()
+options.add_argument("-profile")
+options.add_argument(PROFILE_PATH)
+
+with webdriver.Firefox(options=options) as driver:
+    driver.get(URL)
+    time.sleep(2)
+    html = driver.page_source
+
+with open(r"docs\le_monde.html", "w", encoding="utf-8") as f:
+    f.write(html)
+```
+
+### Le Figaro 
+
+Le code ci-dessus fonctionne également pour les articles du Figaro
+
+### Libération 
+
+Il est nécessaire de vider les cookies pour que le bypass fonctionne correctement :
+
+```{python}
+PROFILE_PATH = r"C:\Users\E.E\AppData\Roaming\Mozilla\Firefox\Profiles\m5oos7by.default-release"
+URL = "https://www.liberation.fr/international/asie-pacifique/lenfer-des-scam-centers-13-la-france-dans-la-ligne-de-mire-de-la-cyberescroquerie-20260508_LUPH6W65FREIJF7TVI4PIBMLQU/"
+
+options = Options()
+options.add_argument("-profile")
+options.add_argument(PROFILE_PATH)
+
+with webdriver.Firefox(options=options) as driver:
+    driver.get(URL)
+    driver.delete_all_cookies() # suppression des cookies
+    driver.get(URL)
+    time.sleep(2)
+    html = driver.page_source
+
+with open(r"docs\liberation.html", "w", encoding="utf-8") as f:
+    f.write(html)
+```
+
+### Les Échos 
+
+Actuellement ne fonctionne pas, plusieurs choix :
+
+- Utiliser les archives Gallica
+
+- Prendre un abonnement
+
+- Télécharger la version Chrome de l'extension de Bypass, et adapter le script
+
+- Se limiter aux articles gratuits
+
+### La Provence
+
+Même cas que les Échos, le bypass échoue.
+
+### Paris Match 
+
+Réussi avec le script du Monde.
+
+### L'Express
+
+Même soucis qu'avec la Provence et les échos, le bypass échoue.
+
+### Nouvel Obs
+
+Même soucis.
+
+### Valeurs Actuelles 
+
+Il n'est pas possible d'accéder aux articles payants, mais de nombreux articles gratuits sont disponibles.
