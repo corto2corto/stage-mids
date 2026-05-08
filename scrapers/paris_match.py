@@ -13,7 +13,7 @@ with webdriver.Firefox(options=options) as driver:
     driver.get(URL)
     driver.delete_all_cookies()
     driver.get(URL)
-    time.sleep(5)
+    time.sleep(2)
     html = driver.page_source
 
 with open(r"docs\paris_match.html", "w", encoding="utf-8") as f:
