@@ -1,11 +1,9 @@
-# Même principe que pour le JDD, mais on ajoute un timeur car le bypass est plus long.
-
 import time
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
 PROFILE_PATH = r"C:\Users\E.E\AppData\Roaming\Mozilla\Firefox\Profiles\m5oos7by.default-release"
-URL = "https://www.lemonde.fr/international/article/2026/05/08/donald-trump-minore-la-mise-en-peril-du-cessez-le-feu-en-iran-apres-des-echanges-de-tirs_6686886_3210.html"
+URL = "https://www.lefigaro.fr/international/l-elysee-annonce-le-retour-de-son-ambassadeur-a-alger-et-amorce-un-degel-prudent-20260508"
 
 options = Options()
 options.add_argument("-profile")
