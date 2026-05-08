@@ -1,3 +1,4 @@
+import time
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
@@ -10,6 +11,7 @@ options.add_argument(PROFILE_PATH)
 
 with webdriver.Firefox(options=options) as driver:
     driver.get(URL)
+    time.sleep(2)
     html = driver.page_source
 
 with open(r"docs\le_monde.html", "w", encoding="utf-8") as f:
