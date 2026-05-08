@@ -14,5 +14,5 @@ with webdriver.Firefox(options=options) as driver:
     time.sleep(2)
     html = driver.page_source
 
-with open(r"docs\le_monde.html", "w", encoding="utf-8") as f:
+with open(r"docs\le_figaro.html", "w", encoding="utf-8") as f:
     f.write(html)
