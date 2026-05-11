@@ -225,7 +225,7 @@ Réussi avec le script du Monde.
 
 ### L'Express
 
-\[UPDATE\] Réussi avec l'extension Chrome
+\[UPDATE\] Réussi avec l'extension Chrome [RE-UPDATE] N'as pas l'air de marcher complémtement. Fonctione avec l'extension Chrome, à appartenu à Drahi (2006-2015), puis propriété de Alain Weill (2019-2023)
 
 ### Nouvel Obs
 
@@ -233,20 +233,50 @@ Même soucis.
 
 ### Valeurs Actuelles
 
-Il n'est pas possible d'accéder aux articles payants, mais de nombreux articles gratuits sont disponibles.
+[UPDATE] Accessible ("Valeurs actuels" Club) via le bypass chrome. 
 
 ### Capital.fr
 
-A tester, rachat par Bolloré
+Fonctionne avec Chrome  
 
 ### Nice Matin 
 
-A tester, rachat par Niel
-
-### L'Express
-
-A tester, A appartenu à Drahi (2006-2015), puis propriété de Alain Weill (2019-2023)
+Pas d'articles payant (à première vue), et des archives propres disponibles de 2015 à 2026
 
 ### Télérama 
 
-A tester,Rachat par Le Monde, donc influencé par le changement d'actionnaire principaux.
+Fonctionne avec Chrome,Rachat par Le Monde, donc influencé par le changement d'actionnaire principaux.
+
+### Bilan du scrapping via l'extension Chrome
+
+L'extension Chrome permet d'accéder aux articles de : Les Échos, le Nouvel Observateur, Valeurs Actuelles, Nice-Matin, Capital et Télérama. La Provence reste inaccessible, l'Express passe de manière irrégulière.
+
+Problème restant : des phrases génériques propres à chaque journal apparaissent ponctuellement. Deux pistes :
+
+- Construire une BDD de ces phrases et les filtrer dans le script de parsing.
+- Utiliser un prompt LLM : « Voici un article, élimine les phrases génériques de pub qui ne sont pas propres à l'article. »
+
+Benoît précise que les LLMs sont pertinents pour de l'**annotation** (ex. : position d'un article sur l'immigration) plutôt que pour du parsing.
+
+### Actuellement : 
+
+| Journal           | Chrome | Firefox | Commentaires                              |
+|-------------------|--------|---------|-------------------------------------------|
+| JDD               | —      | OK      |                                           |
+| Le Monde          | —      | OK      | `sleep(2)` nécessaire                     |
+| Le Figaro         | —      | OK      | Même script que Le Monde                  |
+| Libération        | —      | OK      | Suppression des cookies + `sleep(2)`      |
+| Paris Match       | —      | OK      | Même script que Le Monde                  |
+| Les Échos         | OK     | KO      |                                           |
+| Nouvel Obs        | OK     | ~       | Bypass irrégulier sous Firefox            |
+| Valeurs Actuelles | OK     | —       |                                           |
+| Capital           | OK     | —       |                                           |
+| Nice Matin        | OK     | —       | Pas de paywall, archives 2015–2026        |
+| Télérama          | OK     | —       |                                           |
+| L'Express         | ~      | ~       | Bypass irrégulier sur les deux extensions |
+| La Provence       | KO     | KO      | Paywall résistant, à étudier              |
+
+### Prochaines étapes
+
+Priorité : comprendre la pagination de chaque journal pour maximiser la collecte.
+
