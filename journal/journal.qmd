@@ -184,11 +184,11 @@ with open(r"docs\le_monde.html", "w", encoding="utf-8") as f:
     f.write(html)
 ```
 
-### Le Figaro 
+### Le Figaro
 
 Le code ci-dessus fonctionne également pour les articles du Figaro
 
-### Libération 
+### Libération
 
 Il est nécessaire de vider les cookies pour que le bypass fonctionne correctement :
 
@@ -211,34 +211,42 @@ with open(r"docs\liberation.html", "w", encoding="utf-8") as f:
     f.write(html)
 ```
 
-### Les Échos 
+### Les Échos
 
-Actuellement ne fonctionne pas, plusieurs choix :
-
-- Utiliser les archives Gallica
-
-- Prendre un abonnement
-
-- Télécharger la version Chrome de l'extension de Bypass, et adapter le script
-
-- Se limiter aux articles gratuits
+\[UPDATE\] Après passage par Chrome, il est possible d'accéder aux articles payant des échos.
 
 ### La Provence
 
-Même cas que les Échos, le bypass échoue.
+Même cas que les Échos, le bypass échoue. \[UPDATE\] Même via Chrome, pas possible d'accéder. Essayer de paramétrer en étudiant le paywall.
 
-### Paris Match 
+### Paris Match
 
 Réussi avec le script du Monde.
 
 ### L'Express
 
-Même soucis qu'avec la Provence et les échos, le bypass échoue.
+\[UPDATE\] Réussi avec l'extension Chrome
 
 ### Nouvel Obs
 
 Même soucis.
 
-### Valeurs Actuelles 
+### Valeurs Actuelles
 
 Il n'est pas possible d'accéder aux articles payants, mais de nombreux articles gratuits sont disponibles.
+
+### Capital.fr
+
+A tester, rachat par Bolloré
+
+### Nice Matin 
+
+A tester, rachat par Niel
+
+### L'Express
+
+A tester, A appartenu à Drahi (2006-2015), puis propriété de Alain Weill (2019-2023)
+
+### Télérama 
+
+A tester,Rachat par Le Monde, donc influencé par le changement d'actionnaire principaux.
