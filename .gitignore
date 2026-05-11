@@ -9,6 +9,11 @@ data/processed/
 *.db
 *.sqlite
 
+# Extensions 
+bypass-paywalls-chrome-clean-master
+chrome-bpc
+uBlock0.chromium
+
 # Exception : on garde les petits fichiers d'exemple
 !data/raw/.gitkeep
 !data/processed/.gitkeep
