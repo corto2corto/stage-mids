@@ -2,6 +2,8 @@
 title: "Moissonnage MIDS"
 author: "Corto"
 date: "2026-05-05"
+execute:
+    eval: false
 format:
   html:
     toc: true
@@ -276,7 +278,23 @@ Benoît précise que les LLMs sont pertinents pour de l'**annotation** (ex. : po
 | L'Express         | ~      | ~       | Bypass irrégulier sur les deux extensions |
 | La Provence       | KO     | KO      | Paywall résistant, à étudier              |
 
-### Prochaines étapes
+## Pagination : 
 
-Priorité : comprendre la pagination de chaque journal pour maximiser la collecte.
+Le but de cette section est de "cartographier" les sites web de chaque journal. L'objectif est d'obtenir pour chaque article, l'url de l'article, et ce, pour l'ensemble des articles disponibles en ligne (donc beaucoup).
+
+Une première approche est de chercher via un script `sitemap_finder.py` un fichier sitemap.xml (ou un équivalent), car c'est le fichier utilisé par Google pour indexer le site. En général, le sitemap est indiqué dans le fichier `robot.txt`.
+
+La seconde approche est d'inspecter la page à la main quand on a des rubriques avec une pagination explicite (ex : politique/page2). Comme une page contient dans son html une liste de liens vers les articles de la page, on peut alors parcourir chaque page, et récupérer les liens. 
+
+### JDD 
+
+### Le Monde 
+
+Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lemonde.fr/sitemap_index.xml) du monde, dont l'organisation ressemble à :
+
+
+
+
+
+
 
