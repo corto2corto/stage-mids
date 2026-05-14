@@ -286,11 +286,63 @@ Une première approche est de chercher via un script `sitemap_finder.py` un fich
 
 La seconde approche est d'inspecter la page à la main quand on a des rubriques avec une pagination explicite (ex : politique/page2). Comme une page contient dans son html une liste de liens vers les articles de la page, on peut alors parcourir chaque page, et récupérer les liens. 
 
+
 ### JDD 
+
+Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lejdd.fr/sitemap.xml) du JDD. 
+Le problème est que comme pour le site web, il semble que aucun articles avant 2022 ne soient disponibles.
 
 ### Le Monde 
 
-Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lemonde.fr/sitemap_index.xml) du monde, dont l'organisation ressemble à :
+Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lemonde.fr/sitemap_index.xml) du monde.
+
+### Figaro 
+
+https://sitemaps.lefigaro.fr/lefigaro.fr/articles.xml
+(De 2006 à 2026)
+
+### Libération 
+
+Sitemap tentaculaire, pas très claire. 
+Dispose d'une section archive bien documentée, donc plus intéressant d'inspecter le html directement
+
+Rq : S'intéresser aux sites d'archives : Factiva, Europress, BU
+
+### Paris Match
+
+Sitemap limité. Des archives existent, mais ne sont pas trouvables pour l'instant. 
+Premières recherches via Internet Archives. Tester la Wayback machine aussi
+Ici, on a les archives https://www.parismatch.com/sitemap.xml de 2022 à 2026. 
+L'idée est d'utiliser Wayback Machine afin de récupérer d'anciens sitemap : http://web.archive.org/cdx/search/cdx?url=parismatch.com/sitemap*&output=json&collapse=urlkey
+
+
+### Les Echos
+
+https://sitemap.lesechos.fr/sitemap_index.xml : Permet de télécharger des zip qui contiennent des .xml, et on peut accéder à tous les liens du journal.
+
+### Nvl Obs
+
+https://www.nouvelobs.com/sitemap/sitemap-index-articles.xml : Très satisfaisant, ensemble des articles depuis 2000
+
+### VA
+
+Assez complexes mais satisfaisant, on peut accéder à 3 gros sites maps (trop gros pour charger normalement) via https://www.valeursactuelles.com/sitemap_index.xml.
+Complexe car le site de VA est un peu particuliers, il est divisé en 4 catégories (VA, VA Club, VA Régions, VA+). Reste à voir si chaque catégories est obtenable ou pas via le sitemap. Mais dans tous les cas, le sitemap contient beaucoup de liens.  
+
+### Capital
+
+Très satisfaisant : https://www.capital.fr/sitemap/articles.xml
+Articles rangés en sous catégories numérotées de 1 à 500
+
+### Nice Matin
+
+Très satisfaisant :https://www.nicematin.com/sitemap.xml
+
+### Télérama
+
+Très satisfaisant aussi (1992-2026): https://www.telerama.fr/sitemaps/sitemap_index.php
+Les premières années sont peu denses, mais à partir de 2006, énorméments d'articles dispo
+
 
 
 
