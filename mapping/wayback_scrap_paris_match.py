@@ -15,16 +15,20 @@ res = [(lignes[1],lignes[2]) for lignes in data if motif.search(lignes[2])]
 # Transformation en URLs Wayback directement utilisables
 res = [f"https://web.archive.org/web/{timestamp}id_/{url}" for (timestamp, url) in res]
 
-# Maintenant, on récupère le XML disponible sur web.archive 
+# Cette fois, on le fait sur les 3 premiers URLs utilisables
+for page in res[:3]:
+    # Maintenant, on récupère le XML disponible sur web.archive 
+    xml = requests.get(page, timeout=30).content
 
-xml = requests.get(res[0], timeout=30).content
+    # Construction d'un arbre avec les balises 
+    root = ET.fromstring(xml)
 
-root = ET.fromstring(xml)
+    # .// pour dire "récupère toutes les balises locs"
+    articles_url = root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")
 
-articles = root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")
-
-for articles in articles[:5]:
-    print(articles.text)
+    # Impression des URL
+    for url in articles_url[:5]:
+        print(url.text)
 
 
 

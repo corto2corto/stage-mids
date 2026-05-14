@@ -42,5 +42,5 @@ def discover(base_url):
             found.append((r.status_code, url))
     return found
 
-results = discover("https://www.lemonde.fr")
+results = discover("https://www.parismatch.com")
 print(results)
