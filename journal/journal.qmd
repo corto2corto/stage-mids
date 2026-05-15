@@ -36,15 +36,15 @@ Répertoire Github : https://github.com/corto2corto/stage-mids
 
 Liste des journaux cibles :
 
-- JDD : Cible d'un rachat médiatisé par le groupe Bolloré en 2021, puis d'une "prise de contrôle" en 2023. Sur le site web, on a seulement accés aux articles récents. Reste à voir comment trouver années précédentes. Une partie présente sur Gallica (1864-1899).
+- JDD : Cible d'un rachat médiatisé par le groupe Bolloré en 2021, puis d'une "prise de contrôle" en 2023. Sur le site web, on a seulement accès aux articles récents. Reste à voir comment trouver les années précédentes. Une partie présente sur Gallica (1864-1899).
 
 - Le Monde : Rachat par Niel, Bergé, Pigasse en 2010, puis montée de Niel à partir de 2023. Facilement récupérable, complètement disponible sur Gallica.
 
-- Le Figaro : Rachat par Serge Dassault en 2004. A première vue, le scraping a l'air complexe : pas de système recherche propre, présence de paywall. Une partie présente sur Gallica.
+- Le Figaro : Rachat par Serge Dassault en 2004. À première vue, le scraping a l'air complexe : pas de système de recherche propre, présence d'un paywall. Une partie présente sur Gallica.
 
-- Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propres depuis 1998 jusqu'à aujourd'hui. Paywall éventuels.
+- Libération : Rachat par Drahi en 2014, puis reprise de l'indépendance. Présence d'archives propres depuis 1998 jusqu'à aujourd'hui. Paywall éventuel.
 
-- Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propres depuis 1991 jusqu'à 2020. Paywall éventuels.
+- Les Échos : Rachat par Bernard Arnault en 2007. Présence d'archives propres depuis 1991 jusqu'à 2020. Paywall éventuel.
 
 - La Provence : Rachat par Saadé en 2023. Pas de système de recherche propre, site web plutôt dense.
 
@@ -52,7 +52,7 @@ Liste des journaux cibles :
 
 - L'Express : Rachat par Drahi en 2015. Présence d'archives propres depuis 1953 jusqu'à 2026. Paywall éventuels.
 
-- Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationnels, mais seulement par mot et correspondances de mot.
+- Le Nouvel Obs : Rachat par Niel, Bergé, Pigasse en 2014, 4 ans après le Monde. Système de recherche opérationnel, mais uniquement par mot et correspondance de mots.
 
 - Valeurs actuelles : Rachat par un trio d'investisseurs, dont Stérin.
 
@@ -78,7 +78,7 @@ print(response.text[:2000])
 # Protection par Cloudflare 
 ```
 
-En utilisant le module `request`, on ne peut pas récupérer le html directement à cause de la protection CloudFare.
+En utilisant le module `request`, on ne peut pas récupérer le HTML directement à cause de la protection Cloudflare.
 
 #### v0.1.0 - Via Playwright
 
@@ -105,7 +105,7 @@ La protection Cloudflare arrive à bloquer le navigateur, et le html n'est pas r
 
 #### v0.1.1 - Via Playwright Stealth
 
-Playwright propose une version furtive (*stealth*) de son API , et celle-ci va nous permettre de récupérer le html.
+Playwright propose une version furtive (*stealth*) de son API, et celle-ci va nous permettre de récupérer le HTML.
 
 ```{python}
 from playwright.sync_api import sync_playwright
@@ -132,9 +132,9 @@ with open("173226.html", "w", encoding="utf-8") as f:
 
 En utilisant le dépôt <https://gitflic.ru/project/magnolia1234/bypass-paywalls-firefox-clean>, il est possible d'accéder aux articles protégés par un paywall.
 
-On a d'abord télécharger le fichier bypass.xpi, et on a configuré Firefox avec l'extension de Bypass + UBlock Origin (configuration avec les filtres `EasyList Cookies` et `I don't care about cookie`, afin que les bannières de consentement ne bloquent pas le bypass).
+On a d'abord téléchargé le fichier bypass.xpi, et configuré Firefox avec l'extension Bypass + UBlock Origin (configuration avec les filtres `EasyList Cookies` et `I don't care about cookie`, afin que les bannières de consentement ne bloquent pas le bypass).
 
-Grâce à cette configuration, on arrive bien à accéder à n'importe quels articles.
+Grâce à cette configuration, on arrive bien à accéder à n'importe quel article.
 
 Le problème est que Playwright émule un navigateur classique, et on voudrait plutôt utiliser notre navigateur avec la configuration anti-paywall spécifique.
 
@@ -161,7 +161,7 @@ with open("test.html", "w", encoding="utf-8") as f:
 
 ### Le Monde
 
-En reprenant le même pattern Selenium + Firefox, il suffit d'ajouter un timer de 2 secondes qui nous fait rester légèrement plus longtemps sur la page, le temps que le bypass s'effectue, on peut récupérer un article du monde de la même manière :
+En reprenant le même pattern Selenium + Firefox, il suffit d'ajouter un timer de 2 secondes pour rester légèrement plus longtemps sur la page, le temps que le bypass s'effectue, et on peut récupérer un article du Monde de la même manière :
 
 ```{python}
 # Même principe que pour le JDD, mais on ajoute un timeur car le bypass est plus long.
@@ -215,7 +215,7 @@ with open(r"docs\liberation.html", "w", encoding="utf-8") as f:
 
 ### Les Échos
 
-\[UPDATE\] Après passage par Chrome, il est possible d'accéder aux articles payant des échos.
+\[UPDATE\] Après passage par Chrome, il est possible d'accéder aux articles payants des Échos.
 
 ### La Provence
 
@@ -227,27 +227,27 @@ Réussi avec le script du Monde.
 
 ### L'Express
 
-\[UPDATE\] Réussi avec l'extension Chrome [RE-UPDATE] N'as pas l'air de marcher complémtement. Fonctione avec l'extension Chrome, à appartenu à Drahi (2006-2015), puis propriété de Alain Weill (2019-2023)
+\[UPDATE\] Réussi avec l'extension Chrome. \[RE-UPDATE\] N'a pas l'air de fonctionner complètement. Fonctionne avec l'extension Chrome. A appartenu à Drahi (2006-2015), puis propriété d'Alain Weill (2019-2023).
 
 ### Nouvel Obs
 
-Même soucis.
+Même souci.
 
 ### Valeurs Actuelles
 
-[UPDATE] Accessible ("Valeurs actuels" Club) via le bypass chrome. 
+\[UPDATE\] Accessible ("Valeurs Actuelles Club") via le bypass Chrome.
 
 ### Capital.fr
 
-Fonctionne avec Chrome  
+Fonctionne avec Chrome.
 
 ### Nice Matin 
 
-Pas d'articles payant (à première vue), et des archives propres disponibles de 2015 à 2026
+Pas d'articles payants (à première vue), et des archives propres disponibles de 2015 à 2026.
 
 ### Télérama 
 
-Fonctionne avec Chrome,Rachat par Le Monde, donc influencé par le changement d'actionnaire principaux.
+Fonctionne avec Chrome. Rachat par Le Monde, donc influencé par le changement d'actionnaires principaux.
 
 ### Bilan du scrapping via l'extension Chrome
 
@@ -280,21 +280,21 @@ Benoît précise que les LLMs sont pertinents pour de l'**annotation** (ex. : po
 
 ## Pagination : 
 
-Le but de cette section est de "cartographier" les sites web de chaque journal. L'objectif est d'obtenir pour chaque article, l'url de l'article, et ce, pour l'ensemble des articles disponibles en ligne (donc beaucoup).
+Le but de cette section est de "cartographier" les sites web de chaque journal. L'objectif est d'obtenir l'URL de chaque article disponible en ligne (donc un grand nombre).
 
-Une première approche est de chercher via un script `sitemap_finder.py` un fichier sitemap.xml (ou un équivalent), car c'est le fichier utilisé par Google pour indexer le site. En général, le sitemap est indiqué dans le fichier `robot.txt`.
+Une première approche est de chercher via un script `sitemap_finder.py` un fichier sitemap.xml (ou équivalent), car c'est le fichier utilisé par Google pour indexer le site. En général, le sitemap est indiqué dans le fichier `robots.txt`.
 
-La seconde approche est d'inspecter la page à la main quand on a des rubriques avec une pagination explicite (ex : politique/page2). Comme une page contient dans son html une liste de liens vers les articles de la page, on peut alors parcourir chaque page, et récupérer les liens. 
+La seconde approche est d'inspecter la page à la main quand on a des rubriques avec une pagination explicite (ex : politique/page2). Comme une page contient dans son HTML une liste de liens vers les articles, on peut alors parcourir chaque page et récupérer les liens.
 
 
 ### JDD 
 
-Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lejdd.fr/sitemap.xml) du JDD. 
-Le problème est que comme pour le site web, il semble que aucun articles avant 2022 ne soient disponibles.
+Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lejdd.fr/sitemap.xml) du JDD.
+Le problème est que, comme pour le site web, aucun article avant 2022 ne semble disponible.
 
 ### Le Monde 
 
-Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lemonde.fr/sitemap_index.xml) du monde.
+Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lemonde.fr/sitemap_index.xml) du Monde.
 
 ### Figaro 
 
@@ -303,17 +303,17 @@ https://sitemaps.lefigaro.fr/lefigaro.fr/articles.xml
 
 ### Libération 
 
-Sitemap tentaculaire, pas très claire. 
-Dispose d'une section archive bien documentée, donc plus intéressant d'inspecter le html directement
+Sitemap tentaculaire, pas très clair.
+Dispose d'une section archive bien documentée, donc plus intéressant d'inspecter le HTML directement.
 
 Rq : S'intéresser aux sites d'archives : Factiva, Europress, BU
 
 ### Paris Match
 
-Sitemap limité. Des archives existent, mais ne sont pas trouvables pour l'instant. 
-Premières recherches via Internet Archives. Tester la Wayback machine aussi
-Ici, on a les archives https://www.parismatch.com/sitemap.xml de 2022 à 2026. 
-L'idée est d'utiliser Wayback Machine afin de récupérer d'anciens sitemap : http://web.archive.org/cdx/search/cdx?url=parismatch.com/sitemap*&output=json&collapse=urlkey
+Sitemap limité. Des archives existent, mais ne sont pas trouvables pour l'instant.
+Premières recherches via Internet Archive. Tester la Wayback Machine aussi.
+Ici, on a les archives https://www.parismatch.com/sitemap.xml de 2022 à 2026.
+L'idée est d'utiliser la Wayback Machine afin de récupérer d'anciens sitemaps : http://web.archive.org/cdx/search/cdx?url=parismatch.com/sitemap*&output=json&collapse=urlkey
 
 
 ### Les Echos
@@ -326,8 +326,8 @@ https://www.nouvelobs.com/sitemap/sitemap-index-articles.xml : Très satisfaisan
 
 ### VA
 
-Assez complexes mais satisfaisant, on peut accéder à 3 gros sites maps (trop gros pour charger normalement) via https://www.valeursactuelles.com/sitemap_index.xml.
-Complexe car le site de VA est un peu particuliers, il est divisé en 4 catégories (VA, VA Club, VA Régions, VA+). Reste à voir si chaque catégories est obtenable ou pas via le sitemap. Mais dans tous les cas, le sitemap contient beaucoup de liens.  
+Assez complexe mais satisfaisant : on peut accéder à 3 gros sitemaps (trop gros pour charger normalement) via https://www.valeursactuelles.com/sitemap_index.xml.
+Le site de VA est un peu particulier, car il est divisé en 4 catégories (VA, VA Club, VA Régions, VA+). Reste à voir si chaque catégorie est accessible via le sitemap. Dans tous les cas, il contient beaucoup de liens.
 
 ### Capital
 
@@ -336,12 +336,12 @@ Articles rangés en sous catégories numérotées de 1 à 500
 
 ### Nice Matin
 
-Très satisfaisant :https://www.nicematin.com/sitemap.xml
+Très satisfaisant : https://www.nicematin.com/sitemap.xml
 
 ### Télérama
 
-Très satisfaisant aussi (1992-2026): https://www.telerama.fr/sitemaps/sitemap_index.php
-Les premières années sont peu denses, mais à partir de 2006, énorméments d'articles dispo
+Très satisfaisant aussi (1992-2026) : https://www.telerama.fr/sitemaps/sitemap_index.php
+Les premières années sont peu denses, mais à partir de 2006, énormément d'articles disponibles.
 
 
 
