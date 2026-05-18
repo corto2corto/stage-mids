@@ -16,20 +16,6 @@ Analyse de l'impact des rachats de journaux français sur le contenu éditorial.
 
 Les rachats de journaux français modifient-ils la couverture thématique des articles ?
 
-## À faire
-
-- [ ] Définir la liste des journaux à étudier
-  - critères : tailles, lignes éditoriales contrastées, rachats récents documentés
-  - candidats potentiels à discuter : Le Monde, Le Figaro, Libération, Les Échos, La Provence, Paris Match, JDD, L'Express, L'Obs...
-- [ ] Pour chaque journal, identifier :
-  - structure du site (URL des articles, archives accessibles ?)
-  - présence d'un paywall
-  - format des pages (HTML statique vs JS-rendered)
-  - éventuelle API ou flux RSS
-  - date du/des rachat(s) connus
-- [ ] Choisir un journal pilote pour le premier prototype de scrapper
-- [ ] Définir le format de stockage des articles (JSON ? Parquet ? SQLite ?)
-
 ## Création répertoire GitHub, identification des journaux
 
 Répertoire Github : https://github.com/corto2corto/stage-mids
@@ -213,140 +199,88 @@ with open(r"docs\liberation.html", "w", encoding="utf-8") as f:
     f.write(html)
 ```
 
-### Les Échos
-
-\[UPDATE\] Après passage par Chrome, il est possible d'accéder aux articles payants des Échos.
-
-### La Provence
-
-Même cas que les Échos, le bypass échoue. \[UPDATE\] Même via Chrome, pas possible d'accéder. Essayer de paramétrer en étudiant le paywall.
-
-### Paris Match
-
-Réussi avec le script du Monde.
-
-### L'Express
-
-\[UPDATE\] Réussi avec l'extension Chrome. \[RE-UPDATE\] N'a pas l'air de fonctionner complètement. Fonctionne avec l'extension Chrome. A appartenu à Drahi (2006-2015), puis propriété d'Alain Weill (2019-2023).
-
-### Nouvel Obs
-
-Même souci.
-
-### Valeurs Actuelles
-
-\[UPDATE\] Accessible ("Valeurs Actuelles Club") via le bypass Chrome.
-
-### Capital.fr
-
-Fonctionne avec Chrome.
-
-### Nice Matin 
-
-Pas d'articles payants (à première vue), et des archives propres disponibles de 2015 à 2026.
-
-### Télérama 
-
-Fonctionne avec Chrome. Rachat par Le Monde, donc influencé par le changement d'actionnaires principaux.
-
-### Bilan du scrapping via l'extension Chrome
+### Bilan du scrapping 
 
 L'extension Chrome permet d'accéder aux articles de : Les Échos, le Nouvel Observateur, Valeurs Actuelles, Nice-Matin, Capital et Télérama. La Provence reste inaccessible, l'Express passe de manière irrégulière.
 
 Problème restant : des phrases génériques propres à chaque journal apparaissent ponctuellement. Deux pistes :
 
 - Construire une BDD de ces phrases et les filtrer dans le script de parsing.
-- Utiliser un prompt LLM : « Voici un article, élimine les phrases génériques de pub qui ne sont pas propres à l'article. »
+- Utiliser un prompt LLM : « Voici un article, élimine les phrases génériques de pub qui ne sont pas propres à l'article. » (à éviter, trop long)
 
-Benoît précise que les LLMs sont pertinents pour de l'**annotation** (ex. : position d'un article sur l'immigration) plutôt que pour du parsing.
-
-### Actuellement : 
+### Actuellement :
 
 | Journal           | Chrome | Firefox | Commentaires                              |
-|-------------------|--------|---------|-------------------------------------------|
+|-------------|-------------|-------------|---------------------------------|
 | JDD               | —      | OK      |                                           |
 | Le Monde          | —      | OK      | `sleep(2)` nécessaire                     |
 | Le Figaro         | —      | OK      | Même script que Le Monde                  |
 | Libération        | —      | OK      | Suppression des cookies + `sleep(2)`      |
 | Paris Match       | —      | OK      | Même script que Le Monde                  |
 | Les Échos         | OK     | KO      |                                           |
-| Nouvel Obs        | OK     | ~       | Bypass irrégulier sous Firefox            |
+| Nouvel Obs        | OK     | \~      | Bypass irrégulier sous Firefox            |
 | Valeurs Actuelles | OK     | —       |                                           |
 | Capital           | OK     | —       |                                           |
 | Nice Matin        | OK     | —       | Pas de paywall, archives 2015–2026        |
 | Télérama          | OK     | —       |                                           |
-| L'Express         | ~      | ~       | Bypass irrégulier sur les deux extensions |
+| L'Express         | \~     | \~      | Bypass irrégulier sur les deux extensions |
 | La Provence       | KO     | KO      | Paywall résistant, à étudier              |
 
-## Pagination : 
+## Pagination :
 
 Le but de cette section est de "cartographier" les sites web de chaque journal. L'objectif est d'obtenir l'URL de chaque article disponible en ligne (donc un grand nombre).
 
-Une première approche est de chercher via un script `sitemap_finder.py` un fichier sitemap.xml (ou équivalent), car c'est le fichier utilisé par Google pour indexer le site. En général, le sitemap est indiqué dans le fichier `robots.txt`.
+En général, le sitemap est indiqué dans le fichier `robots.txt`.
 
 La seconde approche est d'inspecter la page à la main quand on a des rubriques avec une pagination explicite (ex : politique/page2). Comme une page contient dans son HTML une liste de liens vers les articles, on peut alors parcourir chaque page et récupérer les liens.
 
+Après exploration des sitemap, on a en résumé :
 
-### JDD 
+| Journal | Sitemap | Commentaire |
+|---------------------|---------------------|------------------------------|
+| JDD | [lejdd.fr/sitemap.xml](https://www.lejdd.fr/sitemap.xml) | Sitemap trouvé facilement, mais aucun article antérieur à 2022 disponible |
+| Le Monde | [lemonde.fr/sitemap_index.xml](https://www.lemonde.fr/sitemap_index.xml) | Sitemap trouvé facilement |
+| Figaro | [sitemaps.lefigaro.fr/.../articles.xml](https://sitemaps.lefigaro.fr/lefigaro.fr/articles.xml) | Couverture 2006–2026 |
+| Libération | — | Sitemap tentaculaire et peu clair ; archives HTML plus exploitables. Pistes : Factiva, Europress, BU |
+| Paris Match | [parismatch.com/sitemap.xml](https://www.parismatch.com/sitemap.xml) | Sitemap limité (2022–2026) ; Wayback Machine à exploiter pour les anciens sitemaps |
+| Les Echos | [sitemap.lesechos.fr/sitemap_index.xml](https://sitemap.lesechos.fr/sitemap_index.xml) | Sitemaps sous forme de zip contenant des .xml ; accès complet aux liens |
+| Nouvel Obs | [nouvelobs.com/sitemap/sitemap-index-articles.xml](https://www.nouvelobs.com/sitemap/sitemap-index-articles.xml) | Très satisfaisant, articles depuis 2000 |
+| Valeurs Actuelles | [valeursactuelles.com/sitemap_index.xml](https://www.valeursactuelles.com/sitemap_index.xml) | 3 sitemaps volumineux ; site divisé en 4 catégories (VA, VA Club, VA Régions, VA+) |
+| Capital | [capital.fr/sitemap/articles.xml](https://www.capital.fr/sitemap/articles.xml) | Très satisfaisant ; articles classés en sous-catégories numérotées (1–500) |
+| Nice Matin | [nicematin.com/sitemap.xml](https://www.nicematin.com/sitemap.xml) | Très satisfaisant |
+| Télérama | [telerama.fr/sitemaps/sitemap_index.php](https://www.telerama.fr/sitemaps/sitemap_index.php) | Très satisfaisant (1992–2026) ; couverture dense à partir de 2006 |
 
-Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lejdd.fr/sitemap.xml) du JDD.
-Le problème est que, comme pour le site web, aucun article avant 2022 ne semble disponible.
+### Détail des sitemap
 
-### Le Monde 
+Les sites de presse exposent des fichiers `sitemap.xml` destinés aux moteurs de recherche, qui listent toutes les pages indexables du site. C'est un format en deux niveaux : un `sitemap-index` qui pointe vers des sous-sitemaps, et chaque sous-sitemap qui contient les URLs d'articles. C'est ce mécanisme qu'on exploite : on télécharge l'index, on parcourt chaque sous-sitemap, on en extrait les URL des articles qui sont dans des balises `<loc>`.
 
-Via `sitemap_finder.py`, on trouve facilement un sitemap.xml (https://www.lemonde.fr/sitemap_index.xml) du Monde.
+### Difficultés rencontrées et stratégies de contournement
 
-### Figaro 
+**Hétérogénéité des plateformes.** Chaque journal a une organisation différente de son sitemap. Le Monde expose un sous-sitemap par jour depuis 1945. Libération est sur Arc XP avec pagination plafonnée à 10 000 articles (limite Elasticsearch documentée). Le Figaro a un index simple avec 7572 sous-sitemaps.
 
-https://sitemaps.lefigaro.fr/lefigaro.fr/articles.xml
-(De 2006 à 2026)
+**Paris Match.** Le site n'expose plus de sitemap historique exploitable (seuls les \~100 derniers articles sont accessibles via le sitemap dynamique). Solution : utiliser la CDX API de la Wayback Machine pour récupérer les anciens sitemaps mensuels archivés (2005-2022). Le format `https://web.archive.org/web/{timestamp}id_/{url}` permet d'accéder au XML brut sans le bandeau de navigation injecté par Wayback. Cette approche a permis de récupérer plusieurs dizaines de milliers d'articles que le site lui-même ne donne plus.
 
-### Libération 
+**Caractères de contrôle invalides dans les XML.** Le Monde renvoie occasionnellement des fichiers contenant des caractères ASCII de contrôle et font planter le parseur.
 
-Sitemap tentaculaire, pas très clair.
-Dispose d'une section archive bien documentée, donc plus intéressant d'inspecter le HTML directement.
+Solution envisagée : appliquer une regex de nettoyage avant le parsing, qui retire les caractères de contrôle non-autorisés en préservant TAB, LF et CR.
 
-Rq : S'intéresser aux sites d'archives : Factiva, Europress, BU
+**Rate limiting et instabilités serveur.** Pour Wayback Machine et certains journaux, des hoquets temporaires renvoient des réponses vides avec un code HTTP 200. Solution : `time.sleep(1)` à `time.sleep(15)` selon les cas, et `try/except` autour de chaque téléchargement et parsing pour ne pas perdre toute la progression sur un échec ponctuel.
 
-### Paris Match
+### Choix du format de stockage
 
-Sitemap limité. Des archives existent, mais ne sont pas trouvables pour l'instant.
-Premières recherches via Internet Archive. Tester la Wayback Machine aussi.
-Ici, on a les archives https://www.parismatch.com/sitemap.xml de 2022 à 2026.
-L'idée est d'utiliser la Wayback Machine afin de récupérer d'anciens sitemaps : http://web.archive.org/cdx/search/cdx?url=parismatch.com/sitemap*&output=json&collapse=urlkey
+Migration de JSON vers JSONL (JSON Lines). Une ligne par sitemap traité, ajoutée en mode append. Avantages : écriture instantanée quelle que soit la taille du fichier, robustesse aux crashs (un crash corrompt au pire la dernière ligne), structure de récupération naturelle.
 
+Format final adopté pour chaque ligne :
 
-### Les Echos
+``` json
+{"type": "ok", "sitemap": "https://...", "urls": ["url1", "url2", ...]}
+{"type": "echec", "sitemap": "https://..."}
+```
 
-https://sitemap.lesechos.fr/sitemap_index.xml : Permet de télécharger des zip qui contiennent des .xml, et on peut accéder à tous les liens du journal.
+### Mécanisme de reprise après interruption
 
-### Nvl Obs
+Vu les volumes (jusqu'à plusieurs heures de scraping par journal) et les contraintes de Colab (timeout après 90 min d'inactivité, 12h maximum par session), un mécanisme de reprise était nécessaire. Au démarrage du script, le fichier JSONL existant est relu ligne par ligne pour reconstruire un `set` des sitemaps déjà traités. La boucle principale teste `if page in deja_traites` avant chaque téléchargement, sautant immédiatement ceux qui ont déjà été faits. Ce système permet de scraper sur plusieurs sessions étalées sans aucune perte de progression.
 
-https://www.nouvelobs.com/sitemap/sitemap-index-articles.xml : Très satisfaisant, ensemble des articles depuis 2000
+### Résultats
 
-### VA
-
-Assez complexe mais satisfaisant : on peut accéder à 3 gros sitemaps (trop gros pour charger normalement) via https://www.valeursactuelles.com/sitemap_index.xml.
-Le site de VA est un peu particulier, car il est divisé en 4 catégories (VA, VA Club, VA Régions, VA+). Reste à voir si chaque catégorie est accessible via le sitemap. Dans tous les cas, il contient beaucoup de liens.
-
-### Capital
-
-Très satisfaisant : https://www.capital.fr/sitemap/articles.xml
-Articles rangés en sous catégories numérotées de 1 à 500
-
-### Nice Matin
-
-Très satisfaisant : https://www.nicematin.com/sitemap.xml
-
-### Télérama
-
-Très satisfaisant aussi (1992-2026) : https://www.telerama.fr/sitemaps/sitemap_index.php
-Les premières années sont peu denses, mais à partir de 2006, énormément d'articles disponibles.
-
-
-
-
-
-
-
-
+Un fichier JSONL par journal, stocké dans Google Drive. Pour chaque ligne, l'information complète sur un sitemap (succès ou échec, liste des URLs si succès).

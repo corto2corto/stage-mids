@@ -45,8 +45,12 @@ env/
 
 2026-05-05.html 
 
+# --- Script inutile ---
+mapping/sitemap_finder.py
+
 # --- Notebooks ---
 .ipynb_checkpoints/
+notebooks/Notebook.ipynb
 
 # --- Éditeurs / OS ---
 .vscode/
