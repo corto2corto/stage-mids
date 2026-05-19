@@ -150,7 +150,7 @@ with open("test.html", "w", encoding="utf-8") as f:
 En reprenant le même pattern Selenium + Firefox, il suffit d'ajouter un timer de 2 secondes pour rester légèrement plus longtemps sur la page, le temps que le bypass s'effectue, et on peut récupérer un article du Monde de la même manière :
 
 ```{python}
-# Même principe que pour le JDD, mais on ajoute un timeur car le bypass est plus long.
+# Même principe que pour le JDD, mais on ajoute un timer car le bypass est plus long.
 
 import time
 from selenium import webdriver
@@ -260,7 +260,7 @@ Les sites de presse exposent des fichiers `sitemap.xml` destinés aux moteurs de
 
 **Paris Match.** Le site n'expose plus de sitemap historique exploitable (seuls les \~100 derniers articles sont accessibles via le sitemap dynamique). Solution : utiliser la CDX API de la Wayback Machine pour récupérer les anciens sitemaps mensuels archivés (2005-2022). Le format `https://web.archive.org/web/{timestamp}id_/{url}` permet d'accéder au XML brut sans le bandeau de navigation injecté par Wayback. Cette approche a permis de récupérer plusieurs dizaines de milliers d'articles que le site lui-même ne donne plus.
 
-**Caractères de contrôle invalides dans les XML.** Le Monde renvoie occasionnellement des fichiers contenant des caractères ASCII de contrôle et font planter le parseur.
+**Caractères de contrôle invalides dans les XML.** Le Monde renvoie occasionnellement des fichiers contenant des caractères ASCII de contrôle et qui font planter le parseur.
 
 Solution envisagée : appliquer une regex de nettoyage avant le parsing, qui retire les caractères de contrôle non-autorisés en préservant TAB, LF et CR.
 
@@ -328,7 +328,7 @@ Objectif : récupérer les articles post-Benoit via le sitemap et les 10 000 der
 
 ### Étape suivante
 - Gérer les quelques échecs du Monde
-- Réécrire le scrip pour tous type de journal hors Paris Match (car Wayback)
+- Réécrire le script pour tous types de journaux hors Paris Match (car Wayback)
 - Penser à un autre format de stockage : directement passer à CSV ? SQLite pour éviter les tuples, faire du comptage etc ? 
 - Passage à la parallélisation/scraping sur serveur.
 
