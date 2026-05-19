@@ -241,7 +241,7 @@ Après exploration des sitemap, on a en résumé :
 | JDD | [lejdd.fr/sitemap.xml](https://www.lejdd.fr/sitemap.xml) | Sitemap trouvé facilement, mais aucun article antérieur à 2022 disponible |
 | Le Monde | [lemonde.fr/sitemap_index.xml](https://www.lemonde.fr/sitemap_index.xml) | Sitemap trouvé facilement |
 | Figaro | [sitemaps.lefigaro.fr/.../articles.xml](https://sitemaps.lefigaro.fr/lefigaro.fr/articles.xml) | Couverture 2006–2026 |
-| Libération | — | Sitemap tentaculaire et peu clair ; archives HTML plus exploitables. Pistes : Factiva, Europress, BU |
+| Libération |  | Sitemap tentaculaire et peu clair ; archives HTML plus exploitables. Pistes : Factiva, Europress, BU |
 | Paris Match | [parismatch.com/sitemap.xml](https://www.parismatch.com/sitemap.xml) | Sitemap limité (2022–2026) ; Wayback Machine à exploiter pour les anciens sitemaps |
 | Les Echos | [sitemap.lesechos.fr/sitemap_index.xml](https://sitemap.lesechos.fr/sitemap_index.xml) | Sitemaps sous forme de zip contenant des .xml ; accès complet aux liens |
 | Nouvel Obs | [nouvelobs.com/sitemap/sitemap-index-articles.xml](https://www.nouvelobs.com/sitemap/sitemap-index-articles.xml) | Très satisfaisant, articles depuis 2000 |
@@ -284,3 +284,51 @@ Vu les volumes (jusqu'à plusieurs heures de scraping par journal) et les contra
 ### Résultats
 
 Un fichier JSONL par journal, stocké dans Google Drive. Pour chaque ligne, l'information complète sur un sitemap (succès ou échec, liste des URLs si succès).
+
+### Extension du scraping à d'autres titres de presse
+
+Chaque journal a révélé des particularités techniques :
+
+**Sitemaps gzippés (Les Échos).** Le site `sitemap.lesechos.fr` sert ses sous-sitemaps sous forme de fichiers `.xml.gz` (compression gzip). Solution : ajout d'une étape de décompression avec le module `gzip` de la bibliothèque standard, déclenchée par la détection automatique des deux premiers octets `\x1f\x8b` qui constituent la signature universelle des fichiers gzip. 
+
+**Sitemaps PHP (Télérama).** L'URL du sitemap de Télérama se termine par `.php` (`telerama.fr/sitemaps/sitemap_index.php`), ce qui pourrait laisser penser à un format différent. En réalité, l'extension désigne uniquement le langage côté serveur qui génère la réponse : le contenu renvoyé est bien du XML standard conforme à la spec sitemap. 
+
+**Site protégé par DataDome (Libération).** Captcha + protection Datadome : abandon de cette voie pour Libération et limitation à ce que leur sitemap public expose, soit environ 10 000 articles récents.
+Objectif : récupérer les articles post-Benoit via le sitemap et les 10 000 derniers articles, pour mettre la BDD Gallica à jour. 
+
+**Sitemaps de type WordPress/Yoast (Valeurs Actuelles).** Liste de dix sous-sitemaps catégorisés par type de contenu (`post-sitemap.xml` paginé en trois fichiers pour les articles, `page-sitemap.xml` pour les pages statiques, `category-sitemap.xml`, `auteur-sitemap.xml`, etc.).
+
+### Synthèse des particularités rencontrées
+
+| Particularité | Journal type | Solution |
+|---|---|---|
+| Caractères de contrôle XML invalides | Le Monde | Regex de nettoyage avant parsing |
+| Sitemaps gzippés | Les Échos | Détection magic number + `gzip.decompress` |
+| Extension `.php` trompeuse | Télérama | Aucune (contenu déjà XML) |
+| Protection anti-bot DataDome | Libération | Abandon (coût/bénéfice défavorable) |
+| Sitemap-index Yoast difficile | Valeurs Actuelles | Liste manuelle des sous-sitemaps |
+| Limite Arc XP 10 000 articles | Libération | Contrainte acceptée |
+| Archives sur Wayback Machine | Paris Match | CDX API + format `id_` pour XML brut |
+
+### Articles actuels : 
+
+| Journal | URLs collectées | Échecs |
+|---|---:|---:|
+| Le Monde | 4 086 784 | 9 |
+| Le Figaro | 2 745 555 | 0 |
+| Les Échos | 1 177 520 | 0 |
+| Nice Matin | 637 925 | 0 |
+| Le Nouvel Observateur | 523 470 | 8 |
+| Paris Match | 213 509 | 0 |
+| Le Journal du Dimanche | 159 225 | 0 |
+| Le Capital | 135 525 | 0 |
+| Télérama | 131 248 | 0 |
+| Valeurs Actuelles | 102 966 | 0 |
+| **Total** | **9 913 727** | **17** |
+
+### Étape suivante
+- Gérer les quelques échecs du Monde
+- Réécrire le scrip pour tous type de journal hors Paris Match (car Wayback)
+- Penser à un autre format de stockage : directement passer à CSV ? SQLite pour éviter les tuples, faire du comptage etc ? 
+- Passage à la parallélisation/scraping sur serveur.
+
