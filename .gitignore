@@ -47,6 +47,7 @@ env/
 
 # --- Script inutile ---
 mapping/sitemap_finder.py
+scrapers/libe_archives.py
 
 # --- Notebooks ---
 .ipynb_checkpoints/
