@@ -332,3 +332,12 @@ Objectif : récupérer les articles post-Benoit via le sitemap et les 10 000 der
 - Penser à un autre format de stockage : directement passer à CSV ? SQLite pour éviter les tuples, faire du comptage etc ? 
 - Passage à la parallélisation/scraping sur serveur.
 
+## Note
+
+/data/elias 
+- mettre le github (clone)
+- à installer venv 
+(bien installer ds le hdd (dans mon dossier perso))
+
+htop pour voir ce qu'il se passe sur le serveur 
+ 
