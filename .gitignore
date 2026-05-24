@@ -9,16 +9,16 @@ data/processed/
 *.db
 *.sqlite
 
-# Extensions 
-bypass-paywalls-chrome-clean-master
-chrome-bpc
-uBlock0.chromium
-
 # Exception : on garde les petits fichiers d'exemple
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !**/sample_*.csv
 !**/sample_*.json
+
+# Extensions navigateur (profils, ne doivent jamais être versionnés)
+bypass-paywalls-chrome-clean-master/
+chrome-bpc/
+uBlock0.chromium/
 
 # --- Python ---
 __pycache__/
@@ -42,16 +42,16 @@ env/
 *_files/
 *_cache/
 /site_libs/
+journal/journal.html
+journal/*.quarto_ipynb*
+journal/2026-05-05*
 
-2026-05-05.html 
-
-# --- Script inutile ---
-mapping/sitemap_finder.py
-scrapers/libe_archives.py
+# --- HTML temporaires (sorties de scrapers) ---
+*.html
+!journal/*.qmd
 
 # --- Notebooks ---
 .ipynb_checkpoints/
-notebooks/Notebook.ipynb
 
 # --- Éditeurs / OS ---
 .vscode/
