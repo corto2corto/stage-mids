@@ -2,3 +2,4 @@ requests>=2.31.0
 tqdm>=4.66.0
 selenium>=4.20.0
 pandas>=2.1.0
+huggingface_hub>=1.16.1
