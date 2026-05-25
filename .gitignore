@@ -1,7 +1,6 @@
 # --- Données scrappées ---
 # On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
 data/
-data/processed/
 *.csv
 *.json
 *.jsonl
