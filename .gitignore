@@ -1,6 +1,6 @@
 # --- Données scrappées ---
 # On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
-data/
+data/*
 *.csv
 *.json
 *.jsonl
@@ -13,6 +13,7 @@ data/
 !data/processed/.gitkeep
 !**/sample_*.csv
 !**/sample_*.json
+!data/upload_csv.py
 
 # Extensions navigateur (profils, ne doivent jamais être versionnés)
 bypass-paywalls-chrome-clean-master/
