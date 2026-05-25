@@ -4,5 +4,5 @@ snapshot_download(
     repo_id="corto2corto/articles",
     repo_type="dataset",
     local_dir="/data/elias/stage-mids/data",
-    token="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"
+    token=""
 )
