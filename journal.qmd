@@ -391,3 +391,7 @@ Convention des états : `0` = non visité, `1` = visité avec échec, `2` = visi
 4. `verification.py` (quand la logique sera définie).
 5. `db.ecrire_resultats(...)` + test (signature dépend de l'étape 4).
 6. `runner.lancer_vague()` + test d'intégration.
+
+### Mise en place sur le serveur
+
+`creation_bdd.py` puis `importer_csv.py` ont tourné sur le serveur (`/data/elias/stage-mids/`). La base `urls.db` contient ~10 millions de lignes, toutes à `etat=0`, réparties sur 10 médias.
