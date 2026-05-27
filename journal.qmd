@@ -395,3 +395,36 @@ Convention des états : `0` = non visité, `1` = visité avec échec, `2` = visi
 ### Mise en place sur le serveur
 
 `creation_bdd.py` puis `importer_csv.py` ont tourné sur le serveur (`/data/elias/stage-mids/`). La base `urls.db` contient ~10 millions de lignes, toutes à `etat=0`, réparties sur 10 médias.
+
+### Architecture complète du pipeline (version consolidée)
+
+```
+urls.db (todo-list)
+    ↓ 4_creation_batch.py
+batch {media: (id, url)}
+    ↓ 5_scrap.py
+htmls {media: (id, url, html|None)}
+    ↓ 6_verification.py
+    ↓ 7_extraction.py
+résultats {media: (id, etat, métadonnées)}
+    ↓
+urls.db  ← mise à jour etat (1 ou 2)
+<media>.csv ← métadonnées extraites
+```
+
+#### Exploration (5_scrap.py)
+
+Prend `batch` en entrée, lance N navigateurs Selenium en parallèle (`ThreadPoolExecutor`, timeout fixe). Le routage `media → stratégie de scraping` est centralisé dans un dictionnaire `SCRAPERS` — il y a en réalité 3-4 variantes (Firefox simple, Firefox avec sleep, Firefox avec suppression de cookies, Chrome). Si un navigateur freeze ou lève une exception, le `with webdriver` garantit sa fermeture et `html=None` est retourné. Uniformisation du scraper à faire plus tard.
+
+#### Vérification (6_verification.py)
+
+Prend un `html` en entrée, renvoie `True/False` (ou etat 1/2). Logique : à fixer.
+
+#### Extraction des métadonnées (7_extraction.py)
+
+Prend `html` et `media` en entrée, renvoie un dict de métadonnées. Le routage `media → fonction d'extraction` suit le même pattern que `SCRAPERS`. Les métadonnées disponibles varient selon le média (auteur, date, titre, texte, etc.).
+
+#### Stockage des résultats
+
+- `urls.db` : mise à jour de `etat` uniquement (todo-list).
+- Un CSV par média (`le_monde.csv`, `le_figaro.csv`, etc.) pour les métadonnées extraites. Chaque CSV a ses propres colonnes selon ce que le média expose. Choix du CSV plutôt que SQLite car les métadonnées sont hétérogènes — pandas gère nativement les valeurs manquantes sans contrainte de type.
