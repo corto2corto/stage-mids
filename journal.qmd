@@ -201,7 +201,7 @@ with open(r"docs\liberation.html", "w", encoding="utf-8") as f:
 
 ### Bilan du scrapping 
 
-L'extension Chrome permet d'accéder aux articles de : Les Échos, le Nouvel Observateur, Valeurs Actuelles, Nice-Matin, Capital et Télérama. La Provence reste inaccessible, l'Express passe de manière irrégulière.
+L'extension Chrome permet d'accéder aux articles de : Les Échos, le Nouvel Observateur (UPDATE : Ne passe plus), Valeurs Actuelles, Nice-Matin, Capital et Télérama. La Provence reste inaccessible, l'Express passe de manière irrégulière.
 
 Problème restant : des phrases génériques propres à chaque journal apparaissent ponctuellement. Deux pistes :
 
