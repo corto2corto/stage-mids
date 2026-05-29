@@ -5,7 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 PROFIL_MODELE = "/data/elias/stage-mids/extensions/chrome-bpc"
-URL = ""  # à renseigner
+URL = "https://www.lefigaro.fr/festival-de-cannes/des-films-qui-n-en-finissent-plus-le-festival-de-cannes-vu-par-eric-neuhoff-20260516"  # à renseigner
 
 profil_temp = tempfile.mkdtemp()
 shutil.copytree(PROFIL_MODELE, profil_temp, dirs_exist_ok=True)
