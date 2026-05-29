@@ -1,3 +1,6 @@
+# --- Claude Code (config locale, non versionnée) ---
+.claude/
+
 # --- Données scrappées ---
 # On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
 data/*.csv
