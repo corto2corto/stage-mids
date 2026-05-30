@@ -25,4 +25,4 @@ with open(OUTPUT, "r", encoding="utf-8") as f:
     soup = BeautifulSoup(f, "html.parser")
 
 for p in soup.find_all("p"):
-    print(p.get_text())
+    print(p.texts)

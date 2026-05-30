@@ -1,5 +1,6 @@
 # --- Claude Code (config locale, non versionnée) ---
 .claude/
+CLAUDE.md
 
 # --- Données scrappées ---
 # On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
