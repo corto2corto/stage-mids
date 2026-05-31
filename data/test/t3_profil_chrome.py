@@ -1,21 +1,35 @@
-import shutil
-import tempfile
+import time
 import chromedriver_binary
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-PROFIL_MODELE = "/data/elias/stage-mids/extensions/chrome-bpc"
+# Dossier décompressé de l'extension bypass-paywalls-chrome-clean
+# (situé dans le profil chrome-bpc, sous Default/Extensions/<id>/<version>)
+EXTENSION = "/data/elias/stage-mids/extensions/chrome-bpc/Default/Extensions/ddkjiahejlhfcafbddmgiahcphecmpfh/2026.507.2008_0"
 
-profil_temp = tempfile.mkdtemp()
-shutil.copytree(PROFIL_MODELE, profil_temp, dirs_exist_ok=True)
+URL = "https://www.lefigaro.fr/festival-de-cannes/des-films-qui-n-en-finissent-plus-le-festival-de-cannes-vu-par-eric-neuhoff-20260516"
+OUTPUT = "/data/elias/stage-mids/data/test/article.html"
 
 options = Options()
-options.add_argument(f"--user-data-dir={profil_temp}")
-options.add_argument("--headless")
+
+# Nouveau mode headless : c'est le SEUL headless qui charge les extensions.
+options.add_argument("--headless=new")
+
+# Charger l'extension directement depuis son dossier décompressé.
+options.add_argument(f"--load-extension={EXTENSION}")
+options.add_argument(f"--disable-extensions-except={EXTENSION}")
+
+# Stabilité sur serveur Linux.
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
 
 with webdriver.Chrome(options=options) as driver:
-    print("Chrome ouvert avec profil")
-    print(f"Version : {driver.capabilities['browserVersion']}")
+    driver.get(URL)
+    time.sleep(10)  # laisser l'extension agir + la page se charger
+    html = driver.page_source
+
+with open(OUTPUT, "w", encoding="utf-8") as f:
+    f.write(html)
+
+print(f"HTML sauvegardé dans {OUTPUT} ({len(html)} caractères)")
