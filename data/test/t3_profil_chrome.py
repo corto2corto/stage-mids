@@ -4,9 +4,13 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 
-# Profil Chrome contenant DÉJÀ l'extension bypass-paywalls installée et configurée.
-# (même approche que les scrapers locaux qui fonctionnent, ex. scrapers/lexpress.py)
-PROFIL = "/data/elias/stage-mids/extensions/chrome-bpc"
+# Profil Chrome NATIF Linux, créé par Chrome lui-même au 1er lancement.
+# (On n'utilise PLUS le profil chrome-bpc venu de Windows : ses chemins internes
+#  contiennent des "\" Windows qui font planter le renderer sur Linux.)
+PROFIL = "/data/elias/stage-mids/extensions/chrome-linux-profile"
+
+# Extension décompressée (OS-neutre), chargée DANS ce profil neuf.
+EXTENSION = "/data/elias/stage-mids/extensions/bypass-paywalls-chrome-clean-master"
 
 URL = "https://www.lefigaro.fr/festival-de-cannes/des-films-qui-n-en-finissent-plus-le-festival-de-cannes-vu-par-eric-neuhoff-20260516"
 OUTPUT = "/data/elias/stage-mids/data/test/article.html"
@@ -14,12 +18,10 @@ OUTPUT = "/data/elias/stage-mids/data/test/article.html"
 start = time.time()
 
 options = Options()
-
-# On passe le profil entier : l'extension est dedans, pas besoin de --load-extension.
 options.add_argument(f"--user-data-dir={PROFIL}")
+options.add_argument(f"--load-extension={EXTENSION}")
 
 # Nouveau mode headless : seul headless capable de charger des extensions.
-# (PAS de --incognito : la navigation privée désactive les extensions par défaut.)
 options.add_argument("--headless=new")
 
 # Stabilité sur serveur Linux.
