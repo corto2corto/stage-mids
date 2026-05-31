@@ -1,35 +1,59 @@
+import json
 import os
 import time
 
-debut = time.time()
-
-from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
 EXTENSIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "extensions", "firefox")
-URL = "https://www.lejdd.fr/politique/lue-prete-a-interdire-le-parti-dont-est-membre-reconquete-au-parlement-europeen-175125"
-ATTENTE = 5  # secondes laissées aux extensions pour agir
+UBLOCK_ID = "uBlock0@raymondhill.net"
+MANAGED_DIR = os.path.expanduser("~/.mozilla/managed-storage")
+ATTENTE_LISTES = 20   # au démarrage : uBlock télécharge ses listes (une fois)
+ATTENTE_PAGE = 5      # laisse le bypass agir sur chaque page
 
-options = Options()
-options.add_argument("--headless")
+ADMIN_SETTINGS = {
+    "userSettings": {
+        "externalLists": "https://www.i-dont-care-about-cookies.eu/abp/",
+        "importedLists": ["https://www.i-dont-care-about-cookies.eu/abp/"],
+    },
+    "selectedFilterLists": [
+        "user-filters", "ublock-filters", "ublock-badware", "ublock-privacy",
+        "ublock-quick-fixes", "ublock-unbreak", "easylist", "easyprivacy",
+        "urlhaus-1", "plowe-0", "fanboy-cookiemonster", "ublock-cookies-easylist",
+        "easylist-annoyances", "FRA-0",
+        "https://www.i-dont-care-about-cookies.eu/abp/",
+    ],
+}
 
-# Aucun profil spécifié : geckodriver crée un profil neuf et jetable à chaque
-# lancement, puis le supprime sur .quit() (appelé par le `with`). Rien ne
-# survit d'un run à l'autre → script idempotent par défaut.
-with webdriver.Firefox(options=options) as driver:
+
+def configurer_ublock():
+    """Écrit le manifeste managed-storage. À appeler UNE fois avant tout."""
+    os.makedirs(MANAGED_DIR, exist_ok=True)
+    manifeste = {
+        "name": UBLOCK_ID,
+        "description": "Config uBlock pour scraping (listes anti-bandeaux)",
+        "type": "storage",
+        "data": {"adminSettings": ADMIN_SETTINGS},
+    }
+    with open(os.path.join(MANAGED_DIR, f"{UBLOCK_ID}.json"), "w", encoding="utf-8") as f:
+        json.dump(manifeste, f)
+
+
+def ouvrir_firefox():
+    """Ouvre un Firefox headless avec bypass + uBlock, prêt à scraper."""
+    options = Options()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
     for xpi in os.listdir(EXTENSIONS_DIR):
         if xpi.endswith(".xpi"):
             driver.install_addon(os.path.join(EXTENSIONS_DIR, xpi), temporary=True)
-    driver.get(URL)
-    time.sleep(ATTENTE)  # laisse bypass-paywalls retirer le paywall
-    html = driver.page_source
+    time.sleep(ATTENTE_LISTES)   # uBlock télécharge ses listes une seule fois
+    return driver
 
-print(f"Temps de scraping : {time.time() - debut:.2f}s")
 
-with open("test.html", "w", encoding="utf-8") as f:
-    f.write(html)
-
-soup = BeautifulSoup(html, "html.parser")
-for p in soup.find_all("p"):
-    print(p.get_text())
+def scraper(driver, url):
+    """Récupère le HTML d'une URL en repartant d'un état propre (cookies vidés)."""
+    driver.delete_all_cookies()
+    driver.get(url)
+    time.sleep(ATTENTE_PAGE)
+    return driver.page_source
