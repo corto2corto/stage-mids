@@ -1,6 +1,7 @@
 import os
 import time
 
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
@@ -24,3 +25,7 @@ with webdriver.Firefox(options=options) as driver:
 
 with open("test.html", "w", encoding="utf-8") as f:
     f.write(html)
+
+soup = BeautifulSoup(html, "html.parser")
+for p in soup.find_all("p"):
+    print(p.get_text())
