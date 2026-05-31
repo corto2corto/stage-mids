@@ -2,7 +2,7 @@ import time
 
 from bs4 import BeautifulSoup
 
-from scrapers.bypass_firefox import configurer_ublock, ouvrir_firefox, scraper
+from bypass_firefox import configurer_ublock, ouvrir_firefox, scraper
 
 # 3 URLs d'affilée pour vérifier : 1 seul téléchargement uBlock + cookies vidés entre chaque
 URLS = [
