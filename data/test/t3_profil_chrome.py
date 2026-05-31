@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 
 # Dossier décompressé de l'extension bypass-paywalls-chrome-clean
 # (situé dans le profil chrome-bpc, sous Default/Extensions/<id>/<version>)
-EXTENSION = "/data/elias/stage-mids/extensions/chrome-bpc/Default/Extensions/ddkjiahejlhfcafbddmgiahcphecmpfh/2026.507.2008_0"
+EXTENSION = "/data/elias/stage-mids/extensions/bypass-paywalls-chrome-clean-master"
 
 URL = "https://www.lefigaro.fr/festival-de-cannes/des-films-qui-n-en-finissent-plus-le-festival-de-cannes-vu-par-eric-neuhoff-20260516"
 OUTPUT = "/data/elias/stage-mids/data/test/article.html"
