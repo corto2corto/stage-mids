@@ -11,6 +11,7 @@ data/*.csv
 bypass-paywalls-chrome-clean-master/
 chrome-bpc/
 uBlock0.chromium/
+data/extensions/
 
 # --- Python ---
 __pycache__/
@@ -67,3 +68,4 @@ logs/
 models/
 *.pkl
 *.joblib
+extensions/firefox/
