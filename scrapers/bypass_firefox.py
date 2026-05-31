@@ -1,6 +1,8 @@
 import os
 import time
 
+debut = time.time()
+
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
@@ -22,6 +24,8 @@ with webdriver.Firefox(options=options) as driver:
     driver.get(URL)
     time.sleep(ATTENTE)  # laisse bypass-paywalls retirer le paywall
     html = driver.page_source
+
+print(f"Temps de scraping : {time.time() - debut:.2f}s")
 
 with open("test.html", "w", encoding="utf-8") as f:
     f.write(html)
