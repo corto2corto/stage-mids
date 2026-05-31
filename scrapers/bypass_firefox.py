@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
 EXTENSIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "extensions", "firefox")
-URL = "https://www.lejdd.fr/Societe/narcotrafic-lombre-des-dealers-plane-sur-les-mairies-173226"
+URL = "https://www.lejdd.fr/politique/lue-prete-a-interdire-le-parti-dont-est-membre-reconquete-au-parlement-europeen-175125"
 ATTENTE = 5  # secondes laissées aux extensions pour agir
 
 options = Options()
