@@ -69,3 +69,4 @@ models/
 *.pkl
 *.joblib
 extensions/firefox/
+extensions/chrome-linux-profile
