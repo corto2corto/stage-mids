@@ -428,3 +428,95 @@ Prend `html` et `media` en entrée, renvoie un dict de métadonnées. Le routage
 
 - `urls.db` : mise à jour de `etat` uniquement (todo-list).
 - Un CSV par média (`le_monde.csv`, `le_figaro.csv`, etc.) pour les métadonnées extraites. Chaque CSV a ses propres colonnes selon ce que le média expose. Choix du CSV plutôt que SQLite car les métadonnées sont hétérogènes — pandas gère nativement les valeurs manquantes sans contrainte de type.
+
+## Industrialisation du scraping : Firefox + extensions sur serveur
+
+Le prototypage local utilisait le profil Firefox personnel de la machine Windows (`-profile` pointant vers `AppData`). Cette approche ne tient pas sur le serveur Linux headless : pas d'interface graphique, pas de profil personnel. On a donc reconstruit toute la chaîne pour qu'elle tourne en autonomie sur le serveur.
+
+### Pourquoi Firefox plutôt que Chrome
+
+Chrome headless charge mal les extensions non signées (bypass-paywalls), et le mode `--headless=new` a un comportement instable avec les profils personnalisés. Firefox expose une API Selenium dédiée (`install_addon`) qui installe une extension après le démarrage du navigateur, y compris non signée (`temporary=True`). C'est la méthode recommandée par Mozilla et la seule fiable en headless.
+
+### Envoi des extensions sur le serveur
+
+Les deux extensions sont transférées sous forme de `.xpi` dans `extensions/firefox/` :
+
+- `uBlock0@raymondhill.net.xpi` (uBlock Origin, signée, depuis AMO)
+- `magnolia@12.34.xpi` (bypass-paywalls-clean, non signée)
+
+Ces fichiers vivent uniquement sur le serveur (ils sont dans `.gitignore`, pour ne pas alourdir le dépôt). Le profil Chrome Linux est ignoré de la même manière.
+
+### Installation des extensions au démarrage
+
+Plutôt que de pré-installer les extensions dans un profil (ce qui déclenche un bug geckodriver connu : les extensions apparaissent activées mais sont inertes en headless, cf. issues #1517/#1612), on les installe à chaud après le lancement :
+
+```{python}
+options = Options()
+options.add_argument("--headless")
+driver = webdriver.Firefox(options=options)
+for xpi in os.listdir(EXTENSIONS_DIR):
+    if xpi.endswith(".xpi"):
+        driver.install_addon(os.path.join(EXTENSIONS_DIR, xpi), temporary=True)
+```
+
+### Configuration d'uBlock sans interface : le managed storage
+
+Problème rencontré : uBlock fraîchement installé via `install_addon` repart de sa **configuration d'usine**, qui ne bloque **pas** les bandeaux de consentement cookies (les listes "Annoyances" sont désactivées par défaut). Or ces bandeaux gênent le bypass. Les réglages personnalisés (faits à la main sur le Mac) ne voyagent pas avec le `.xpi` : ils sont stockés dans le profil, pas dans le code de l'extension.
+
+Solution : le **managed storage**. Firefox lit au démarrage un manifeste JSON placé dans un dossier fixe, indépendant du profil :
+
+```
+~/.mozilla/managed-storage/uBlock0@raymondhill.net.json
+```
+
+uBlock y cherche une clé `adminSettings` et écrase ses réglages avec les nôtres. On y injecte la sauvegarde de configuration exportée depuis uBlock (clé `selectedFilterLists`), notamment les listes anti-bandeaux `fanboy-cookiemonster`, `ublock-cookies-easylist` et la liste externe `i-dont-care-about-cookies`. Comme le manifeste est lu hors profil, il fonctionne même avec le profil temporaire jetable que Selenium recrée à chaque lancement.
+
+### Réutilisation des navigateurs : éviter le re-téléchargement
+
+Au premier lancement, uBlock télécharge ses listes de filtres (~15-20s). Avec le modèle initial « un navigateur par URL », ce coût se répète pour **chaque** article — ruineux sur des millions d'URLs.
+
+La parade : garder chaque navigateur **ouvert** et lui faire enchaîner plusieurs URLs. L'analogie est celle d'une caisse de supermarché — on n'éteint pas la caisse entre deux clients, on nettoie juste le tapis. Concrètement, l'ouverture (démarrage + téléchargement uBlock) est sortie de la boucle :
+
+| Étape | Navigateur par URL | Navigateur réutilisé |
+|---|---:|---:|
+| Démarrage Firefox | ~5s | 0 |
+| Téléchargement uBlock | ~15-20s | 0 |
+| Scraping (`sleep`) | ~5s | ~5s |
+| **Total par URL** | **~25-30s** | **~5s** |
+
+Entre deux URLs, on repart d'un état propre avec `driver.delete_all_cookies()` — léger, et suffisant pour que le bypass refonctionne (le journal Libération avait déjà montré que vider les cookies est le bon levier). Le cache des listes uBlock, lui, reste en place.
+
+### Architecture du code
+
+Le scraping est découpé en trois briques réutilisables dans [`scrapers/bypass_firefox.py`](scrapers/bypass_firefox.py) :
+
+| Fonction | Appelée | Rôle |
+|---|---|---|
+| `configurer_ublock()` | 1 fois | écrit le manifeste managed-storage |
+| `ouvrir_firefox()` | 1 fois par média | lance Firefox, installe les `.xpi`, laisse uBlock télécharger ses listes |
+| `scraper(driver, url)` | par URL | vide les cookies, charge la page, renvoie le HTML |
+
+L'orchestration dans [`data/scripts/5_scrap.py`](data/scripts/5_scrap.py) ouvre les navigateurs une seule fois, puis boucle :
+
+```{python}
+configurer_ublock()
+navigateurs = ouvrir_navigateurs()        # 1 Firefox par média, en parallèle
+try:
+    while batch := lire_batch():          # 1 URL non traitée par média
+        resultats = scraper_batch(batch, navigateurs)
+        sauver_html(resultats)            # sauvegarde HTML (interim)
+        ecrire_resultats(resultats)       # etat = 2 (succès) ou 1 (échec)
+finally:
+    for driver in navigateurs.values():
+        driver.quit()
+```
+
+Propriétés clés :
+
+- **Reprise après interruption** : la BDD est mise à jour après chaque vague. Un arrêt (Ctrl-C, crash) laisse les URLs non traitées à `etat=0` ; un relancement reprend automatiquement.
+- **Parallélisme** : un `ThreadPoolExecutor` lance les navigateurs des différents médias simultanément (ouverture et scraping).
+- **Pas d'accumulation** : les cookies sont vidés entre chaque URL, on conserve seulement le cache des listes uBlock.
+
+### État Firefox par média
+
+Les médias confirmés sous Firefox sont pour l'instant `le_journal_du_dimanche`, `le_monde`, `le_figaro` et `paris_match`. Les autres (Chrome) seront intégrés au routage `media → stratégie` ultérieurement.
