@@ -54,8 +54,6 @@ navigateurs = ouvrir_multi_firefox(batch)
 # Scrape toutes les URLs en parallèle
 resultats = scraper_batch(batch, navigateurs)
 
-print(f"\nTemps total : {time.time() - debut:.1f}s")
-
 for media, (id, url, html) in resultats.items():
     print(f"\n== {media} ==")
     if html is None:
@@ -63,3 +61,9 @@ for media, (id, url, html) in resultats.items():
         continue
     for p in BeautifulSoup(html, "html.parser").find_all("p"):
         print(p.get_text())
+
+print(f"\nTemps total : {time.time() - debut:.1f}s")
+
+# Ferme les navigateurs après le test
+for driver in navigateurs.values():
+    driver.quit()

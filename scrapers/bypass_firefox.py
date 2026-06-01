@@ -39,8 +39,12 @@ def configurer_ublock():
         json.dump(manifeste, f)
 
 
+TMP_DIR = "/data/elias/tmp/firefox"
+
+
 def ouvrir_firefox():
     """Ouvre un Firefox headless avec bypass + uBlock, prêt à scraper."""
+    os.environ["TMPDIR"] = TMP_DIR
     options = Options()
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
