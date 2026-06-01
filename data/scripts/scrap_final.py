@@ -1,0 +1,53 @@
+from concurrent.futures import ThreadPoolExecutor
+
+from data.scripts.creation_batch import new_batch
+from scrapers.bypass_firefox import configurer_ublock, ouvrir_firefox, scraper
+
+SCRAPERS = {
+    "le_monde":               "firefox",
+    "le_figaro":              "firefox",
+    "le_journal_du_dimanche": "firefox",
+    # "paris_match":          "firefox",
+    # "le_capital":           "firefox",
+    # "les_echos":            "firefox",
+    # "valeurs_actuelles":    "firefox",
+    # "le_nouvel_observateur":"firefox",
+    # "nice_matin":           "firefox",
+    # "telerama":             "firefox",
+}
+
+
+def ouvrir_multi_firefox(batch):
+    medias = [m for m in batch if SCRAPERS.get(m) == "firefox"]
+    with ThreadPoolExecutor(max_workers=len(medias)) as ex:
+        drivers = list(ex.map(lambda _: ouvrir_firefox(), medias))
+    return dict(zip(medias, drivers))
+
+
+def scraper_batch(batch, navigateurs):
+    def scraper_url(media):
+        id, url = batch[media]
+        try:
+            html = scraper(navigateurs[media], url)
+        except Exception:
+            html = None
+        return media, (id, url, html)
+
+    with ThreadPoolExecutor(max_workers=len(navigateurs)) as ex:
+        resultats = dict(ex.map(lambda m: scraper_url(m), navigateurs))
+    return resultats
+
+
+# Ecrit la config uBlock dans ~/.mozilla/managed-storage/ (listes anti-bandeaux)
+configurer_ublock()
+
+# Récupère une URL par média depuis la BDD (etat=0)
+batch = new_batch()
+
+# Ouvre un Firefox par média Firefox en parallèle
+navigateurs = ouvrir_multi_firefox(batch)
+
+# Scrape toutes les URLs en parallèle
+resultats = scraper_batch(batch, navigateurs)
+
+print(resultats)
