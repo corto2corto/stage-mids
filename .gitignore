@@ -52,6 +52,9 @@ journal/2026-05-05*
 .DS_Store
 Thumbs.db
 
+# --- Claude ---
+CLAUDE.md
+
 # --- Secrets ---
 .env
 .env.local
