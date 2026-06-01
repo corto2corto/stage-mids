@@ -1,3 +1,4 @@
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from bs4 import BeautifulSoup
@@ -39,6 +40,8 @@ def scraper_batch(batch, navigateurs):
     return resultats
 
 
+debut = time.time()
+
 # Ecrit la config uBlock dans ~/.mozilla/managed-storage/ (listes anti-bandeaux)
 configurer_ublock()
 
@@ -51,8 +54,10 @@ navigateurs = ouvrir_multi_firefox(batch)
 # Scrape toutes les URLs en parallèle
 resultats = scraper_batch(batch, navigateurs)
 
+print(f"\nTemps total : {time.time() - debut:.1f}s")
+
 for media, (id, url, html) in resultats.items():
-    print(f"\n===== {media} =====")
+    print(f"\n== {media} ==")
     if html is None:
         print("ECHEC")
         continue
