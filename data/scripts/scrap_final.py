@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 
+from bs4 import BeautifulSoup
 from data.scripts.creation_batch import new_batch
 from scrapers.bypass_firefox import configurer_ublock, ouvrir_firefox, scraper
 
@@ -50,4 +51,10 @@ navigateurs = ouvrir_multi_firefox(batch)
 # Scrape toutes les URLs en parallèle
 resultats = scraper_batch(batch, navigateurs)
 
-print(resultats)
+for media, (id, url, html) in resultats.items():
+    print(f"\n===== {media} =====")
+    if html is None:
+        print("ECHEC")
+        continue
+    for p in BeautifulSoup(html, "html.parser").find_all("p"):
+        print(p.get_text())
