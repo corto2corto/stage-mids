@@ -2,11 +2,16 @@ import sqlite3
 
 BASE = "/data/elias/stage-mids/data/urls.db"
 
-batch = {}
-with sqlite3.connect(BASE) as conn:
-    rows = conn.execute("SELECT media, id, url FROM urls WHERE etat=0 GROUP BY media").fetchall()
+
+def lire_batch(medias):
+    """Renvoie une URL non traitée (etat=0) par média : {media: (id, url)}."""
+    marques = ",".join("?" * len(medias))
+    batch = {}
+    with sqlite3.connect(BASE) as conn:
+        rows = conn.execute(
+            f"SELECT media, id, url FROM urls WHERE etat=0 AND media IN ({marques}) GROUP BY media",
+            medias,
+        ).fetchall()
     for media, id, url in rows:
         batch[media] = (id, url)
-
-# Enlever le print ensuite, plutôt faire un return
-print(batch)
+    return batch
