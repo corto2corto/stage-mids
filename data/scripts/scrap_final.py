@@ -9,13 +9,13 @@ SCRAPERS = {
     "le_monde":               "firefox",
     "le_figaro":              "firefox",
     "le_journal_du_dimanche": "firefox",
-    # "paris_match":          "firefox",
-    # "le_capital":           "firefox",
-    # "les_echos":            "firefox",
-    # "valeurs_actuelles":    "firefox",
-    # "le_nouvel_observateur":"firefox",
-    # "nice_matin":           "firefox",
-    # "telerama":             "firefox",
+    "paris_match":            "firefox",
+    "le_capital":             "firefox",
+    "les_echos":              "firefox",
+    "valeurs_actuelles":      "firefox",
+    "le_nouvel_observateur":  "firefox",
+    "nice_matin":             "firefox",
+    "telerama":               "firefox",
 }
 
 
@@ -59,7 +59,7 @@ for media, (id, url, html) in resultats.items():
     if html is None:
         print("ECHEC")
         continue
-    for p in BeautifulSoup(html, "html.parser").find_all("p"):
+    for p in BeautifulSoup(html, "html.parser").find_all("p")[:10]:
         print(p.get_text())
 
 print(f"\nTemps total : {time.time() - debut:.1f}s")
