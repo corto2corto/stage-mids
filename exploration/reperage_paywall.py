@@ -18,22 +18,19 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-# Réglage serveur : Firefox a besoin d'un tmp dédié (cf. scraping/navigateur.py)
-os.environ["TMPDIR"] = "/data/elias/tmp/firefox"
+# Réglage serveur : Firefox a besoin d'un tmp dédié (cf. scraping/navigateur.py).
+# Ignoré en local (ex : Mac) si le dossier n'existe pas.
+_TMP = "/data/elias/tmp/firefox"
+if os.path.isdir(_TMP):
+    os.environ["TMPDIR"] = _TMP
 
 ATTENTE = 3  # laisse la page (et son paywall) s'afficher
 
 # Une URL payante par média (vérifiées manuellement comme étant derrière paywall)
 URLS = {
+    "le_journal_du_dimanche": "https://www.lejdd.fr/Societe/emeutes-apres-psg-arsenal-la-defaite-de-lordre-public-175371",
     "le_capital":             "https://www.capital.fr/votre-carriere/morald-chibout-le-conseiller-qui-recadre-les-pdg-sans-detour-1527026",
-    "le_figaro":              "https://www.lefigaro.fr/festival-de-cannes/des-films-qui-n-en-finissent-plus-le-festival-de-cannes-vu-par-eric-neuhoff-20260516",
-    "le_journal_du_dimanche": "https://www.lejdd.fr/International/suede-la-fin-de-lillusion-multiculturaliste-175155",
-    "le_monde":               "https://www.lemonde.fr/archives/article/1945/04/21/avant-la-conference-de-san-francisco_1858640_1819218.html",
-    "le_nouvel_observateur":  "https://www.nouvelobs.com/musique/20260602.OBS115437/areski-belkacem-est-mort-et-il-restera-injustement-et-pour-l-eternite-dans-l-ombre-de-brigitte-fontaine.html",
-    "les_echos":              "https://www.lesechos.fr/monde/europe/faut-il-parler-a-poutine-la-question-cruciale-qui-tourmente-les-europeens-2233690",
-    "nice_matin":             "https://www.nicematin.com/societe/justice/violences-gratuites-propos-homophobes-3-ans-de-prison-pour-l-agresseur-de-deux-etudiants-roues-de-coups-pres-de-la-gare-de-cannes-10683099",
-    "paris_match":            "https://www.parismatch.com/culture/cinema/antonin-baudry-le-general-de-gaulle-cest-quelquun-a-bout-de-souffle-qui-essaie-de-porter-une-france-a-bout-de-souffle-269941",
-    "telerama":               "https://www.telerama.fr/livre/ce-que-dit-boualem-sansal-dans-la-legende-son-nouveau-recit-7031419.php",
+    "nice_matin":             "https://www.nicematin.com/economie/commerce/depuis-1890-cette-famille-cultive-la-vigne-du-domaine-du-blavet-a-roquebrune-sur-argens-10683092",
 }
 
 
