@@ -1,3 +1,11 @@
+"""Pilotage d'un navigateur Firefox headless avec bypass paywall + uBlock.
+
+Trois fonctions :
+- configurer_ublock() : à appeler UNE fois avant tout (écrit la config uBlock).
+- ouvrir_firefox()    : ouvre un Firefox prêt à scraper (extensions installées).
+- scraper()           : récupère le HTML d'une URL avec un driver déjà ouvert.
+"""
+
 import json
 import os
 import time
@@ -5,7 +13,8 @@ import time
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-EXTENSIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "extensions", "firefox")
+from scraping.config import EXTENSIONS_DIR, TMP_DIR
+
 UBLOCK_ID = "uBlock0@raymondhill.net"
 MANAGED_DIR = os.path.expanduser("~/.mozilla/managed-storage")
 ATTENTE_LISTES = 20   # au démarrage : uBlock télécharge ses listes (une fois)
@@ -39,12 +48,9 @@ def configurer_ublock():
         json.dump(manifeste, f)
 
 
-TMP_DIR = "/data/elias/tmp/firefox"
-
-
 def ouvrir_firefox():
     """Ouvre un Firefox headless avec bypass + uBlock, prêt à scraper."""
-    os.environ["TMPDIR"] = TMP_DIR
+    os.environ["TMPDIR"] = str(TMP_DIR)
     options = Options()
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
