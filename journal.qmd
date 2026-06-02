@@ -520,3 +520,21 @@ Propriétés clés :
 ### État Firefox par média
 
 Les médias confirmés sous Firefox sont pour l'instant `le_journal_du_dimanche`, `le_monde`, `le_figaro` et `paris_match`. Les autres (Chrome) seront intégrés au routage `media → stratégie` ultérieurement.
+
+## Vérifier que le bypass a réussi : `bypass_reussi`
+
+Un article peut être récupéré tronqué sans qu'on s'en aperçoive : le bypass échoue, et on stocke un extrait à la place du texte complet. Pour s'en prémunir, on a comparé chaque page **sans** puis **avec** bypass, afin de repérer une phrase-signal de troncature propre à chaque site (« il vous reste X% à découvrir »…).
+
+Cette comparaison a révélé trois comportements distincts :
+
+| Comportement | Médias | Détection |
+|---|---|---|
+| Bypass réussi (texte débloqué, signal disparu) | le_figaro, le_monde, telerama | regex validée |
+| Bypass échoué (texte toujours tronqué) | le_nouvel_observateur, les_echos, paris_match | **non résolu** |
+| Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin | inutile |
+
+Deux pièges confirmés au passage : la bande « Article réservé aux abonnés » de fin de page reste affichée même quand le bypass réussit (Le Monde), et un label court « Réservé aux abonnés » coexiste avec la vraie phrase de coupure (Télérama). La détection doit donc cibler une phrase **spécifique par média** — d'où un dictionnaire `media → regex`, jamais un motif global.
+
+La fonction [`bypass_reussi(media, html)`](scraping/paywall.py) en découle : elle renvoie `False` si la phrase-signal du média est présente (article tronqué). Un média sans signal (paywall mou) est considéré complet par défaut.
+
+**Limite actuelle** : pour les trois sites où le bypass échoue, la regex est laissée **vide**. Ils passent donc le contrôle même tronqués — choix assumé en attendant de réparer leur bypass, qui reste le vrai point bloquant. La fonction **n'est pas encore branchée** au pipeline ; elle le sera une fois ces trois cas traités.
