@@ -18,3 +18,6 @@ def new_batch():
         for media, id, url in rows:
             batch[media] = (id, url)
     return batch
+
+if __name__ == "__main__":
+    print(new_batch())
