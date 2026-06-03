@@ -27,7 +27,7 @@ URLS = {
     "le_monde":               "https://www.lemonde.fr/archives/article/1945/04/21/avant-la-conference-de-san-francisco_1858640_1819218.html",
     "le_nouvel_observateur":  "https://www.nouvelobs.com/musique/20260602.OBS115437/areski-belkacem-est-mort-et-il-restera-injustement-et-pour-l-eternite-dans-l-ombre-de-brigitte-fontaine.html",
     "les_echos":              "https://www.lesechos.fr/monde/europe/faut-il-parler-a-poutine-la-question-cruciale-qui-tourmente-les-europeens-2233690",
-    "paris_match":            "https://www.parismatch.com/culture/cinema/antonin-baudry-le-general-de-gaulle-cest-quelquun-a-bout-de-souffle-qui-essaie-de-porter-une-france-a-bout-de-souffle-269941",
+    "paris_match":            "https://www.parismatch.com/People/je-sais-que-ma-carriere-est-terminee-tentatives-de-viol-agressions-sexuelles-affaire-patrick-bruel-nos-revelations-269775",
     "telerama":               "https://www.telerama.fr/livre/ce-que-dit-boualem-sansal-dans-la-legende-son-nouveau-recit-7031419.php",
     "le_journal_du_dimanche": "https://www.lejdd.fr/Societe/emeutes-apres-psg-arsenal-la-defaite-de-lordre-public-175371",
     "le_capital":             "https://www.capital.fr/votre-carriere/morald-chibout-le-conseiller-qui-recadre-les-pdg-sans-detour-1527026",
