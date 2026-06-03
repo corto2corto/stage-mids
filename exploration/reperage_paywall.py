@@ -31,6 +31,7 @@ URLS = {
     "le_journal_du_dimanche": "https://www.lejdd.fr/Societe/emeutes-apres-psg-arsenal-la-defaite-de-lordre-public-175371",
     "le_capital":             "https://www.capital.fr/votre-carriere/morald-chibout-le-conseiller-qui-recadre-les-pdg-sans-detour-1527026",
     "nice_matin":             "https://www.nicematin.com/economie/commerce/depuis-1890-cette-famille-cultive-la-vigne-du-domaine-du-blavet-a-roquebrune-sur-argens-10683092",
+    "paris_match":             "https://www.parismatch.com/People/je-sais-que-ma-carriere-est-terminee-tentatives-de-viol-agressions-sexuelles-affaire-patrick-bruel-nos-revelations-269775"
 }
 
 
