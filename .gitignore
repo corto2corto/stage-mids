@@ -40,7 +40,6 @@ journal/*.quarto_ipynb*
 journal/2026-05-05*
 
 # --- HTML temporaires (sorties de scrapers) ---
-*.html
 !journal/*.qmd
 
 # --- Notebooks ---
