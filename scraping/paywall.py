@@ -9,11 +9,12 @@ Un média absent de SIGNAUX_PAYWALL (paywall « mou » : texte toujours complet)
 est considéré OK par défaut. Idem pour un signal laissé vide, en attendant de
 régler le bypass du site.
 
-ÉTAT (2026-06-02) : le bypass échoue encore sur le_nouvel_observateur, les_echos
-et paris_match → leur signal est laissé vide, donc ils passent le check même
-tronqués. À FAIRE une fois leur bypass réparé : renseigner leur regex ici. Tout
-nouveau média scrapé devra aussi être ajouté à SIGNAUX_PAYWALL (ou laissé hors
-du dict s'il s'agit d'un paywall mou).
+ÉTAT (2026-06-04) : signal paris_match renseigné (« La suite de cet article est
+réservée aux abonnés », confirmé sur 8/8 articles). Restent sans signal :
+le_nouvel_observateur (seul un badge apparaît, pas de vraie troncature) et
+les_echos (échantillon = archives en texte complet, à reconfirmer sur du récent).
+Tout nouveau média scrapé devra aussi être ajouté à SIGNAUX_PAYWALL (ou laissé
+hors du dict s'il s'agit d'un paywall mou).
 """
 
 import re
@@ -27,10 +28,14 @@ SIGNAUX_PAYWALL = {
     "le_figaro": r"il vous reste\s*\d+\s*%\s*à découvrir",
     "le_monde":  r"il vous reste\s*[\d.,]+\s*%\s*de cet article à lire",
     "telerama":  r"cet article est réservé aux abonnés",
-    # Bypass encore inopérant : signal à définir une fois le bypass du site réglé (TODO).
+    "paris_match": r"la suite de cet article est réservée aux abonnés",
+    # Signal encore à définir (TODO) :
+    # - le_nouvel_observateur : seul le *badge* « Article réservé aux abonnés »
+    #   apparaît (idem le_monde sur des articles complets) → pas un signal fiable.
+    # - les_echos : échantillon = archives 1991 en texte complet (paywall cosmétique),
+    #   mais le corpus visé est récent → à reconfirmer sur des URLs récentes.
     "le_nouvel_observateur": "",
     "les_echos":             "",
-    "paris_match":           "",
 }
 
 
