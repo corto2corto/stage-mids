@@ -864,3 +864,44 @@ Synthèse, toutes sources confondues (JSON-LD + `<meta>` + corps), des métadonn
 | paris_match | titre, surtitre, description, auteur, date publiée, date modifiée, section, keywords, image, intro/chapô, free/locked, corps |
 | telerama | titre, chapô, description, auteur, date publiée, date modifiée, section, keywords, tags, free/locked, opinion, corps |
 | valeurs_actuelles | titre, chapô, description, auteur (corps ; « admin » en meta/JSON-LD), catégorie, date publiée, date modifiée, section, durée lecture, image, corps |
+
+## Fonction d'extraction : `scraping/extraction.py`
+
+La fonction `extraire(media, html)` renvoie un dict des métadonnées + le contenu. Périmètre V0 : colonnes communes `titre, auteur, date, section, free, contenu` (les champs spécifiques — opinion, tags, durée de lecture — viendront plus tard).
+
+### Routage par média : dico `MEDIAS`
+
+Chaque média déclare deux choses : d'où viennent ses **métadonnées** (`meta`) et comment récupérer son **corps** (`corps`).
+
+| Média | `meta` | `corps` (sélecteur / règle) |
+|---|---|---|
+| le_capital | json_ld | `div.articleBody` |
+| le_figaro | json_ld | `div.fig-content-body` |
+| le_monde | json_ld | `div.article__content` |
+| telerama | json_ld | `article.article__page-content` |
+| valeurs_actuelles | json_ld | `div.post__content` |
+| les_echos | json_ld | `div.post-paywall` |
+| paris_match | json_ld | `section.content-rte` |
+| le_nouvel_observateur | json_ld | `p.node__paragraphe` (sélection directe des `<p>`) |
+| nice_matin | json_ld | `article` (tous les `<p>` de la balise) |
+| le_journal_du_dimanche | **corps** | `div.rte` |
+
+### Les trois briques
+
+- **`meta_json_ld(soup)`** — lit le `NewsArticle` du JSON-LD (gère le `@graph` via une boucle, l'auteur en dict/liste, `isAccessibleForFree` bool/texte → normalisé en `oui`/`non`). Utilisé par 9 médias.
+- **`meta_corps(soup)`** — lit titre/auteur/date dans le HTML pour le JDD (pas de JSON-LD). Subtilité : l'auteur réel est dans `<a class="author">` ; le `<span class="author no-link">` qui précède n'est qu'un préfixe (« Propos recueillis par ») et est ignoré.
+- **`extraire_corps(regle, soup)`** — applique la règle de corps : si le sélecteur renvoie un conteneur unique, on prend ses `<p>` ; si la règle est `article` (Nice Matin) on prend les `<p>` du `<article>` ; sinon (ex. `p.node__paragraphe`) on prend directement les `<p>` ciblés. Joints par des espaces.
+
+### Validation hors ligne (sur les dumps `exploration/html/`)
+
+Les 10 médias passent : titre + contenu présents partout. Manques attendus (pas des bugs) :
+- **les_echos** : pas d'auteur ni de section (archive 1991 sans signature ; classes hashées).
+- **le_journal_du_dimanche** : pas de section ni de free (le JDD ne les expose pas).
+- **telerama** : `free` vide sur le dump testé.
+
+Le JDD a été re-dumpé sur un **article standard** (le 1er dump était un live, structure atypique) pour valider ses sélecteurs (`main-title`, `a.author`, `time`, `div.rte`).
+
+### Reste à faire
+
+- Brancher `ecriture_csv` ([scraping/stockage.py](scraping/stockage.py)) sur `extraire()` + nouvelles colonnes dans [scripts/4_init_csv_sortie.py](scripts/4_init_csv_sortie.py).
+- Cas particuliers reportés : fallback auteur dans le corps pour le_monde (« Le Monde ») et valeurs_actuelles (« admin ») ; colonnes spécifiques par média.

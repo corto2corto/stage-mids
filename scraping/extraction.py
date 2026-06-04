@@ -21,8 +21,7 @@ MEDIAS = {
     "paris_match":            {"meta": "json_ld", "corps": "section.content-rte"},
     "le_nouvel_observateur":  {"meta": "json_ld", "corps": "p.node__paragraphe"},
     "nice_matin":             {"meta": "json_ld", "corps": "article"},
-    # le_journal_du_dimanche : à compléter après re-dump d'un article standard
-    # (le dump actuel est un live, structure atypique). Stratégie prévue : "corps".
+    "le_journal_du_dimanche": {"meta": "corps",   "corps": "div.rte"},
 }
 
 
@@ -63,6 +62,24 @@ def meta_json_ld(soup):
     }
 
 
+def meta_corps(soup):
+    """Métadonnées lues dans le HTML (JDD : pas de JSON-LD, méta pauvres).
+
+    L'auteur est dans <a class="author"> ; le <span class="author no-link"> qui
+    le précède n'est qu'un préfixe ("Propos recueillis par") qu'on ignore.
+    """
+    titre = soup.find("h1", class_="main-title")
+    auteur = soup.find("a", class_="author")
+    date = soup.find("time")
+    return {
+        "titre":   titre.get_text(strip=True) if titre else "",
+        "auteur":  auteur.get_text(strip=True) if auteur else "",
+        "date":    date.get("datetime", "") if date else "",
+        "section": "",
+        "free":    "",
+    }
+
+
 def extraire_corps(regle, soup):
     """Texte de l'article : <p> ciblés par la règle du média, joints par des espaces."""
     if regle == "article":
@@ -86,6 +103,6 @@ def extraire(media, html):
     soup = BeautifulSoup(html, "html.parser")
     config = MEDIAS[media]
 
-    meta = meta_json_ld(soup) if config["meta"] == "json_ld" else {}
+    meta = meta_json_ld(soup) if config["meta"] == "json_ld" else meta_corps(soup)
     meta["contenu"] = extraire_corps(config["corps"], soup)
     return meta
