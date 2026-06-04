@@ -53,6 +53,7 @@ def ouvrir_firefox():
     os.environ["TMPDIR"] = str(TMP_DIR)
     options = Options()
     options.add_argument("--headless")
+    options.set_preference("permissions.default.image", 2)
     driver = webdriver.Firefox(options=options)
     for xpi in os.listdir(EXTENSIONS_DIR):
         if xpi.endswith(".xpi"):

@@ -529,12 +529,14 @@ Cette comparaison a révélé trois comportements distincts :
 
 | Comportement | Médias | Détection |
 |---|---|---|
-| Bypass réussi (texte débloqué, signal disparu) | le_figaro, le_monde, telerama | regex validée |
-| Bypass échoué (texte toujours tronqué) | le_nouvel_observateur, les_echos, paris_match | **non résolu** |
-| Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin | inutile |
+| Bypass réussi (texte débloqué, signal disparu) | le_figaro, le_monde, telerama, les_echos | regex validée |
+| Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin, paris_match | inutile |
+| Bypass échoué (texte tronqué) | le_nouvel_observateur | **non résolu** |
 
 Deux pièges confirmés au passage : la bande « Article réservé aux abonnés » de fin de page reste affichée même quand le bypass réussit (Le Monde), et un label court « Réservé aux abonnés » coexiste avec la vraie phrase de coupure (Télérama). La détection doit donc cibler une phrase **spécifique par média** — d'où un dictionnaire `media → regex`, jamais un motif global.
 
 La fonction [`bypass_reussi(media, html)`](scraping/paywall.py) en découle : elle renvoie `False` si la phrase-signal du média est présente (article tronqué). Un média sans signal (paywall mou) est considéré complet par défaut.
 
 **Limite actuelle** : pour les trois sites où le bypass échoue, la regex est laissée **vide**. Ils passent donc le contrôle même tronqués — choix assumé en attendant de réparer leur bypass, qui reste le vrai point bloquant. La fonction **n'est pas encore branchée** au pipeline ; elle le sera une fois ces trois cas traités.
+
+**Note sur Paris Match** : classé en paywall mou — le texte est toujours complet dans le HTML sur les articles testés, avec un encart « La suite est réservée aux abonnés » résiduel en fin de page. Cependant, un article (entretien De Gaulle) semblait tronqué lors d'un test antérieur. À surveiller : il est possible que le paywall soit sélectif selon les articles.
