@@ -9,10 +9,26 @@ Un média absent de SIGNAUX_PAYWALL (paywall « mou » : texte toujours complet)
 est considéré OK par défaut. Idem pour un signal laissé vide, en attendant de
 régler le bypass du site.
 
-ÉTAT (2026-06-04) : signal paris_match renseigné (« La suite de cet article est
-réservée aux abonnés », confirmé sur 8/8 articles). Restent sans signal :
-le_nouvel_observateur (seul un badge apparaît, pas de vraie troncature) et
-les_echos (échantillon = archives en texte complet, à reconfirmer sur du récent).
+ÉTAT (2026-06-04) : signaux calés après analyse d'un échantillon de 10 articles
+par média (cf. exploration/echantillon_tailles2.txt) :
+- les_echos : signal renseigné (« contenu réservé aux abonnés »), validé sur les
+  2 articles récents tronqués ; les 8 archives complètes passent bien le check.
+- le_monde : regex élargie. Le format récent (« Il vous reste X % de cet article
+  à lire ») ne couvrait que 2/10 ; les archives utilisent « Envie de lire la
+  suite ? » → les deux sont désormais captés. Cas non couvert : une page « boutique »
+  sans corps ni phrase paywall (échec de chargement) — relève d'un contrôle de
+  longueur, pas d'un signal.
+- telerama : regex élargie à « réservé(e) aux abonnés » pour capter aussi le badge
+  court « Réservé aux abonnés » (le regex précédent ratait 1 article sur 4 tronqués).
+- nice_matin : ajouté (« débloquer votre article »), capte les 7 articles tronqués.
+- le_nouvel_observateur : corps présent sur les 10 articles (bypass OK) → reste vide.
+- le_figaro, le_capital, le_journal_du_dimanche, valeurs_actuelles : aucun article
+  tronqué dans l'échantillon (paywall mou ou bypass OK) → laissés hors du dict.
+
+PIÈGES à éviter (libellés d'UI présents sur TOUTES les pages, complètes comprises) :
+« réservée à nos inscrits » (telerama) et « réservée aux utilisateurs connectés »
+(nice_matin) ne sont PAS des signaux de troncature.
+
 Tout nouveau média scrapé devra aussi être ajouté à SIGNAUX_PAYWALL (ou laissé
 hors du dict s'il s'agit d'un paywall mou).
 """
@@ -25,17 +41,22 @@ from bs4 import BeautifulSoup
 # Sa présence dans le texte = article tronqué = bypass échoué.
 SIGNAUX_PAYWALL = {
     # Bypass validé : signaux confirmés (ils disparaissent quand le bypass marche).
-    "le_figaro": r"il vous reste\s*\d+\s*%\s*à découvrir",
-    "le_monde":  r"il vous reste\s*[\d.,]+\s*%\s*de cet article à lire",
-    "telerama":  r"cet article est réservé aux abonnés",
+    "le_figaro":   r"il vous reste\s*\d+\s*%\s*à découvrir",
+    # le_monde : deux formats de troncature cohabitent (récent = « il vous reste
+    # X % », archives = « Envie de lire la suite ? »).
+    "le_monde":    r"il vous reste\s*[\d.,]+\s*%\s*de cet article à lire|envie de lire la suite",
+    # telerama : badge « Cet article est réservé aux abonnés » OU « Réservé aux
+    # abonnés ». NE matche PAS « réservée à nos inscrits » (UI présente partout).
+    "telerama":    r"réservée?s? aux abonnés",
     "paris_match": r"la suite de cet article est réservée aux abonnés",
-    # Signal encore à définir (TODO) :
-    # - le_nouvel_observateur : seul le *badge* « Article réservé aux abonnés »
-    #   apparaît (idem le_monde sur des articles complets) → pas un signal fiable.
-    # - les_echos : échantillon = archives 1991 en texte complet (paywall cosmétique),
-    #   mais le corpus visé est récent → à reconfirmer sur des URLs récentes.
+    "les_echos":   r"contenu réservé aux abonnés",
+    # nice_matin : « Abonnez-vous… ou regardez une publicité pour débloquer votre
+    # article ». On vise le fragment distinctif (les libellés « réservée aux
+    # utilisateurs connectés » sont sur toutes les pages → inutilisables).
+    "nice_matin":  r"débloquer votre article",
+    # le_nouvel_observateur : corps présent sur tout l'échantillon (bypass OK), seul
+    # un badge « Abonné » apparaît sur les teasers → pas de signal de troncature.
     "le_nouvel_observateur": "",
-    "les_echos":             "",
 }
 
 
