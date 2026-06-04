@@ -8,19 +8,18 @@
 
 import csv
 
-from bs4 import BeautifulSoup
-
+from scraping import extraction
 from scraping.config import CSV_DIR
+
+COLONNES = ["id", "url", "titre", "auteur", "date", "section", "free", "contenu"]
 
 
 def ecriture_csv(media, id, url, html):
-    """Parse le HTML et écrit une ligne (id, url, contenu) dans le CSV du média."""
-    contenu = " ".join(
-        p.get_text() for p in BeautifulSoup(html, "html.parser").find_all("p")
-    )
+    """Extrait les métadonnées et écrit une ligne dans le CSV du média."""
+    meta = extraction.extraire(media, html)
     chemin = CSV_DIR / f"{media}.csv"
     with open(chemin, "a", newline="", encoding="utf-8") as f:
-        csv.writer(f).writerow([id, url, contenu])
+        csv.writer(f).writerow([id, url, meta["titre"], meta["auteur"], meta["date"], meta["section"], meta["free"], meta["contenu"]])
 
 
 def maj_bdd(conn, id, etat=2):

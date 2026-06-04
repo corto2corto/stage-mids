@@ -1,5 +1,7 @@
 import csv
-import os
+
+from scraping.config import CSV_DIR
+from scraping.stockage import COLONNES
 
 MEDIAS = [
     "le_monde",
@@ -14,14 +16,11 @@ MEDIAS = [
     "telerama",
 ]
 
-CSV_DIR = "/data/elias/stage-mids/data/csv"
-COLONNES = ["id", "url", "contenu"]
-
-os.makedirs(CSV_DIR, exist_ok=True)
+CSV_DIR.mkdir(parents=True, exist_ok=True)
 
 for media in MEDIAS:
-    chemin = os.path.join(CSV_DIR, f"{media}.csv")
-    if os.path.exists(chemin):
+    chemin = CSV_DIR / f"{media}.csv"
+    if chemin.exists():
         continue
     with open(chemin, "w", newline="", encoding="utf-8") as f:
         csv.writer(f).writerow(COLONNES)
