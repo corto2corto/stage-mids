@@ -7,9 +7,12 @@
 """
 
 import csv
+from pathlib import Path
+
 from scraping import extraction
-from scraping.config import DATA_DIR
 from scraping.paywall import est_bloque
+
+DATA_DIR = Path("/data/elias/stage-mids/data")
 
 # éventuellement à supprimer.
 COLONNES = ["id", "url", "titre", "auteur", "date", "section", "free", "contenu"]
