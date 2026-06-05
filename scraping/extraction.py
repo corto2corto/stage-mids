@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 MEDIAS = {
     "le_capital":             {"meta": "json_ld", "corps": "div.articleBody"},
     "le_figaro":              {"meta": "json_ld", "corps": "div.fig-content-body"},
-    "le_monde":               {"meta": "json_ld", "corps": "div.article__content"},
+    "le_monde":               {"meta": "json_ld", "corps": ".article__content"},
     "telerama":               {"meta": "json_ld", "corps": "article.article__page-content"},
     "valeurs_actuelles":      {"meta": "json_ld", "corps": "div.post__content"},
     "les_echos":              {"meta": "json_ld", "corps": "div.post-paywall"},
