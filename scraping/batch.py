@@ -5,11 +5,11 @@ Un batch = une URL par média encore à traiter (etat=0).
 
 import sqlite3
 
-from scraping.config import BASE
+from scraping.config import DATA_DIR
 
 def new_batch():
     batch = {}
-    with sqlite3.connect(BASE) as conn:
+    with sqlite3.connect(DATA_DIR/"urls.db") as conn:
         rows = conn.execute(
             "SELECT media, id, url FROM urls WHERE etat=0 GROUP BY media"
         ).fetchall()

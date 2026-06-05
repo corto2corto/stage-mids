@@ -7,7 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from scraping.batch import new_batch
-from scraping.config import BASE, SCRAPERS
+from scraping.config import DATA_DIR, SCRAPERS
 from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
 from scraping.stockage import ecriture_csv, maj_bdd
 
@@ -41,7 +41,7 @@ def main():
     configurer_ublock()
 
     # Connexion persistante pour les mises à jour d'état (commit par batch)
-    conn = sqlite3.connect(BASE)
+    conn = sqlite3.connect(DATA_DIR/"urls.db")
 
     # Une URL par média depuis la BDD (etat=0)
     batch = new_batch()

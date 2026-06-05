@@ -8,14 +8,7 @@ from pathlib import Path
 # Sert à retrouver les ressources versionnées comme le dossier extensions/.
 RACINE = Path(__file__).resolve().parent.parent
 
-# --- Données sur le serveur (chemins absolus, fixes) ---
 DATA_DIR = Path("/data/elias/stage-mids/data")
-BASE = DATA_DIR / "urls.db"      # base sqlite des URLs à scraper
-CSV_DIR = DATA_DIR / "csv"       # CSV de sortie (un fichier par média)
-
-# --- Ressources navigateur (sur le serveur) ---
-EXTENSIONS_DIR = RACINE / "extensions" / "firefox"   # les .xpi (uBlock + bypass)
-TMP_DIR = Path("/data/elias/tmp/firefox")            # dossier temporaire de Firefox
 
 # --- Médias scrapés et leur moteur de scraping ---
 SCRAPERS = {
@@ -33,12 +26,8 @@ SCRAPERS = {
 
 
 if __name__ == "__main__":
-    print(f"RACINE         : {RACINE}")
-    print(f"DATA_DIR       : {DATA_DIR}")
-    print(f"BASE           : {BASE}")
-    print(f"CSV_DIR        : {CSV_DIR}")
-    print(f"EXTENSIONS_DIR : {EXTENSIONS_DIR}")
-    print(f"TMP_DIR        : {TMP_DIR}")
+    print(f"RACINE   : {RACINE}")
+    print(f"DATA_DIR : {DATA_DIR}")
     print(f"\nSCRAPERS ({len(SCRAPERS)} médias) :")
     for media, moteur in SCRAPERS.items():
         print(f"  - {media:24} {moteur}")
