@@ -1,20 +1,5 @@
-"""Détection paywall : le contenu extrait est-il bloqué (à retester) ou complet ?
-
-Ce module observe la SORTIE de extraction.py — le contenu déjà extrait — et rien
-d'autre (pas de HTML, pas de re-sélection de balises).
-
-Un contenu est BLOQUÉ — donc à noter état 1 (à retester) — si :
-1. il est vide (aucun texte extrait : live Figaro, conteneur d'article absent…) ;
-2. une expression de blocage apparaît dans la FIN du contenu.
-
-Pourquoi seulement la fin : un message de coupure (« il vous reste X % »,
-« réservé aux abonnés »…) est toujours en bout d'article tronqué. Un badge en
-tête, ou un article correctement débloqué, n'en a pas à la fin → pas de faux
-positif sur du contenu complet.
-
-Usage dans le pipeline :
-    meta = extraction.extraire(media, html)
-    etat = 1 if est_bloque(meta["contenu"]) else 2
+"""
+Inspecte la fin du contenu d'un article et détecte un éventuel paywall, ou bien si l'article est vide.
 """
 
 import re
@@ -27,11 +12,11 @@ SIGNAUX_BLOCAGE = [
 ]
 _PATRON = re.compile("|".join(SIGNAUX_BLOCAGE), re.IGNORECASE)
 
+# supprimer ce genre de variable inutile. 
 LONGUEUR_FIN = 300   # nombre de caractères de fin de contenu inspectés
 
 
 def est_bloque(contenu):
-    """True si le contenu extrait est bloqué (vide, ou blocage en fin)."""
     if not contenu.strip():
         return True
     return _PATRON.search(contenu[-LONGUEUR_FIN:]) is not None
