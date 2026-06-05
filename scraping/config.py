@@ -32,3 +32,15 @@ SCRAPERS = {
     "nice_matin":             "firefox",
     "telerama":               "firefox",
 }
+
+
+if __name__ == "__main__":
+    print(f"RACINE         : {RACINE}")
+    print(f"DATA_DIR       : {DATA_DIR}")
+    print(f"BASE           : {BASE}")
+    print(f"CSV_DIR        : {CSV_DIR}")
+    print(f"EXTENSIONS_DIR : {EXTENSIONS_DIR}")
+    print(f"TMP_DIR        : {TMP_DIR}")
+    print(f"\nSCRAPERS ({len(SCRAPERS)} médias) :")
+    for media, moteur in SCRAPERS.items():
+        print(f"  - {media:24} {moteur}")
