@@ -1,7 +1,5 @@
-"""Configuration centrale : tous les chemins et la liste des médias.
-
-C'est l'unique endroit où sont définis les chemins serveur et les médias
-scrapés. Si un chemin change sur le serveur, on le modifie ici seulement.
+"""
+Configuration centrale : tous les chemins et la liste des médias.
 """
 
 from pathlib import Path

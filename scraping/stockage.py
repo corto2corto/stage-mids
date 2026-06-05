@@ -7,11 +7,11 @@
 """
 
 import csv
-
 from scraping import extraction
 from scraping.config import CSV_DIR
 from scraping.paywall import est_bloque
 
+# éventuellement à supprimer.
 COLONNES = ["id", "url", "titre", "auteur", "date", "section", "free", "contenu"]
 
 

@@ -1,5 +1,4 @@
 """Orchestration du scraping : ouvre les navigateurs, scrape un batch, écrit.
-
 Point d'entrée : main(). Lancé via lancer_scraping.py à la racine du dépôt.
 """
 

@@ -1,7 +1,7 @@
 """Pilotage d'un navigateur Firefox headless avec bypass paywall + uBlock.
 
 Trois fonctions :
-- configurer_ublock() : à appeler UNE fois avant tout (écrit la config uBlock).
+- configurer_ublock() : à appeler UNE fois avant tout (permet de configurer uBlock).
 - ouvrir_firefox()    : ouvre un Firefox prêt à scraper (extensions installées).
 - scraper()           : récupère le HTML d'une URL avec un driver déjà ouvert.
 """
