@@ -41,8 +41,13 @@ from scraping.navigateur import (
 )
 from scraping.paywall import SIGNAUX_PAYWALL
 
-N_CANDIDATS = 6                         # URLs tirées par média (avant filtre payant)
-PAYANTS_SEULEMENT = True                # ignore les articles free == "oui"
+N_CANDIDATS = 8                         # URLs tirées par média (avant filtre payant)
+# Restreint le run à ces médias (vide = tous). On cible ici les 3 absents du
+# dernier tirage, faute de quoi PAYANTS_SEULEMENT les avait tous écartés.
+MEDIAS_CIBLES = ["paris_match", "le_figaro", "le_capital"]
+# Flag isAccessibleForFree PEU FIABLE (il a écarté à tort paris_match) : on ne
+# filtre plus dessus, on lit la « paid-ness » dans le ratio + la fin du corps.
+PAYANTS_SEULEMENT = False               # si True, ignore les articles free == "oui"
 N_BALISES_FIN = 3                       # nb de derniers <p> montrés (la « fin »)
 SORTIE = "exploration/comparaison_bypass.txt"
 
@@ -106,10 +111,14 @@ def analyser(media, html):
 
 
 def candidats():
-    """{media: [(id, url), ...]} : N_CANDIDATS URLs tirées au hasard par média."""
+    """{media: [(id, url), ...]} : N_CANDIDATS URLs tirées au hasard par média.
+
+    Limité à MEDIAS_CIBLES si non vide, sinon tous les médias de SCRAPERS.
+    """
+    medias = MEDIAS_CIBLES or list(SCRAPERS)
     tirage = {}
     with sqlite3.connect(BASE) as conn:
-        for media in SCRAPERS:
+        for media in medias:
             tirage[media] = conn.execute(
                 "SELECT id, url FROM urls WHERE media=? ORDER BY RANDOM() LIMIT ?",
                 (media, N_CANDIDATS),
