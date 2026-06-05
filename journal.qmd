@@ -332,21 +332,22 @@ Objectif : récupérer les articles post-Benoit via le sitemap et les 10 000 der
 - Penser à un autre format de stockage : directement passer à CSV ? SQLite pour éviter les tuples, faire du comptage etc ? 
 - Passage à la parallélisation/scraping sur serveur.
 
-## Note
+## Pipeline de moissonnage des articles
 
-/data/elias
-- mettre le github (clone)
-- à installer venv
-(bien installer ds le hdd (dans mon dossier perso))
-
-htop pour voir ce qu'il se passe sur le serveur
-
-## Pipeline de moissonnage
-
-Une fois les URLs collectées et stockées en CSV (un par média), on passe à la phase de moissonnage des articles. Le pipeline cible suit la séquence :
+Les URLs collectées, on passe au moissonnage du contenu. Voilà le plan :
 
 ```
-base SQL  →  liste url  →  exploration  →  check  →  upload
+urls.db (etat=0)
+   ↓  batch.new_batch()         une URL par média encore à traiter
+batch {media: (id, url)}
+   ↓  navigateur.scraper()      un Firefox par média, en parallèle
+{media: (id, url, html|None)}
+   ↓  extraction.extraire()     métadonnées + corps
+   ↓  paywall.est_bloque()      rejette les articles tronqués ou vides
+résultats
+   ↓  stockage
+<media>.csv  ← métadonnées extraites
+urls.db      ← mise à jour de l'etat (1 échec / 2 succès)
 ```
 
 ### Schéma de la base
@@ -362,39 +363,30 @@ CREATE TABLE urls (
 CREATE INDEX idx_media_etat ON urls(media, etat);
 ```
 
-Convention des états : `0` = non visité, `1` = visité avec échec, `2` = visité avec succès.
+Convention des états : `0` = à scraper, `1` = visité avec échec (HTML absent ou article tronqué), `2` = visité avec succès. La base ne sert que de todo-list ; le contenu extrait part dans les CSV.
 
-### Étapes
+### Les modules
 
-| Étape | Fichier | Rôle |
+| Étape | Module | Rôle |
 |---|---|---|
-| (préalable) Import CSV → SQLite | `data/import_to_db.py` | One-shot, lecture streaming + `executemany` par chunks |
-| base SQL → liste url | `db.py` (`lire_lot`) | `SELECT id, url … WHERE media=? AND etat=0 LIMIT 1` par média, renvoie `{media: (id, url)}` |
-| exploration | `scrap.py` (`explorer`) | 10 navigateurs Selenium en parallèle (`ThreadPoolExecutor`, timeout fixe), un par média, renvoie `{media: (id, html\|None)}` |
-| check | `verification.py` | Logique à définir |
-| upload | `db.py` (`ecrire_resultats`) | Un seul `executemany` en transaction unique |
-| orchestration | `runner.py` (`lancer_vague`) | Enchaîne les 4 étapes, une vague = un appel |
+| batch | [`scraping/batch.py`](scraping/batch.py) | `SELECT … WHERE etat=0 GROUP BY media` → une URL par média : `{media: (id, url)}` |
+| exploration | [`scraping/navigateur.py`](scraping/navigateur.py) | Firefox headless + bypass + uBlock ; un navigateur par média (`ThreadPoolExecutor`) |
+| extraction | [`scraping/extraction.py`](scraping/extraction.py) | HTML → `{titre, auteur, date, section, free, contenu}` |
+| contrôle | [`scraping/paywall.py`](scraping/paywall.py) | `est_bloque(contenu)` : rejette les articles tronqués ou vides |
+| stockage | [`scraping/stockage.py`](scraping/stockage.py) | écrit le CSV du média, met à jour l'`etat` en base |
+| orchestration | [`scraping/pipeline.py`](scraping/pipeline.py) | enchaîne le tout ; lancé par `python -m scraping.pipeline` |
 
 ### Principes
 
-- Une vague = 10 URLs (une par média) traitées en parallèle, puis écriture groupée en BDD.
+- Une vague = une URL par média (dix aujourd'hui), scrapées en parallèle, puis écriture groupée et un seul `commit` en fin de vague.
 - Pas de WAL ni de pragmas exotiques : un seul writer par vague suffit.
-- Pas d'état "en cours" intermédiaire ni de compteur de tentatives — un échec reste un échec.
-- Si un navigateur freeze, le `with webdriver.Xxx() as driver` garantit la fermeture, et la vérification renvoie `1`.
-- Les scrapers existants dans `scrapers/` sont conservés tels quels ; `scrap.py` réutilise leur logique sous forme de fonction appelable.
-
-### Ordre d'implémentation
-
-1. `data/import_to_db.py` (one-shot, test manuel sur un petit CSV).
-2. `db.lire_lot()` + test.
-3. `scrap.explorer(...)` + test (scrapers mockés).
-4. `verification.py` (quand la logique sera définie).
-5. `db.ecrire_resultats(...)` + test (signature dépend de l'étape 4).
-6. `runner.lancer_vague()` + test d'intégration.
+- Pas d'état « en cours » ni de compteur de tentatives — un échec reste un échec, l'URL restant simplement à `etat=0` tant qu'elle n'est pas traitée.
+- Reprise après interruption gratuite : la base est mise à jour vague par vague ; un Ctrl-C ou un crash laisse les URLs non faites à `etat=0`, un relancement reprend là où on en était.
+- Si un navigateur freeze ou lève une exception, le `with webdriver` garantit sa fermeture et `html=None` est retourné (état `1`).
 
 ### Mise en place sur le serveur
 
-`creation_bdd.py` puis `importer_csv.py` ont tourné sur le serveur (`/data/elias/stage-mids/`). La base `urls.db` contient ~10 millions de lignes, toutes à `etat=0`, réparties sur 10 médias.
+Les scripts de préparation [`scripts/2_creer_bdd.py`](scripts/2_creer_bdd.py) puis [`scripts/3_importer_csv.py`](scripts/3_importer_csv.py) ont tourné sur le serveur (`/data/elias/stage-mids/`). La base `urls.db` contient ~10 millions de lignes, toutes à `etat=0`, réparties sur 10 médias. Les CSV de sortie (un par média, en-têtes seuls) sont créés par [`scripts/creer_csv.py`](scripts/creer_csv.py).
 
 ### Architecture complète du pipeline (version consolidée)
 
@@ -521,25 +513,25 @@ Propriétés clés :
 
 Les médias confirmés sous Firefox sont pour l'instant `le_journal_du_dimanche`, `le_monde`, `le_figaro` et `paris_match`. Les autres (Chrome) seront intégrés au routage `media → stratégie` ultérieurement.
 
-## Vérifier que le bypass a réussi : `bypass_reussi`
+## Vérifier que le bypass a réussi : `est_bloque`
 
-Un article peut être récupéré tronqué sans qu'on s'en aperçoive : le bypass échoue, et on stocke un extrait à la place du texte complet. Pour s'en prémunir, on a comparé chaque page **sans** puis **avec** bypass, afin de repérer une phrase-signal de troncature propre à chaque site (« il vous reste X% à découvrir »…).
+Un article peut être récupéré tronqué sans qu'on s'en aperçoive : le bypass échoue, et on stocke un extrait à la place du texte complet. Pour s'en prémunir, on a comparé chaque page **sans** puis **avec** bypass, afin de repérer une phrase-signal de troncature (« il vous reste X % à découvrir », « réservé aux abonnés »…).
 
 Cette comparaison a révélé trois comportements distincts :
 
-| Comportement | Médias | Détection |
+| Comportement | Médias | Conséquence |
 |---|---|---|
-| Bypass réussi (texte débloqué, signal disparu) | le_figaro, le_monde, telerama, les_echos | regex validée |
-| Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin, paris_match | inutile |
+| Bypass réussi (texte débloqué, signal disparu) | le_figaro, le_monde, telerama, les_echos | détectable |
+| Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin, paris_match | rien à faire |
 | Bypass échoué (texte tronqué) | le_nouvel_observateur | **non résolu** |
 
-Deux pièges confirmés au passage : la bande « Article réservé aux abonnés » de fin de page reste affichée même quand le bypass réussit (Le Monde), et un label court « Réservé aux abonnés » coexiste avec la vraie phrase de coupure (Télérama). La détection doit donc cibler une phrase **spécifique par média** — d'où un dictionnaire `media → regex`, jamais un motif global.
+Deux pièges relevés au passage : la bande « Article réservé aux abonnés » de fin de page reste affichée même quand le bypass réussit (Le Monde), et un label court « Réservé aux abonnés » coexiste avec la vraie phrase de coupure (Télérama).
 
-La fonction [`bypass_reussi(media, html)`](scraping/paywall.py) en découle : elle renvoie `False` si la phrase-signal du média est présente (article tronqué). Un média sans signal (paywall mou) est considéré complet par défaut.
+**Décision clé** : faire la détection sur le **corps déjà extrait**, pas sur le HTML brut. Une fois le corps isolé par l'extraction (cf. section suivante), les bandes et labels de pied de page disparaissent — ce qui élimine ces faux positifs et permet de remplacer le dictionnaire `media → regex` envisagé au départ par **une seule liste générique** de signaux de fin de texte. La fonction [`est_bloque(contenu)`](scraping/paywall.py) renvoie `True` si le contenu est vide ou si l'un de ces signaux apparaît dans les ~300 derniers caractères.
 
-**Limite actuelle** : pour les trois sites où le bypass échoue, la regex est laissée **vide**. Ils passent donc le contrôle même tronqués — choix assumé en attendant de réparer leur bypass, qui reste le vrai point bloquant. La fonction **n'est pas encore branchée** au pipeline ; elle le sera une fois ces trois cas traités.
+`est_bloque` est désormais **branchée au pipeline** : dans [`scraping/stockage.py`](scraping/stockage.py), un contenu bloqué donne `etat=1` et n'est pas écrit dans le CSV. Le point bloquant restant est le **bypass du Nouvel Obs** sur les articles premium, toujours non résolu — un article tronqué y passe encore le contrôle si sa coupure n'est pas captée.
 
-**Note sur Paris Match** : classé en paywall mou — le texte est toujours complet dans le HTML sur les articles testés, avec un encart « La suite est réservée aux abonnés » résiduel en fin de page. Cependant, un article (entretien De Gaulle) semblait tronqué lors d'un test antérieur. À surveiller : il est possible que le paywall soit sélectif selon les articles.
+**Note sur Paris Match** : classé en paywall mou — le texte est complet dans le HTML sur les articles testés, avec un encart « La suite est réservée aux abonnés » résiduel retiré à l'extraction. Un article (entretien De Gaulle) semblait toutefois tronqué lors d'un test antérieur : le paywall est peut-être sélectif selon les articles, à surveiller.
 
 ## Extraction des métadonnées : repérage des balises par média
 
@@ -901,7 +893,19 @@ Les 10 médias passent : titre + contenu présents partout. Manques attendus (pa
 
 Le JDD a été re-dumpé sur un **article standard** (le 1er dump était un live, structure atypique) pour valider ses sélecteurs (`main-title`, `a.author`, `time`, `div.rte`).
 
-### Reste à faire
+### Branchement au pipeline
 
-- Brancher `ecriture_csv` ([scraping/stockage.py](scraping/stockage.py)) sur `extraire()` + nouvelles colonnes dans [scripts/4_init_csv_sortie.py](scripts/4_init_csv_sortie.py).
-- Cas particuliers reportés : fallback auteur dans le corps pour le_monde (« Le Monde ») et valeurs_actuelles (« admin ») ; colonnes spécifiques par média.
+`extraire()` est désormais câblé : [`scraping/stockage.py`](scraping/stockage.py) appelle `extraire()`, applique `est_bloque()`, puis écrit la ligne dans le CSV du média (`etat=2`) ou marque l'échec (`etat=1`). Les CSV de sortie sont initialisés par [`scripts/creer_csv.py`](scripts/creer_csv.py) avec les colonnes communes `id, url, titre, auteur, date, section, free, contenu`.
+
+## État actuel et prochaines étapes
+
+La chaîne complète tourne sur le serveur : `urls.db` → batch → Firefox headless + bypass → extraction → contrôle paywall → CSV, lancée par `python -m scraping.pipeline`. Chaque module expose en plus un point d'entrée `__main__` pour le tester seul sur une URL réelle.
+
+Difficulté serveur en cours : Firefox 151 réclame geckodriver 0.37, mais le binaire du PATH partagé (`/usr/local/bin`, 0.36) appartient à un autre utilisateur et ne peut être touché. Contournement : une copie 0.37 dans le home, pointée explicitement via `GECKODRIVER_PATH`.
+
+Prochaines étapes :
+
+- **Boucler les vagues** dans `pipeline.main()` pour garder les navigateurs ouverts et amortir leur démarrage : aujourd'hui une seule vague est traitée par lancement, donc chaque Firefox ne sert qu'une URL avant d'être fermé.
+- **Réparer le bypass du Nouvel Obs** sur les articles premium — seul média où le bypass échoue encore.
+- **Fallback auteur dans le corps** pour le_monde (« Le Monde ») et valeurs_actuelles (« admin »), où le JSON-LD renvoie une valeur générique.
+- **Passage à l'échelle** : paralléliser au-delà d'une URL par média et suivre l'avancement (`etat`) sur l'ensemble des URLs.
