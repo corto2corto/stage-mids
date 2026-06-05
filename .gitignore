@@ -71,4 +71,5 @@ models/
 *.pkl
 *.joblib
 extensions/firefox/
+extensions/geckodriver/
 extensions/chrome-linux-profile

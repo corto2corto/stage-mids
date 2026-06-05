@@ -8,7 +8,7 @@
 
 import csv
 from scraping import extraction
-from scraping.config import CSV_DIR
+from scraping.config import DATA_DIR
 from scraping.paywall import est_bloque
 
 # éventuellement à supprimer.
@@ -20,7 +20,7 @@ def ecriture_csv(media, id, url, html):
     meta = extraction.extraire(media, html)
     if est_bloque(meta["contenu"]):
         return 1
-    chemin = CSV_DIR / f"{media}.csv"
+    chemin = DATA_DIR/"csv"/f"{media}.csv"
     with open(chemin, "a", newline="", encoding="utf-8") as f:
         csv.writer(f).writerow([id, url, meta["titre"], meta["auteur"], meta["date"], meta["section"], meta["free"], meta["contenu"]])
     return 2

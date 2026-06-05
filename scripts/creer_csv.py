@@ -1,6 +1,6 @@
 import csv
 
-from scraping.config import CSV_DIR
+from scraping.config import DATA_DIR
 from scraping.stockage import COLONNES
 
 MEDIAS = [
@@ -16,10 +16,10 @@ MEDIAS = [
     "telerama",
 ]
 
-CSV_DIR.mkdir(parents=True, exist_ok=True)
+(DATA_DIR/"csv").mkdir(parents=True, exist_ok=True)
 
 for media in MEDIAS:
-    chemin = CSV_DIR / f"{media}.csv"
+    chemin = DATA_DIR/"csv"/f"{media}.csv"
     if chemin.exists():
         continue
     with open(chemin, "w", newline="", encoding="utf-8") as f:

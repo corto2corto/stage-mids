@@ -14,13 +14,13 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 
-from scraping.config import EXTENSIONS_DIR, TMP_DIR
+from scraping.config import RACINE
 
 # Geckodriver perso : Firefox 151 réclame geckodriver 0.37, mais le 0.36 du PATH
 # partagé (/usr/local/bin) appartient à un autre utilisateur — on n'y touche pas.
 # On pointe vers une copie 0.37 dans le home. Override possible via GECKODRIVER_PATH.
 GECKODRIVER_PATH = os.environ.get(
-    "GECKODRIVER_PATH", os.path.expanduser("~/bin/geckodriver")
+    "GECKODRIVER_PATH", RACINE/"extensions"/"geckodriver"/"geckodriver"
 )
 
 UBLOCK_ID = "uBlock0@raymondhill.net"
@@ -58,19 +58,18 @@ def configurer_ublock():
 
 def ouvrir_firefox():
     """Ouvre un Firefox headless avec bypass + uBlock, prêt à scraper."""
-    os.environ["TMPDIR"] = str(TMP_DIR)
+    os.environ["TMPDIR"] = "/data/elias/tmp/firefox"
     options = Options()
     options.add_argument("--headless")
     options.set_preference("permissions.default.image", 2)
-    # On force notre geckodriver perso s'il existe ; sinon Selenium se débrouille
-    # (PATH ou Selenium Manager), ce qui garde le code portable en local.
     if os.path.exists(GECKODRIVER_PATH):
         driver = webdriver.Firefox(options=options, service=Service(GECKODRIVER_PATH))
     else:
         driver = webdriver.Firefox(options=options)
-    for xpi in os.listdir(EXTENSIONS_DIR):
+    extensions_dir = RACINE/"extensions"/"firefox"
+    for xpi in os.listdir(extensions_dir):
         if xpi.endswith(".xpi"):
-            driver.install_addon(os.path.join(EXTENSIONS_DIR, xpi), temporary=True)
+            driver.install_addon(os.path.join(extensions_dir, xpi), temporary=True)
     time.sleep(ATTENTE_LISTES)   # uBlock télécharge ses listes une seule fois
     return driver
 
