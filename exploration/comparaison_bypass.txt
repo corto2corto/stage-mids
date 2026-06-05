@@ -1,0 +1,341 @@
+
+======================================================================
+le_monde  id=8894461  free=?
+https://www.lemonde.fr/a-la-une/article/2005/06/20/crise-dans-les-transports-franciliens_664088_3208.html
+mots : controle=0  bypass=0  ratio=xinf
+signal actuel (il vous reste\s*[\d.,]+\s*%\s*de cet article à lire|envie de lire la suite) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+
+======================================================================
+le_monde  id=9540296  free=?
+https://www.lemonde.fr/m-perso/article/2017/06/02/le-duel-koh-lanta-versus-the-island_5137977_4497916.html
+mots : controle=0  bypass=0  ratio=xinf
+signal actuel (il vous reste\s*[\d.,]+\s*%\s*de cet article à lire|envie de lire la suite) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+
+======================================================================
+le_monde  id=6801119  free=non
+https://www.lemonde.fr/archives/article/1952/10/02/les-secrets-militaires-americains-sont-souvent-ceux-de-polichinelle_1995177_1819218.html
+mots : controle=0  bypass=962  ratio=xinf
+signal actuel (il vous reste\s*[\d.,]+\s*%\s*de cet article à lire|envie de lire la suite) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Plus récemment l'aventure de Fort-Ritchie a donné une idée de la manière dont on garde les secrets militaires. Edouard Koterba, rédacteur au Washington Times Herald, écrivait avant-hier :
+  • " Le Pentagone " de crise ", en voie de construction à 100 kilomètres au nord de Washington, dont les militaires ne parlaient que par souffle, est maintenant aussi ouvert qu'un garage en plein air. Les gens y vont sans subir le moindre contrôle de sécurité. Durant leurs jours de vacances les ouvriers travaillant à la forteresse souterraine mènent leurs femmes et leurs petites amies faire un tour du tunnel prétendument secret. Et, en demandant, vous pouvez même regarder les plans de la construction. "
+  • On pourrait multiplier les exemples et relever que l'on vient de livrer le canon atomique aux photographes, alors que l'on s'est refusé à convier à la fête les représentants militaires des nations atlantiques ; à faire ressortir que le magazine édité par la maison Chrysler publie de nombreux clichés du nouveau char Patton... L'hebdomadaire U.S. News and World Report n'avait-il donc pas raison d'écrire voilà déjà plus de deux ans : " L'Union soviétique n'a besoin de Mata-Hari qu'à raison de 5 % ; pour les 95 % des renseignements qu'il lui faut, des lecteurs attentifs et un service d'analyse suffisent. "
+
+======================================================================
+le_monde  id=8688090  free=non
+https://www.lemonde.fr/archives/article/2002/01/15/les-romanes-entre-beaute-et-colere_4223634_1819218.html
+mots : controle=0  bypass=539  ratio=xinf
+signal actuel (il vous reste\s*[\d.,]+\s*%\s*de cet article à lire|envie de lire la suite) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Les spectateurs ne sont pas en reste, qui applaudissent presque sans interruption pendant toute la soirée ; il faut dire que l'orchestre de musiciens tziganes venus des Balkans fouette la troupe. Sur la piste, les numéros se dégomment les uns les autres en toute simplicité, uniquement portés par l'évidence de la présence des artistes - même les « étrangers » à la famille en font visiblement partie. Ici, pas de personnages en représentation, mais des personnalités vives, qu'il s'agisse des jongleurs Vincent et Bérénice, de Sylvaine, la contorsionniste à malices, ou de Betty la funambule, tous raffinent des numéros singuliers. Revendiquant sa « pauvreté », Rien dans les poches incarne l'esprit du cirque dans son lien essentiel à une pensée du monde, marginale et poétique.
+  • Ce soir, Alexandre le Tzigane a le regard plus noir que d'habitude. Celui qui fut dompteur de lions et acrobate de rue est en colère : il a décidé de « l'ouvrir » et nous glisse un tract sur la situation du cirque en France qu'il compte aller distribuer lui-même devant le chapiteau du Centre national des arts du cirque, actuellement à La Villette avec Cyrk 13, mis en piste par Philippe Decouflé. « J'irai jusqu'à m'enchaîner à l'entrée pour avertir le public du hold-up que nous sommes en train de subir de la part du ministère de la culture et du CNAC, dit-il, en blaguant à moitié. C'est bien simple, ils nous ont tués. Non seulement nous n'avons plus d'aide à l'équipement ni d'emplacement pour installer nos chapiteaux, mais nous ne pouvons plus travailler librement, car nous sommes devenus dépendants des programmateurs qui nous rendent fous. Les penseurs du ministère ont fait le pari stupide de changer les gens du cirque, jugés trop abrutis et trop lourds, pas assez artistes en somme, pour réaliser leur nouvelle politique. Ils ont engendré une race de gens qui vont de scène nationale en centre culturel et attendent, comme les comédiens ou les danseurs, qu'on leur donne des rôles. Mes enfants ne seront pas de ceux-là. »
+  • Et d'énumérer les familles du cirque qui ont plié chapiteau, vendu leur nom ou qui ne peuvent plus reprendre la route faute de camions en bon état. Presque calmé, l'ami de Jean Genet (avec lequel il devait créer un cirque) évoque la beauté de la microsociété qu'est le cirque, l'importance de l'itinérance et la transmission familiale (Romanès est né Bouglione). Autant de qualités qui font de Rien dans les poches un instant de maestria et d'émotion.
+
+======================================================================
+le_monde  id=8687190  free=non
+https://www.lemonde.fr/archives/article/2002/01/18/britannicus-a-la-comedie-francaise_4216440_1819218.html
+mots : controle=0  bypass=228  ratio=xinf
+signal actuel (il vous reste\s*[\d.,]+\s*%\s*de cet article à lire|envie de lire la suite) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • DÈS SON ENTRÉE, Jean Marais est sourcilleux ; sa mâchoire crispée, ses dents verrouillées, ont peine à lâcher les mots. Il n'a pas une tête romaine, mais asiate. Une tête de Hun. C'est Attila, déjà chargé de massacres. C'est Boris Godounov ou Ivan le Terrible. Il ne manque certes pas d'intelligence, il a travaillé les vers un à un ; il les casse avec ses dents comme des noix, et en crache l'amande. Mais il n'a pas établi le dessin général du rôle. Sa prestance est indéniable. Il a besoin de poncer les rugosités, et de monter les échelons du personnage, au lieu de renverser l'échelle d'un coup d'épaule en arrivant.
+  • Marie Bell est une magnifique Agrippine. Au début, dans la nuit, son beau visage anxieux, sa silhouette impériale, nous frappent de respect. J'ai moins aimé la grande scène. Mais quoi ! Jean Marais, qui fait faire des « huit » à ses personnages constamment, comme s'ils avaient à arroser le parquet, a eu l'idée de figer Agrippine et Néron à 7 mètres l'un de l'autre. Au lieu de chuchoter ses crimes à l'oreille du fils, la mère les livre aux courants d'air des tentures. C'est la fin de cette scène que Jean Marais a le mieux manquée ; il n'a pas pu descendre du féroce au câlin. La distance, là aussi, était trop grande. (18 janvier 1952.)
+
+======================================================================
+le_monde  id=8770426  free=non
+https://www.lemonde.fr/archives/article/2003/01/07/documentaires-autour-de-la-sainte-famille_304594_1819218.html
+mots : controle=0  bypass=580  ratio=xinf
+signal actuel (il vous reste\s*[\d.,]+\s*%\s*de cet article à lire|envie de lire la suite) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • A l'opposé, un film tel que L'Ame sœur (1985) de Fredi Murer - aux confins de la fiction et du documentaire - peut être considéré comme un des plus remarquables documents jamais réalisés sur la menace de l'autarcie familiale. Une ferme isolée quelque part en Suisse allemande, des parents soumis à la dureté et à la routine du travail agricole, une société confinée dans ses traditions religieuses et sociales, et deux enfants, un frère et une sœur, qui en sont en dernière instance les victimes : ce film, drame incestueux tourné sur des hauteurs telles qu'elles en deviennent irrespirables, est une pure splendeur. La confrontation avec l'espace est, logiquement, l'une des figures de prédilection des œuvres qui se confrontent au thème du confinement familial, qu'il s'agisse d'un appartement en ville rythmé par les tâches ménagères ( Les Miettes du purgatoire de Françoise Romand, 1993), d'un simple banc où deux sœurs âgées macèrent dans leur ressentiment mutuel ( Sister de Pawel Lozinski, 1999), ou d'une ferme moderne créée au début des années 1970 par trois frères restés célibataires ( Trois frères pour une vie de Gilles Perret, 1999).
+  • La disparition prématurée, les drames historiques ou l'incertitude des origines nourrissent enfin une veine prolifique, qui, en jouant souvent avec les genres et les formats, se situe au carrefour du journal intime et de l'essai. La Mémoire de mon père (1991) de Patrick Zachmann, Le Kugelhof (1993) de Ginette Lavigne, Chère grand-mère (1995) de Patrice Dubosc, Sur la plage de Belfast (1996) d'Henri-François Imbert, Petite conversation familiale (1999) de Hélène Lapiower, en sont quelques exemples, dont la réussite tient au fait que la famille y apparaît comme la passerelle, étincelante et vermoulue, qui relie le fantasme à la réalité.
+  • Jacques Mandelbaum
+
+======================================================================
+le_journal_du_dimanche  id=55084  free=?
+https://www.lejdd.fr/International/Mexique-Coulee-de-boue-mortelle-223257-3253595
+mots : controle=259  bypass=259  ratio=x1.00
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Le glissement de terrain a été provoqué par les fortes pluies tombées dans la région ces dernières semaines, qui ont fragilisé les sols. Quatre rivières ont débordées dans l'Etat de Oaxaca et plus de 5.000 maisons ont été sévèrement endommagées. Le week-end dernier, la tempête tropicale Matthew avait fait douze morts en Amérique centrale.
+  • Source: leJDD.fr
+  • Avec Reuters
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Le glissement de terrain a été provoqué par les fortes pluies tombées dans la région ces dernières semaines, qui ont fragilisé les sols. Quatre rivières ont débordées dans l'Etat de Oaxaca et plus de 5.000 maisons ont été sévèrement endommagées. Le week-end dernier, la tempête tropicale Matthew avait fait douze morts en Amérique centrale.
+  • Source: leJDD.fr
+  • Avec Reuters
+
+======================================================================
+le_journal_du_dimanche  id=156771  free=?
+https://www.lejdd.fr/Societe/precarite-harcelement-loi-du-silence-une-ex-chercheuse-leve-le-voile-sur-le-mal-etre-des-doctorants-4085561
+mots : controle=798  bypass=798  ratio=x1.00
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • "Le milieu de la recherche, asphyxié par le manque de moyens, engendre des dysfonctionnements, assure Adèle B. Combes. Ces témoignages ne sont pas des cas isolés." La Confédération des jeunes chercheurs (CJC) confirme : "On nous fait souvent remonter des situations problématiques. Et ce n'est sans doute que la partie émergée de l'iceberg : beaucoup de doctorants subissent leurs conditions de travail en espérant tenir jusqu'à la soutenance." L'association Doctopus, qui accompagne aussi des étudiants, pointe "la relation asymétrique entre un directeur de thèse tout-puissant et le doctorant qui dépend de lui pour son diplôme et la suite de sa carrière".
+  • Il est temps d'arrêter le gâchis
+  • La loi de programmation de la recherche prévoit bien des avancées : le nombre de thèses financées par le ministère devrait augmenter progressivement de 20%, la rémunération des docteurs, de 30%. L'auteure invite à prendre d'autres mesures. D'abord, proposer à tous les doctorants un salaire supérieur au smic et des congés. Ensuite, les laisser choisir la moitié des membres de leur comité de suivi et soumettre l'habilitation à diriger des recherches à la validation d'un examen de gestion de projet et de management. Enfin, créer massivement des postes dans la recherche. A quelques mois de la présidentielle, elle conclut : Il est temps d'arrêter le gâchis."
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • "Le milieu de la recherche, asphyxié par le manque de moyens, engendre des dysfonctionnements, assure Adèle B. Combes. Ces témoignages ne sont pas des cas isolés." La Confédération des jeunes chercheurs (CJC) confirme : "On nous fait souvent remonter des situations problématiques. Et ce n'est sans doute que la partie émergée de l'iceberg : beaucoup de doctorants subissent leurs conditions de travail en espérant tenir jusqu'à la soutenance." L'association Doctopus, qui accompagne aussi des étudiants, pointe "la relation asymétrique entre un directeur de thèse tout-puissant et le doctorant qui dépend de lui pour son diplôme et la suite de sa carrière".
+  • Il est temps d'arrêter le gâchis
+  • La loi de programmation de la recherche prévoit bien des avancées : le nombre de thèses financées par le ministère devrait augmenter progressivement de 20%, la rémunération des docteurs, de 30%. L'auteure invite à prendre d'autres mesures. D'abord, proposer à tous les doctorants un salaire supérieur au smic et des congés. Ensuite, les laisser choisir la moitié des membres de leur comité de suivi et soumettre l'habilitation à diriger des recherches à la validation d'un examen de gestion de projet et de management. Enfin, créer massivement des postes dans la recherche. A quelques mois de la présidentielle, elle conclut : Il est temps d'arrêter le gâchis."
+
+======================================================================
+le_journal_du_dimanche  id=132154  free=?
+https://www.lejdd.fr/Culture/Academie-francaise-trois-candidats-dont-Frederic-Mitterrand-768389
+mots : controle=247  bypass=247  ratio=x1.00
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Etre candidat à l'Académie française ne signifie pas forcément être élu pour l'un des impétrants. Depuis 2011, trois "élections blanches" ont été enregistrées faute de majorité.
+  • L'Académie française compte 40 membres mais seuls 36 fauteuils sont occupés aujourd'hui. L'essayiste Alain Finkielkraut, élu en 2014, sera reçu sous la Coupole le 28 janvier. Aucune date en revanche n'a encore été fixée pour la réception de l'écrivain Marc Lambron, élu à l'Académie en 2014.
+  • Source: leJDD.fr
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Etre candidat à l'Académie française ne signifie pas forcément être élu pour l'un des impétrants. Depuis 2011, trois "élections blanches" ont été enregistrées faute de majorité.
+  • L'Académie française compte 40 membres mais seuls 36 fauteuils sont occupés aujourd'hui. L'essayiste Alain Finkielkraut, élu en 2014, sera reçu sous la Coupole le 28 janvier. Aucune date en revanche n'a encore été fixée pour la réception de l'écrivain Marc Lambron, élu à l'Académie en 2014.
+  • Source: leJDD.fr
+
+======================================================================
+le_journal_du_dimanche  id=143898  free=?
+https://www.lejdd.fr/International/facebook-revele-une-action-coordonnee-visant-a-manipuler-les-prochaines-elections-americaines-3723461
+mots : controle=473  bypass=473  ratio=x1.00
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Tout en affirmant ne pas savoir qui est derrière cette action "coordonnée", le groupe indique toutefois qu'"une partie de ces activités est cohérente avec ce que [Facebook] avait vu de la part de [l'organisation liée à la Russie] Internet Research Agency" au moment de l'élection présidentielle de 2016. Et le communiqué de s'alarmer : "Nous faisons face à des adversaires déterminés, bien financés, qui n'abandonneront jamais et changent tout le temps de tactique. C'est une course aux armes, et nous aussi nous avons constamment besoin de nous améliorer."
+  • Facebook se garde toutefois de citer, pour le cas de ces 32 comptes fermés, une éventuelle implication d'une organisation russe. Dans une enquête publiée mardi soir, et pour laquelle Facebook a accepté de communiquer une partie de ses informations, le New York Times fait, lui, le lien avec le pays de Vladimir Poutine. Cités sous le sceau de l’anonymat par le quotidien américain, des responsables de l'entreprise de Mark Zuckerberg ont indiqué lors de réunions au Congrès que "la Russie pouvait être impliquée" dans cette affaire. Dans son communiqué, Facebook précise seulement avoir trouvé "des liens" entre les comptes supprimés "et les comptes de l'IRA (l'Internet Research Agency), désactivés l'année dernière".
+  • Facebook avait indiqué en octobre qu'environ "10 millions de personnes aux Etats-Unis" avaient visionné des contenus sponsorisés financés par près de 500 comptes activés depuis la Russie avant l'élection présidentielle de 2016.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Tout en affirmant ne pas savoir qui est derrière cette action "coordonnée", le groupe indique toutefois qu'"une partie de ces activités est cohérente avec ce que [Facebook] avait vu de la part de [l'organisation liée à la Russie] Internet Research Agency" au moment de l'élection présidentielle de 2016. Et le communiqué de s'alarmer : "Nous faisons face à des adversaires déterminés, bien financés, qui n'abandonneront jamais et changent tout le temps de tactique. C'est une course aux armes, et nous aussi nous avons constamment besoin de nous améliorer."
+  • Facebook se garde toutefois de citer, pour le cas de ces 32 comptes fermés, une éventuelle implication d'une organisation russe. Dans une enquête publiée mardi soir, et pour laquelle Facebook a accepté de communiquer une partie de ses informations, le New York Times fait, lui, le lien avec le pays de Vladimir Poutine. Cités sous le sceau de l’anonymat par le quotidien américain, des responsables de l'entreprise de Mark Zuckerberg ont indiqué lors de réunions au Congrès que "la Russie pouvait être impliquée" dans cette affaire. Dans son communiqué, Facebook précise seulement avoir trouvé "des liens" entre les comptes supprimés "et les comptes de l'IRA (l'Internet Research Agency), désactivés l'année dernière".
+  • Facebook avait indiqué en octobre qu'environ "10 millions de personnes aux Etats-Unis" avaient visionné des contenus sponsorisés financés par près de 500 comptes activés depuis la Russie avant l'élection présidentielle de 2016.
+
+======================================================================
+le_journal_du_dimanche  id=45643  free=?
+https://www.lejdd.fr/Sport/Wiltord-rebondit-a-Marseille-81614-3260726
+mots : controle=594  bypass=594  ratio=x1.00
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Un an et demi après un retour alors très médiatisé dans son club formateur, Sylvain Wiltord en repart par la petite porte, son transfert n'ayant finalement pas eu les effets escomptés. Si le changement d'entraîneur en cours de saison dernière (Guy Lacombe a remplacé Pierre Dréossi) a en partie eu raison du temps de jeu du natif de Neuilly-sur-Marne, en Seine-Saint-Denis, la confirmation du talent de Jimmy Briand et l'éclosion cette saison de Moussa Sow ont également poussé l'intéressé sur le banc, voire en tribunes. A 34 ans, «Nino», un temps approché par Nantes, tente donc de relever un (ultime ?) défi de plus, son objectif étant de prouver qu'il peut encore briller en Ligue 1, dans un club jouant le haut de tableau. Contrairement à Brandao, qui estime avoir besoin d'un temps d'adaptation pour se remettre au niveau physique, celui qui a connu jusque-là quatre clubs professionnels (Rennes, Bordeaux, avec lequel il a été champion de France et meilleur buteur de Ligue 1, Arsenal et Lyon), présente l'avantage d'être immédiatement opérationnel, il pourrait donc être aligné dès samedi au Vélodrome face au Havre pour le compte de la 21e journée.
+  • Son arrivée, ainsi que celle du Brésilien, devraient précipiter les départs, sous forme de prêt ou de transfert définitif, d'Elliot Grandin (mais pourquoi donc l'OM l'a-t-il fait venir de Caen l'an dernier ?), et de Mamadou Samassa, pourtant buteur samedi dernier à Auxerre (2-0). En attendant de dégraisser en attaque, les dirigeants phocéens ont commencé à suivre à la lettre la consigne insistante du «boss» Robert Louis-Dreyfus, en prêtant pour six mois, avec option d'achat, Gaël Givet aux Blackburn Rovers, actuellement avant-derniers de Premier League. Côté arrivées, Eric Gerets a assuré jeudi matin que Sylvain Wiltord serait "la dernière recrue" marseillaise du mercato d'hiver.
+  • Source: leJDD.fr
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Un an et demi après un retour alors très médiatisé dans son club formateur, Sylvain Wiltord en repart par la petite porte, son transfert n'ayant finalement pas eu les effets escomptés. Si le changement d'entraîneur en cours de saison dernière (Guy Lacombe a remplacé Pierre Dréossi) a en partie eu raison du temps de jeu du natif de Neuilly-sur-Marne, en Seine-Saint-Denis, la confirmation du talent de Jimmy Briand et l'éclosion cette saison de Moussa Sow ont également poussé l'intéressé sur le banc, voire en tribunes. A 34 ans, «Nino», un temps approché par Nantes, tente donc de relever un (ultime ?) défi de plus, son objectif étant de prouver qu'il peut encore briller en Ligue 1, dans un club jouant le haut de tableau. Contrairement à Brandao, qui estime avoir besoin d'un temps d'adaptation pour se remettre au niveau physique, celui qui a connu jusque-là quatre clubs professionnels (Rennes, Bordeaux, avec lequel il a été champion de France et meilleur buteur de Ligue 1, Arsenal et Lyon), présente l'avantage d'être immédiatement opérationnel, il pourrait donc être aligné dès samedi au Vélodrome face au Havre pour le compte de la 21e journée.
+  • Son arrivée, ainsi que celle du Brésilien, devraient précipiter les départs, sous forme de prêt ou de transfert définitif, d'Elliot Grandin (mais pourquoi donc l'OM l'a-t-il fait venir de Caen l'an dernier ?), et de Mamadou Samassa, pourtant buteur samedi dernier à Auxerre (2-0). En attendant de dégraisser en attaque, les dirigeants phocéens ont commencé à suivre à la lettre la consigne insistante du «boss» Robert Louis-Dreyfus, en prêtant pour six mois, avec option d'achat, Gaël Givet aux Blackburn Rovers, actuellement avant-derniers de Premier League. Côté arrivées, Eric Gerets a assuré jeudi matin que Sylvain Wiltord serait "la dernière recrue" marseillaise du mercato d'hiver.
+  • Source: leJDD.fr
+
+======================================================================
+le_journal_du_dimanche  id=92592  free=?
+https://www.lejdd.fr/Economie/Le-casse-tete-de-la-repartition-des-profits-79367-3077660
+mots : controle=519  bypass=519  ratio=x1.00
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • L'idée de relever le pourcentage légal réservé à la participation séduit les syndicats mais déplaît fortement à une partie du Medef, où certains dirigeants fustigent l'interventionnisme du chef de l'Etat. Augmenter la part des salariés conduirait les entreprises à devoir s'endetter davantage pour investir et, dans certains cas, à baisser la part des actionnaires.
+  • " Il n'y a pas d'anomalie en France dans le partage des richesses. Donner un tiers des bénéfices aux salariés? Mais ils ont déjà 65% de la valeur ajoutée! " s'exclame l'économiste Michel Didier, patron de l'institut Rexecode [proche du Medef]. Dans la comptabilité nationale, la notion de valeur ajoutée recouvre les richesses globales créées chaque année. Les économistes ont coutume d'analyser son partage entre la rémunération du travail (salaires, Sécurité sociale) et celle du capital (dividendes, investissements, dette). La part salariale a très légèrement augmenté ces dernières années mais elle s'élevait à près de 70 % au début des années 1980, moment où la courbe s'est inversée. Il n'est pas étonnant, dans ces conditions, que Bernard Thibault et d'autres syndicalistes réclament d'abord une hausse des feuilles de paie.
+  • Source: JDD papier
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • L'idée de relever le pourcentage légal réservé à la participation séduit les syndicats mais déplaît fortement à une partie du Medef, où certains dirigeants fustigent l'interventionnisme du chef de l'Etat. Augmenter la part des salariés conduirait les entreprises à devoir s'endetter davantage pour investir et, dans certains cas, à baisser la part des actionnaires.
+  • " Il n'y a pas d'anomalie en France dans le partage des richesses. Donner un tiers des bénéfices aux salariés? Mais ils ont déjà 65% de la valeur ajoutée! " s'exclame l'économiste Michel Didier, patron de l'institut Rexecode [proche du Medef]. Dans la comptabilité nationale, la notion de valeur ajoutée recouvre les richesses globales créées chaque année. Les économistes ont coutume d'analyser son partage entre la rémunération du travail (salaires, Sécurité sociale) et celle du capital (dividendes, investissements, dette). La part salariale a très légèrement augmenté ces dernières années mais elle s'élevait à près de 70 % au début des années 1980, moment où la courbe s'est inversée. Il n'est pas étonnant, dans ces conditions, que Bernard Thibault et d'autres syndicalistes réclament d'abord une hausse des feuilles de paie.
+  • Source: JDD papier
+
+======================================================================
+les_echos  id=2532272  free=non
+https://www.lesechos.fr/finance-marches/marches-financiers/faute-de-mieux-warren-buffett-parie-sur-lui-meme-1266651
+mots : controle=138  bypass=138  ratio=x1.00
+signal actuel (contenu réservé aux abonnés) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Le dernier grand pari de Warren Buffett ? Son propre conglomérat, Berkshire Hathaway ! Le célèbre investisseur américain a dépensé davantage pour racheter ses propres actions que pour investir sur les marchés en 2020. Et la tendance s'accélère : Berkshire a déboursé 9 milliards pour acquérir ses titres au troisième trimestre, un montant supérieur à l'ensemble de ses rachats d'actions au cours de la décennie passée. Seul Apple a dépensé davantage au cours des derniers mois pour racheter ses actions.
+  • Les sommes en jeu sont impressionnantes. Au total, Berkshire a racheté pour environ 16 milliards de dollars de ses titres depuis le début de l'année. De quoi remettre en perspective ses investissements dans les maisons de négoce japonaises ou plus récemment dans les laboratoires pharmaceutiques , tous deux estimés à environ 6 milliards et répartis entre plusieurs sociétés.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Le dernier grand pari de Warren Buffett ? Son propre conglomérat, Berkshire Hathaway ! Le célèbre investisseur américain a dépensé davantage pour racheter ses propres actions que pour investir sur les marchés en 2020. Et la tendance s'accélère : Berkshire a déboursé 9 milliards pour acquérir ses titres au troisième trimestre, un montant supérieur à l'ensemble de ses rachats d'actions au cours de la décennie passée. Seul Apple a dépensé davantage au cours des derniers mois pour racheter ses actions.
+  • Les sommes en jeu sont impressionnantes. Au total, Berkshire a racheté pour environ 16 milliards de dollars de ses titres depuis le début de l'année. De quoi remettre en perspective ses investissements dans les maisons de négoce japonaises ou plus récemment dans les laboratoires pharmaceutiques , tous deux estimés à environ 6 milliards et répartis entre plusieurs sociétés.
+
+======================================================================
+valeurs_actuelles  id=3079225  free=non
+https://www.valeursactuelles.com/clubvaleurs/art-de-vivre/legendes-du-vin-francois-audouze-la-quete-de-labsolu
+mots : controle=175  bypass=175  ratio=x1.00
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Né en 1943, le polytechnicien devenu industriel à succès dans la métallurgie a métamorphosé sa passion du vin en véritable art de vivre – fusionnant une carrière de haut vol avec une quête sans fin de trésors viticoles, dans les années soixante-dix et quatre-vingt.
+  • Son ascension dans le monde du vin est fulgurante. Mais attention, pas le vin comme une simple boisson, non, le vin comme un art, comme la quête de l’absolu et des découvertes éternelles. Le vin pour être bu, pas le vin pour être seulement gardé, comme le fait un de ses célèbres contemporains.
+  • En vous abonnant, accédez à nos contenus premium en illimité.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Né en 1943, le polytechnicien devenu industriel à succès dans la métallurgie a métamorphosé sa passion du vin en véritable art de vivre – fusionnant une carrière de haut vol avec une quête sans fin de trésors viticoles, dans les années soixante-dix et quatre-vingt.
+  • Son ascension dans le monde du vin est fulgurante. Mais attention, pas le vin comme une simple boisson, non, le vin comme un art, comme la quête de l’absolu et des découvertes éternelles. Le vin pour être bu, pas le vin pour être seulement gardé, comme le fait un de ses célèbres contemporains.
+  • En vous abonnant, accédez à nos contenus premium en illimité.
+
+======================================================================
+le_nouvel_observateur  id=722097  free=?
+https://www.nouvelobs.com/rue89/rue89-politique/20090624.RUE1166/laporte-a-eu-beaucoup-de-rapports-avec-rama-yade.html
+mots : controle=0  bypass=0  ratio=xinf
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+
+======================================================================
+le_nouvel_observateur  id=656839  free=?
+https://www.nouvelobs.com/politique/elysee-sous-pression/20111120.OBS4916/cope-dement-avoir-recu-de-l-argent-de-takieddine.html
+mots : controle=0  bypass=0  ratio=xinf
+signal actuel (aucun) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+
+======================================================================
+nice_matin  id=1313878  free=non
+https://www.nicematin.com/sports/equitation/gymnastique-volontaire-une-association-riche-en-activites-212756
+mots : controle=172  bypass=172  ratio=x1.00
+signal actuel (débloquer votre article) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Et, pour compléter le tout, il y a également deux cours de gymnastique urbaine, la marche nordique et la marche rapide.
+  • La présidente a aussi précisé que le maire met à la disposition de la Gymnastique volontaire, et cela gratuitement, 26 heures de cours par semaine dans le gymnase municipal.
+  • Et c'est cet ensemble qui donne à l'association sa véritable dimension.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Et, pour compléter le tout, il y a également deux cours de gymnastique urbaine, la marche nordique et la marche rapide.
+  • La présidente a aussi précisé que le maire met à la disposition de la Gymnastique volontaire, et cela gratuitement, 26 heures de cours par semaine dans le gymnase municipal.
+  • Et c'est cet ensemble qui donne à l'association sa véritable dimension.
+
+======================================================================
+nice_matin  id=1452684  free=non
+https://www.nicematin.com/societe/vie-locale/les-assistantes-maternelles-preparent-le-carnaval-a-la-londe-31604
+mots : controle=109  bypass=109  ratio=x1.00
+signal actuel (débloquer votre article) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Samedi prochain aura lieu le carnaval londais, organisé par la Ville pour toute la famille. Mais en attendant les assistantes maternelle du Relais, Christine, Cathy, Pascale, Carole, Claire et Joelle, avec leur directrice Maryse Arnal, donnent de leur temps pour la préparation du char des petits. Un beau char sur le thème d'Aladin devrait parcourir les rues londaises, de la place Victor-Hugo (ancienne gendarmerie - avenue du Général-de-Gaulle) au centre-ville, en compagnie de percussionnistes et de chars fleuris. le samedi 19 mars, à partir de 16h, puis sur le parvis de l'hôtel de ville, les batailles de fleurs et de confettis ainsi qu'un goûter offert attendra petits et grands.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Samedi prochain aura lieu le carnaval londais, organisé par la Ville pour toute la famille. Mais en attendant les assistantes maternelle du Relais, Christine, Cathy, Pascale, Carole, Claire et Joelle, avec leur directrice Maryse Arnal, donnent de leur temps pour la préparation du char des petits. Un beau char sur le thème d'Aladin devrait parcourir les rues londaises, de la place Victor-Hugo (ancienne gendarmerie - avenue du Général-de-Gaulle) au centre-ville, en compagnie de percussionnistes et de chars fleuris. le samedi 19 mars, à partir de 16h, puis sur le parvis de l'hôtel de ville, les batailles de fleurs et de confettis ainsi qu'un goûter offert attendra petits et grands.
+
+======================================================================
+nice_matin  id=1463788  free=non
+https://www.nicematin.com/sports/rugby/on-connait-le-nom-de-l-adversaire-du-rct-pour-le-quart-de-finale-16944
+mots : controle=45  bypass=45  ratio=x1.00
+signal actuel (débloquer votre article) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Les Toulonnais, vainqueurs à Bath ce samedi soir par 19 à 14 , iront en effet défier le Racing 92 de Dan Carter au stade Yves du Manoir.
+  • Un choc franco-français qui ne manquera pas de piment entre ces deux grosses écuries du Top 14.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Les Toulonnais, vainqueurs à Bath ce samedi soir par 19 à 14 , iront en effet défier le Racing 92 de Dan Carter au stade Yves du Manoir.
+  • Un choc franco-français qui ne manquera pas de piment entre ces deux grosses écuries du Top 14.
+
+======================================================================
+nice_matin  id=1189862  free=non
+https://www.nicematin.com/sports/equitation/le-triste-bilan-du-ramassage-de-explore-preserve-sur-les-digues-432724
+mots : controle=269  bypass=269  ratio=x1.00
+signal actuel (débloquer votre article) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Plus inquiétant, des raticides sous plastiques ont été ramassés sur ces digues et sur les plages situées à proximité.
+  • Le collectif a interpellé les pouvoirs publics sur ces questions.
+  • Par ailleurs, le collectif envisage de se constituer en association. Il invite tous ceux qui souhaitent soutenir son action à participer à la soirée festive organisée vendredi soir au Bagus Kafé, avenue Clotis à Hyères. DJ sets avec Aurel et Nany et apéro-grignotage sont au menu, à partir de 19 heures.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Plus inquiétant, des raticides sous plastiques ont été ramassés sur ces digues et sur les plages situées à proximité.
+  • Le collectif a interpellé les pouvoirs publics sur ces questions.
+  • Par ailleurs, le collectif envisage de se constituer en association. Il invite tous ceux qui souhaitent soutenir son action à participer à la soirée festive organisée vendredi soir au Bagus Kafé, avenue Clotis à Hyères. DJ sets avec Aurel et Nany et apéro-grignotage sont au menu, à partir de 19 heures.
+
+======================================================================
+nice_matin  id=1510930  free=?
+https://www.nicematin.com/sports/mercato-bodmer-ne-viendra-pas-a-nice-359438
+mots : controle=0  bypass=0  ratio=xinf
+signal actuel (débloquer votre article) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+--- fin du corps BYPASS (3 dernieres balises) ---
+
+======================================================================
+nice_matin  id=924762  free=non
+https://www.nicematin.com/societe/jeunesse/republique-dix-nouvelles-enseignes-d-ici-a-2019-243437
+mots : controle=445  bypass=445  ratio=x1.00
+signal actuel (débloquer votre article) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Et ça commence dès septembre avec l'installation de Mr.Bricolage au 71, boulevard de la République, en lieu et place de l'ancien Intermarché. « Un choix en cohérence avec l'identité du quartier, sur un bel emplacement, à très fort enjeu », a indiqué David Lisnard, mettant fin à l'insoutenable suspense entretenu ces derniers jours. Aux côtés du géant du bricolage, on retrouve de tout. En septembre et sur le boulevard toujours, la galerie d'art Blue prendra place au 113. En octobre, le ferronnier Didier Giordanengo viendra battre le fer sous les arches du pont de Lyon.
+  • Puis, avant de basculer vers 2019, ce sera au tour de Basic Fit (salle de sport au 101, boulevard de la République), de Showroom menuiseries (137, boulevard de la République), d'Ametra06 (médecine du travail, impasse Vivaudou, dans l'ancien local Pôle Emploi) ou encore d'un studio d'enregistrement musical (11, rue Jean-Haddad-Simon) d'afficher leurs enseignes. Sans oublier Banana Camp (villa Clotilde, 18/20 boulevard de la République), « la première auberge de jeunesse de Cannes » assure Stéphane Shazad. Enfin, en 2019, un artisan - restant à définir - s'installera au 18, rue Haddad-Simon. Ainsi qu'un restaurant lounge avec logements (248 m2) au 36, rue Mimont.
+  • La municipalité planche, par ailleurs, sur d'autres projets. La mise en place d'un vide-greniers ou d'une braderie, d'une foire (printemps ou automne) et d'un marché des créateurs. Ce dernier visera à « accompagner les jeunes talents autour de la mode et de l'artisanat lié au FIF. » Tout un programme… pascal fiandino
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Et ça commence dès septembre avec l'installation de Mr.Bricolage au 71, boulevard de la République, en lieu et place de l'ancien Intermarché. « Un choix en cohérence avec l'identité du quartier, sur un bel emplacement, à très fort enjeu », a indiqué David Lisnard, mettant fin à l'insoutenable suspense entretenu ces derniers jours. Aux côtés du géant du bricolage, on retrouve de tout. En septembre et sur le boulevard toujours, la galerie d'art Blue prendra place au 113. En octobre, le ferronnier Didier Giordanengo viendra battre le fer sous les arches du pont de Lyon.
+  • Puis, avant de basculer vers 2019, ce sera au tour de Basic Fit (salle de sport au 101, boulevard de la République), de Showroom menuiseries (137, boulevard de la République), d'Ametra06 (médecine du travail, impasse Vivaudou, dans l'ancien local Pôle Emploi) ou encore d'un studio d'enregistrement musical (11, rue Jean-Haddad-Simon) d'afficher leurs enseignes. Sans oublier Banana Camp (villa Clotilde, 18/20 boulevard de la République), « la première auberge de jeunesse de Cannes » assure Stéphane Shazad. Enfin, en 2019, un artisan - restant à définir - s'installera au 18, rue Haddad-Simon. Ainsi qu'un restaurant lounge avec logements (248 m2) au 36, rue Mimont.
+  • La municipalité planche, par ailleurs, sur d'autres projets. La mise en place d'un vide-greniers ou d'une braderie, d'une foire (printemps ou automne) et d'un marché des créateurs. Ce dernier visera à « accompagner les jeunes talents autour de la mode et de l'artisanat lié au FIF. » Tout un programme… pascal fiandino
+
+======================================================================
+telerama  id=2821268  free=?
+https://www.telerama.fr/cinema/films/faut-pas-prendre-les-enfants-du-bon-dieu-pour-des-canards-sauvages,24178.php
+mots : controle=154  bypass=151  ratio=x0.98
+signal actuel (réservée?s? aux abonnés) : controle=OUI  bypass=OUI
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • | Genre : Série noire parodique. La jeune Rita séduit Fred, qui prépare un hold-up. Elle renseigne Charles « le Téméraire », qui reprend l'affaire à son compte, réussit le coup et refuse de lui donner sa part. Rita fait appel à sa tante, connue autrefois sous le nom de « Léontine la Flingueuse ». La redoutable vieille dame a un plan pour récupérer ce qu'elle considère comme la dot de Rita. Dans ce premier film de Michel Audiard metteur en scène, la parenté avec Les Tontons flingueurs, de Georges Lautner, est évidente. Mais, seul maître à bord, Audiard s'est laissé aller à une mitraillade de gags, supports visuels de ses mots d'auteur. Une certaine méchanceté, un certain
+  • Cette critique est réservée aux abonnés
+  • sans engagement, résiliable à tout moment
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Mis à jour le 08 novembre 2021 à 00h49
+  • | Genre : Série noire parodique.
+  • La jeune Rita séduit Fred, qui prépare un hold-up. Elle renseigne Charles « le Téméraire », qui reprend l'affaire à son compte, réussit le coup et refuse de lui donner sa part. Rita fait appel à sa tante, connue autrefois sous le nom de « Léontine la Flingueuse ». La redoutable vieille dame a un plan pour récupérer ce qu'elle considère comme la dot de Rita. Dans ce premier film de Michel Audiard metteur en scène, la parenté avec Les Tontons flingueurs, de Georges Lautner, est évidente. Mais, seul maître à bord, Audiard s'est laissé aller à une mitraillade de gags, supports visuels de ses mots d'auteur. Une certaine méchanceté, un certain esprit de dérision transparaissent sous l'humour. — Jacques Siclier
+
+======================================================================
+telerama  id=2723074  free=?
+https://www.telerama.fr/musique/mondo-sono-41-special-maroc,45674.php
+mots : controle=99  bypass=99  ratio=x1.00
+signal actuel (réservée?s? aux abonnés) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Publié le 28 juillet 2009 à 00h00
+  • Mis à jour le 08 décembre 2020 à 10h33
+  • M aroc – Moyen Atlas, Musique sacrée et profane, titre 3 (Ocora). Maroc, Voix sacrées, Voix de Fès, titre 8 (Buda Musique) Gnawa home songs, titre 1 (Accords Croisés)
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Publié le 28 juillet 2009 à 00h00
+  • Mis à jour le 08 décembre 2020 à 10h33
+  • M aroc – Moyen Atlas, Musique sacrée et profane, titre 3 (Ocora). Maroc, Voix sacrées, Voix de Fès, titre 8 (Buda Musique) Gnawa home songs, titre 1 (Accords Croisés)
+
+======================================================================
+telerama  id=2836557  free=?
+https://www.telerama.fr/musique/the-darker-the-shadow-the-brighter-the-light-le-retour-gagnant-de-the-streets_cri-7029047.php
+mots : controle=179  bypass=368  ratio=x2.06
+signal actuel (réservée?s? aux abonnés) : controle=OUI  bypass=OUI
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • En 2011, l’arrêt de The Streets, après cinq albums, avait sonné comme une délivrance, Skinner se disant alors épuisé. Il a manifestement retrouvé de l’entrain. Le blanc-bec de Birmingham, dont les récits du quotidien des faubourgs
+  • Cette critique est réservée aux abonnés
+  • sans engagement, résiliable à tout moment
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Lire la critique
+  • s Avec “Javelin”, Sufjan Stevens subjugue à nouveau
+  • Le débit a perdu en intensité avec les années, mais, à bientôt 45 ans, Mike Skinner fond toujours aussi habilement ses rimes dans ses multiples tropismes, folk (Walk of Shame), reggae (Something to Hide) ou même swing (The Darker The Shadow The Brighter The Light). Le propos sonne parfois convenu (Money Isn’t Everything), mais sa poésie humaniste, ode à l’hédonisme nocturne ou à la justice sociale, finit souvent par accrocher : « L’amour ne paie pas les factures / Mon apparence ne suffit pas à faire mon repas / Les morts pèsent plus lourds que les cœurs brisés. »
+
+======================================================================
+telerama  id=2781124  free=?
+https://www.telerama.fr/cinema/y-aura-t-il-un-festival-de-cannes-a-lete,n6621155.php
+mots : controle=175  bypass=1456  ratio=x8.32
+signal actuel (réservée?s? aux abonnés) : controle=OUI  bypass=OUI
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • I l n’y a même pas un an, Catherine Deneuve remettait la Palme d’or au Coréen Bong Joon-ho pour Parasite, et nombre de films récompensés ou présentés à Cannes, toutes sections confondues, décollaient vers des cimes de reconnaissance, en France et dans le monde. Fait rare, plusieurs se sont retrouvés, neuf mois plus tard, parmi les nominations des Oscars ou dans leur palmarès : Douleur et gloire, de Pedro Almodovar, Les Misérables, de Ladj Ly, Il était une fois à Hollywood, de Quentin Tarantino, J’ai perdu mon corps, de Jérémy Clapin (Semaine de la critique) et bien sûr Parasite, sacré Oscar du meilleur film. Tout un symbole : Hollywood s’incline massivement devant les
+  • Cet article est réservé aux abonnés
+  • sans engagement, résiliable à tout moment
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Et les cinéastes eux-mêmes, comment vivent-ils cette période d’incertitude ? Entre espoir de partager enfin un projet chéri depuis trois ans et volonté de relativiser en cette période dramatique, Laurent Cantet navigue à vue. Bien placé pour savoir que Cannes peut faire des miracles – Entre les murs , Palme d’or en 2008, avait séduit 1,7 million de spectateurs en France – le réalisateur a (avait ?) de fortes chances de voir son nouvel opus, Arthur Rambo (librement inspiré de l’affaire Mehdi Meklat, jeune journaliste mis en cause pour ses tweets polémiques), figurer au programme de l’édition 2020. « Pour l’instant, je fais comme si tout continuait, dit-il. J’ai soumis mon film au comité de sélection alors qu’il n’était même pas encore fini. » Face à l’épidémie, Cantet et sa productrice ont décidé de geler le travail de postproduction : pas question de mettre en danger la monteuse et les prestataires susceptibles d’intervenir encore sur le film. « C’est très étrange de se sentir soudain rattraper par l’actualité après avoir passé un an, de l’écriture au montage, dans une bulle de stress et de suractivité. On tient sur l’énergie et soudain cet élan est brisé. » Malgré les enjeux artistiques et financiers, Laurent Cantet garde la tête froide. « Des choses plus graves que de savoir si mon film sortira ou pas le 15 septembre prochain, avec ou sans label cannois, sont hélas en train de se jouer. »
+  • Que devient le rendez-vous cannois sans ses 12 000 festivaliers ? ©Olivier Metzger/modds
+  • Les hypothèses se bousculent quant à la sortie du tunnel, et au temps où il sera de nouveau normal de partager un film dans une salle, entre dizaines, centaines, voire milliers de spectateurs. D’ordinaire, les festivals de cinéma, de toutes dimensions, se succèdent à un rythme soutenu à partir du mois de mai. L’annonce d’un possible report de Cannes a ainsi inquiété Arnaud Dumatin, délégué général du Festival de La Rochelle, prévu du 26 juin au 5 juillet : « Cela aurait des conséquences très dommageables sur la présence des professionnels à notre manifestation, notamment les exploitants. S’ils doivent choisir entre Cannes ou La Rochelle, cela se fera à notre détriment. Même chose pour nos collaborateurs : régisseurs, projectionnistes, attachés de presse, interprètes, déjà mis à mal par cette crise. » Au-delà de juillet, le flou s’étend à perte de vue. La Mostra de Venise, qui devait démarrer à la fin d’août, pourra-t-elle se tenir cette année ? Et l’énorme Festival de Toronto (première quinzaine de septembre), si stratégique lui aussi pour la planète cinéma ? Cannes pourrait-il être reprogrammé au second semestre 2020 ? Comme le suggère le vendeur international Pierre Mazars, il y a aura tôt ou tard un festival de cinéma qui sonnera la fin de la privation et incarnera la reprise tant attendue. Oui, mais lequel ?
+
+======================================================================
+telerama  id=2838260  free=?
+https://www.telerama.fr/livre/les-etres-de-la-vigne-plongee-captivante-en-anjou-avec-des-pionniers-de-la-biodynamie_cri-7035914.php
+mots : controle=183  bypass=710  ratio=x3.88
+signal actuel (réservée?s? aux abonnés) : controle=OUI  bypass=OUI
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • C ombien d’anthropologues ont raconté leur désir irrépressible d’aller voir ailleurs si d’autres mondes existent, par-delà océans, langues, latitudes ? Par goût pour le voyage, et pour l’altérité véritable, peut-être, aussi, comme disait Claude Lévi-Strauss, parce que certaines contrées ont des personnalités qui font écho en nous et nous aimantent. La quête de Jean Foyer, chargé de recherche au CNRS en anthropologie, l’a d’abord embarqué très loin, auprès des autochtones au Mexique (Il était une fois la bio-révolution, sur les controverses autour du maïs transgénique, lui a valu le prix du Monde de la recherche universitaire en 2010), puis au Panama. Jusqu’à
+  • Cette critique est réservée aux abonnés
+  • sans engagement, résiliable à tout moment
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Vin bio, vin nature : comment s’y retrouver dans la jungle des labels ?
+  • Autant dire que, dans notre pays laïque et cartésien, pareille démarche donne des suées, mais Jean Foyer fait fi de la défiance, avec toute l’exigence du scientifique, pour donner à voir, comprendre, via l’histoire, la théorie et les multiples acteurs de la biodynamie, comment elle a pu s’enraciner à la Sansonnière ou la Coulée de Serrant et contribuer à l’émergence de « modernités alternatives ». Des cosmologies renouvelées et « à géométrie variable », qui peuvent déboucher sur des logiques « analogistes », faites de flux permanents et de correspondances entre ciel et terre, et jusqu’à des pratiques « animistes », empreintes de la présence des esprits. Autant de manières de « réanimer le monde », c omme « un retour du sens par rapport au geste désenchanteur de la modernité », au détour des coteaux angevins, grâce aux si précieux, aux si féconds Êtres de la vigne…
+  • Les Êtres de la vigne. Enquête dans les mondes de la biodynamie, 304 p.
+
+======================================================================
+telerama  id=2803990  free=?
+https://www.telerama.fr/arts-expositions/loto-du-patrimoine-decouvrez-en-images-les-18-sites-emblematiques-qui-vont-etre-renover-7022223.php
+mots : controle=1446  bypass=1446  ratio=x1.00
+signal actuel (réservée?s? aux abonnés) : controle=non  bypass=non
+--- fin du corps CONTROLE (3 dernieres balises) ---
+  • Ancienne bâtisse typique de Fort-de-France, le lieu doit devenir une « auberge collective », une offre d’hébergement touristique avec des dortoirs. Il comportera aussi un lieu d’échanges et de rencontres avec un café ouvert à tous et une cuisine partagée pour les voyageurs au rez-de-chaussée. Montant de l’aide : 350 000 euros.
+  • Photo Fondation du patrimoine
+  • Le Parc des Sports de Marville est aménagé en hippodrome au début des années 1910. Il en subsiste plusieurs édifices remarquables : tribune d’honneur, écurie et pavillon. La tribune est fermée au public depuis 2016 pour des raisons de sécurité et doit faire l’objet de travaux. Montant de l’aide : 500 000 euros.
+--- fin du corps BYPASS (3 dernieres balises) ---
+  • Ancienne bâtisse typique de Fort-de-France, le lieu doit devenir une « auberge collective », une offre d’hébergement touristique avec des dortoirs. Il comportera aussi un lieu d’échanges et de rencontres avec un café ouvert à tous et une cuisine partagée pour les voyageurs au rez-de-chaussée. Montant de l’aide : 350 000 euros.
+  • Photo Fondation du patrimoine
+  • Le Parc des Sports de Marville est aménagé en hippodrome au début des années 1910. Il en subsiste plusieurs édifices remarquables : tribune d’honneur, écurie et pavillon. La tribune est fermée au public depuis 2016 pour des raisons de sécurité et doit faire l’objet de travaux. Montant de l’aide : 500 000 euros.
