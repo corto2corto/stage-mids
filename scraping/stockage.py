@@ -29,3 +29,19 @@ def ecriture_csv(media, id, url, html):
 def maj_bdd(conn, id, etat=2):
     """Met à jour l'état d'une URL. Le commit est géré par l'appelant (par batch)."""
     conn.execute("UPDATE urls SET etat = ? WHERE id = ?", (etat, id))
+
+
+if __name__ == "__main__":
+    import sys
+
+    from scraping.extraction import extraire_url
+
+    media, url = sys.argv[1], sys.argv[2]
+    meta = extraire_url(media, url)
+    etat = 1 if est_bloque(meta["contenu"]) else 2
+
+    print(f"état : {etat} ({'BLOQUÉ → non écrit' if etat == 1 else 'OK → serait écrit'})")
+    print("ligne CSV (DRY-RUN, rien n'est écrit) :")
+    ligne = ["?", url, meta["titre"], meta["auteur"], meta["date"], meta["section"], meta["free"], meta["contenu"][:150] + "…"]
+    for col, val in zip(COLONNES, ligne):
+        print(f"  {col:8}: {val}")

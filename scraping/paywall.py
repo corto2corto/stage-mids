@@ -35,3 +35,14 @@ def est_bloque(contenu):
     if not contenu.strip():
         return True
     return _PATRON.search(contenu[-LONGUEUR_FIN:]) is not None
+
+
+if __name__ == "__main__":
+    import sys
+
+    from scraping.extraction import extraire_url
+
+    media, url = sys.argv[1], sys.argv[2]
+    contenu = extraire_url(media, url)["contenu"]
+    print(f"bloqué : {est_bloque(contenu)}")
+    print(f"fin    : ...{contenu[-LONGUEUR_FIN:]}")

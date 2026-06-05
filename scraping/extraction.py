@@ -110,3 +110,30 @@ def extraire(media, html):
     meta = meta_json_ld(soup) if config["meta"] == "json_ld" else meta_corps(soup)
     meta["contenu"] = extraire_corps(media, config["corps"], soup)
     return meta
+
+
+def extraire_url(media, url):
+    """Scrape l'URL (Firefox + bypass) puis renvoie le résultat de extraire().
+
+    Pratique pour tester : extraire_url("le_monde", "https://...").
+    """
+    from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
+
+    configurer_ublock()
+    driver = ouvrir_firefox()
+    try:
+        return extraire(media, scraper(driver, url))
+    finally:
+        driver.quit()
+
+
+if __name__ == "__main__":
+    import sys
+
+    meta = extraire_url(sys.argv[1], sys.argv[2])
+    for cle, valeur in meta.items():
+        if cle == "contenu":
+            print(f"contenu : {len(valeur.split())} mots")
+            print(f"  ...{valeur[-400:]}")
+        else:
+            print(f"{cle:8}: {valeur}")

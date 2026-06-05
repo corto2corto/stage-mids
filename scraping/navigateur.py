@@ -81,3 +81,20 @@ def scraper(driver, url):
     driver.get(url)
     time.sleep(ATTENTE_PAGE)
     return driver.page_source
+
+
+if __name__ == "__main__":
+    from scraping.batch import new_batch
+    from scraping import extraction
+
+    TAIL = 250
+    configurer_ublock()
+    batch = new_batch()
+    driver = ouvrir_firefox()
+    try:
+        for media, (id, url) in batch.items():
+            contenu = extraction.extraire(media, scraper(driver, url))["contenu"]
+            print(f"\n=== {media} (id={id}, {len(contenu.split())} mots) ===")
+            print(f"...{contenu[-TAIL:]}")
+    finally:
+        driver.quit()
