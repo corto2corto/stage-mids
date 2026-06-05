@@ -22,7 +22,6 @@ absent du corps « bypass » (le bypass devant aussi nettement rallonger le text
 """
 
 import os
-import re
 import sqlite3
 import time
 
@@ -32,14 +31,22 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 
 from scraping import extraction
-from scraping.config import BASE, EXTENSIONS_DIR, SCRAPERS, TMP_DIR
 from scraping.navigateur import (
     ATTENTE_LISTES,
     GECKODRIVER_PATH,
+    RACINE,
     configurer_ublock,
     scraper,
 )
-from scraping.paywall import SIGNAUX_PAYWALL
+from scraping.paywall import _PATRON
+from scraping.pipeline import SCRAPERS
+from scraping.stockage import DATA_DIR
+
+# Chemins reconstruits depuis DATA_DIR (stockage) et RACINE (navigateur),
+# l'ancien config.py ayant été supprimé.
+BASE = DATA_DIR / "urls.db"
+EXTENSIONS_DIR = RACINE / "extensions" / "firefox"
+TMP_DIR = "/data/elias/tmp/firefox"
 
 N_CANDIDATS = 8                         # URLs tirées par média (avant filtre payant)
 # Restreint le run à ces médias (vide = tous). On cible ici les 3 absents du
@@ -179,13 +186,12 @@ def main():
         for media, id, url, free, p_ctrl, p_byp in resultats:
             n_c, n_b = n_mots(p_ctrl), n_mots(p_byp)
             ratio = (n_b / n_c) if n_c else float("inf")
-            motif = SIGNAUX_PAYWALL.get(media) or ""
-            sig_c = bool(motif) and re.search(motif, " ".join(p_ctrl), re.I) is not None
-            sig_b = bool(motif) and re.search(motif, " ".join(p_byp), re.I) is not None
+            sig_c = _PATRON.search(" ".join(p_ctrl)) is not None
+            sig_b = _PATRON.search(" ".join(p_byp)) is not None
 
             f.write(f"\n{'='*70}\n{media}  id={id}  free={free or '?'}\n{url}\n")
             f.write(f"mots : controle={n_c}  bypass={n_b}  ratio=x{ratio:.2f}\n")
-            f.write(f"signal actuel ({motif or 'aucun'}) : "
+            f.write(f"signal generique : "
                     f"controle={'OUI' if sig_c else 'non'}  bypass={'OUI' if sig_b else 'non'}\n")
             f.write(f"--- fin du corps CONTROLE ({N_BALISES_FIN} dernieres balises) ---\n")
             for p in fin(p_ctrl):

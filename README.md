@@ -11,27 +11,28 @@ Les rachats de journaux français modifient-ils la couverture thématique des ar
 ```
 stage-mids/
 ├── scraping/              # le code du scraping (package importable)
-│   ├── config.py          # tous les chemins serveur + la liste des médias
 │   ├── navigateur.py      # Firefox headless + bypass paywall + uBlock
 │   ├── batch.py           # constitution d'un batch d'URLs depuis la BDD
+│   ├── extraction.py      # extraction des métadonnées + corps d'un article
+│   ├── paywall.py         # détection des articles tronqués (est_bloque)
 │   ├── stockage.py        # écriture des CSV + mise à jour de l'état en base
-│   └── pipeline.py        # orchestration (ouvre, scrape, écrit)
+│   └── pipeline.py        # orchestration (ouvre, scrape, extrait, écrit)
 │
 ├── scripts/              # préparation, à lancer une fois dans l'ordre
 │   ├── 1_telecharger_donnees.py   # télécharge les URLs depuis Hugging Face
 │   ├── 2_creer_bdd.py             # crée la base sqlite urls.db
 │   ├── 3_importer_csv.py          # importe les URLs dans la base
-│   └── 4_init_csv_sortie.py       # crée les CSV de sortie (un par média)
+│   └── creer_csv.py               # crée les CSV de sortie (un par média)
 │
-├── lancer_scraping.py    # point d'entrée du scraping
 ├── exploration/          # prototypes et tests (référence, hors prod)
 ├── notebooks/            # notebooks d'analyse
 └── extensions/           # extensions Firefox (.xpi) — présentes sur le serveur
 ```
 
 Les données (CSV, base `urls.db`) et les extensions vivent sur le serveur,
-sous `/data/elias/stage-mids/`. Leurs chemins sont centralisés dans
-[scraping/config.py](scraping/config.py).
+sous `/data/elias/stage-mids/`. Les chemins serveur sont définis dans
+[scraping/stockage.py](scraping/stockage.py) (`DATA_DIR`) et
+[scraping/navigateur.py](scraping/navigateur.py) (`RACINE`).
 
 ## Installation
 
@@ -53,11 +54,11 @@ Préparation de la base (une seule fois, dans l'ordre) :
 python scripts/1_telecharger_donnees.py
 python scripts/2_creer_bdd.py
 python scripts/3_importer_csv.py
-python scripts/4_init_csv_sortie.py
+python scripts/creer_csv.py
 ```
 
 Lancer le scraping :
 
 ```bash
-python lancer_scraping.py
+python -m scraping.pipeline
 ```

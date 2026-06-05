@@ -1,7 +1,6 @@
 import csv
 
-from scraping.config import DATA_DIR
-from scraping.stockage import COLONNES
+from scraping.stockage import COLONNES, DATA_DIR
 
 MEDIAS = [
     "le_monde",
