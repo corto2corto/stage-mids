@@ -80,7 +80,7 @@ def meta_corps(soup):
     }
 
 
-def extraire_corps(regle, soup):
+def extraire_corps(media, regle, soup):
     """Texte de l'article : <p> ciblés par la règle du média, joints par des espaces."""
     if regle == "article":
         # Nice Matin : pas de conteneur unique, on prend les <p> de tout l'article.
@@ -95,6 +95,10 @@ def extraire_corps(regle, soup):
         else:
             paragraphes = elements
 
+    if media == "paris_match" and paragraphes and \
+            paragraphes[-1].get_text(strip=True) == "La suite de cet article est réservée aux abonnés.":
+        paragraphes = paragraphes[:-1]
+
     return " ".join(p.get_text() for p in paragraphes)
 
 
@@ -104,5 +108,5 @@ def extraire(media, html):
     config = MEDIAS[media]
 
     meta = meta_json_ld(soup) if config["meta"] == "json_ld" else meta_corps(soup)
-    meta["contenu"] = extraire_corps(config["corps"], soup)
+    meta["contenu"] = extraire_corps(media, config["corps"], soup)
     return meta

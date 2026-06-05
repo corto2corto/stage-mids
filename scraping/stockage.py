@@ -10,16 +10,20 @@ import csv
 
 from scraping import extraction
 from scraping.config import CSV_DIR
+from scraping.paywall import est_bloque
 
 COLONNES = ["id", "url", "titre", "auteur", "date", "section", "free", "contenu"]
 
 
 def ecriture_csv(media, id, url, html):
-    """Extrait les métadonnées et écrit une ligne dans le CSV du média."""
+    """Extrait les métadonnées, écrit dans le CSV et retourne l'état (1 ou 2)."""
     meta = extraction.extraire(media, html)
+    if est_bloque(meta["contenu"]):
+        return 1
     chemin = CSV_DIR / f"{media}.csv"
     with open(chemin, "a", newline="", encoding="utf-8") as f:
         csv.writer(f).writerow([id, url, meta["titre"], meta["auteur"], meta["date"], meta["section"], meta["free"], meta["contenu"]])
+    return 2
 
 
 def maj_bdd(conn, id, etat=2):
