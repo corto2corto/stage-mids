@@ -9,12 +9,14 @@ Trois fonctions :
 import json
 import os
 import time
+from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 
-from scraping.config import RACINE
+# Racine du dépôt : sert à retrouver les ressources versionnées (extensions/).
+RACINE = Path(__file__).resolve().parent.parent
 
 # Geckodriver perso : Firefox 151 réclame geckodriver 0.37, mais le 0.36 du PATH
 # partagé (/usr/local/bin) appartient à un autre utilisateur — on n'y touche pas.

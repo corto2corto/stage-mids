@@ -7,9 +7,23 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from scraping.batch import new_batch
-from scraping.config import DATA_DIR, SCRAPERS
 from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
-from scraping.stockage import ecriture_csv, maj_bdd
+from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
+
+# Média -> moteur de scraping. Aujourd'hui tout en Firefox, mais ce mapping
+# permettra de router certains médias vers un autre moteur sans toucher au reste.
+SCRAPERS = {
+    "le_monde":               "firefox",
+    "le_figaro":              "firefox",
+    "le_journal_du_dimanche": "firefox",
+    "paris_match":            "firefox",
+    "le_capital":             "firefox",
+    "les_echos":              "firefox",
+    "valeurs_actuelles":      "firefox",
+    "le_nouvel_observateur":  "firefox",
+    "nice_matin":             "firefox",
+    "telerama":               "firefox",
+}
 
 
 def ouvrir_multi_firefox(batch):

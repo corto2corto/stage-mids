@@ -5,7 +5,7 @@ Un batch = une URL par média encore à traiter (etat=0).
 
 import sqlite3
 
-from scraping.config import DATA_DIR
+from scraping.stockage import DATA_DIR
 
 def new_batch():
     batch = {}
