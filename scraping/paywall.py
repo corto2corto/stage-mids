@@ -1,13 +1,17 @@
 """Détection des paywalls : vérifie qu'un article récupéré n'est pas tronqué.
 
-Principe : sur les sites à paywall « dur », un article bloqué contient une
-phrase-signal caractéristique (« il vous reste X% »…). Si cette phrase est
-présente dans le HTML, le bypass a échoué et l'article est incomplet : on ne
-doit pas le stocker.
+Deux contrôles, dans cet ordre :
+1. Corps vide → échec. Si l'extraction du corps (sélecteurs de extraction.py)
+   ne renvoie rien, l'article n'a pas été chargé/débloqué. C'est le cas de
+   le_monde paywallé : le message de coupure est HORS du conteneur d'article,
+   donc aucune phrase-signal n'aiderait — seul un corps vide trahit le blocage.
+2. Phrase-signal → échec. Sur les sites à paywall « dur », un article bloqué
+   contient une phrase caractéristique (« il vous reste X% »…). Sa présence
+   signifie bypass échoué = article incomplet : on ne stocke pas.
 
 Un média absent de SIGNAUX_PAYWALL (paywall « mou » : texte toujours complet)
-est considéré OK par défaut. Idem pour un signal laissé vide, en attendant de
-régler le bypass du site.
+est considéré OK par défaut dès lors que son corps n'est pas vide. Idem pour un
+signal laissé vide, en attendant de régler le bypass du site.
 
 ÉTAT (2026-06-04) : signaux calés après analyse d'un échantillon de 10 articles
 par média (cf. exploration/echantillon_tailles2.txt) :
@@ -37,6 +41,8 @@ import re
 
 from bs4 import BeautifulSoup
 
+from scraping import extraction
+
 # Phrase-signal de troncature par média (recherchée sans tenir compte de la casse).
 # Sa présence dans le texte = article tronqué = bypass échoué.
 SIGNAUX_PAYWALL = {
@@ -61,13 +67,22 @@ SIGNAUX_PAYWALL = {
 
 
 def bypass_reussi(media, html):
-    """Retourne True si l'article semble complet (aucune phrase-signal de paywall).
+    """Retourne True si l'article semble complet.
 
-    Un média sans signal défini (paywall mou, ou signal pas encore réglé) est
-    considéré OK par défaut.
+    Échec (False) si le corps extrait est vide, OU si une phrase-signal de paywall
+    est présente. Un média sans signal défini (paywall mou, ou signal pas encore
+    réglé) est considéré OK par défaut, dès lors que son corps n'est pas vide.
     """
+    soup = BeautifulSoup(html, "html.parser")
+
+    # 1. Corps vide = article non chargé/débloqué (cf. le_monde paywallé).
+    regle = extraction.MEDIAS[media]["corps"]
+    if not extraction.extraire_corps(regle, soup).strip():
+        return False
+
+    # 2. Phrase-signal de troncature.
     motif = SIGNAUX_PAYWALL.get(media)
     if not motif:
         return True
-    texte = BeautifulSoup(html, "html.parser").get_text(" ", strip=True)
+    texte = soup.get_text(" ", strip=True)
     return re.search(motif, texte, re.IGNORECASE) is None
