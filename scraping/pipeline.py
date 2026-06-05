@@ -57,9 +57,8 @@ def main():
                 print(f"{media}: ECHEC")
                 maj_bdd(conn, id, etat=1)
                 continue
-            ecriture_csv(media, id, url, html)
-            maj_bdd(conn, id)
-            print(f"{media}: OK")
+            etat = ecriture_csv(media, id, url, html)
+            maj_bdd(conn, id, etat=etat)
         conn.commit()   # un seul commit pour tout le batch
         print(f"\nTemps total : {time.time() - debut:.1f}s")
     finally:

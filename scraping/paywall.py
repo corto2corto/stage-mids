@@ -1,52 +1,37 @@
-"""Détection paywall : un article est-il bloqué (à retester) ou complet ?
+"""Détection paywall : le contenu extrait est-il bloqué (à retester) ou complet ?
 
-Logique unique, valable pour TOUS les journaux (pas de réglage par média) :
-un article est BLOQUÉ — donc à noter état 1 (à retester) — si l'un des deux cas :
+Ce module observe la SORTIE de extraction.py — le contenu déjà extrait — et rien
+d'autre (pas de HTML, pas de re-sélection de balises).
 
-1. Corps vide : aucun paragraphe extrait (ex. un live Figaro, ou un conteneur
-   d'article absent de la page).
-2. Une expression de blocage apparaît dans les 3 DERNIÈRES balises du corps.
+Un contenu est BLOQUÉ — donc à noter état 1 (à retester) — si :
+1. il est vide (aucun texte extrait : live Figaro, conteneur d'article absent…) ;
+2. une expression de blocage apparaît dans la FIN du contenu.
 
 Pourquoi seulement la fin : un message de coupure (« il vous reste X % »,
-« réservé aux abonnés »…) est toujours le DERNIER élément d'un article tronqué.
-Un badge en tête de page, ou un article correctement débloqué, n'en a pas en fin
-→ on évite les faux positifs sur du contenu complet.
+« réservé aux abonnés »…) est toujours en bout d'article tronqué. Un badge en
+tête, ou un article correctement débloqué, n'en a pas à la fin → pas de faux
+positif sur du contenu complet.
+
+Usage dans le pipeline :
+    meta = extraction.extraire(media, html)
+    etat = 1 if est_bloque(meta["contenu"]) else 2
 """
 
 import re
 
-from bs4 import BeautifulSoup
-
-from scraping import extraction
-
-# Expressions de blocage, tous journaux confondus (casse ignorée). À n'inclure
-# QUE si on est sûr qu'elles signalent une coupure, où qu'elles apparaissent.
 SIGNAUX_BLOCAGE = [
-    r"il vous reste\s*[\d.,]+\s*%\s*(de cet article|à découvrir|à lire)",  # le_monde, le_figaro
-    r"réservée?s? aux abonnés",          # telerama, les_echos, paris_match, le_nouvel_obs
-    r"envie de lire la suite",           # le_monde (archives)
-    r"débloquer votre article",          # nice_matin
+    r"il vous reste\s*[\d.,]+\s*%\s*(de cet article|à découvrir|à lire)",
+    r"réservée?s? aux abonnés",
+    r"envie de lire la suite",
+    r"débloquer votre article",
 ]
 _PATRON = re.compile("|".join(SIGNAUX_BLOCAGE), re.IGNORECASE)
 
-N_FIN = 3   # nombre de dernières balises inspectées
+LONGUEUR_FIN = 300   # nombre de caractères de fin de contenu inspectés
 
 
-def _paragraphes(media, soup):
-    """Textes non vides des <p> du corps (même sélection que extraction.py)."""
-    regle = extraction.MEDIAS[media]["corps"]
-    if regle == "article":
-        conteneur = soup.find("article")
-        elements = conteneur.find_all("p") if conteneur else []
-    else:
-        sel = soup.select(regle)
-        elements = sel[0].find_all("p") if len(sel) == 1 and sel[0].name != "p" else sel
-    return [t for p in elements if (t := p.get_text(" ", strip=True))]
-
-
-def est_bloque(media, html):
-    """True si l'article est bloqué (corps vide, ou blocage en fin) → à retester."""
-    paras = _paragraphes(media, BeautifulSoup(html, "html.parser"))
-    if not paras:
+def est_bloque(contenu):
+    """True si le contenu extrait est bloqué (vide, ou blocage en fin)."""
+    if not contenu.strip():
         return True
-    return _PATRON.search(" ".join(paras[-N_FIN:])) is not None
+    return _PATRON.search(contenu[-LONGUEUR_FIN:]) is not None
