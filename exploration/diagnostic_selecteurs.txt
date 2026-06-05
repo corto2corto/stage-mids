@@ -1,0 +1,73 @@
+
+======================================================================
+le_figaro
+https://www.lefigaro.fr/international/guerre-en-ukraine-un-missile-balistique-fait-18-morts-a-kryvyi-rig-la-ville-d-origine-de-zelensky-20250405
+sélecteur actuel : 'div.fig-content-body' -> 0 mots
+<p> longs (>200 car.) trouvés : 37
+
+parent le + fréquent des <p> longs (= conteneur réel) :
+   35 × div.fig-live-post__content
+    2 × li.fig-comments__item.fig-comment
+
+top conteneurs riches en <p> :
+  103 <p> | main.fig-page
+   86 <p> | div.fig-top
+   86 <p> | article(sans-classe)
+   79 <p> | div.fig-tabs-live
+   78 <p> | div.fig-tabs-live__tab.fig-tabs-live__tab--selected
+   77 <p> | div.fig-tabs-live__panel
+   76 <p> | div.fig-live-posts
+   13 <p> | div.fig-bottom.fig-layout.fig-layout--wrapped
+    9 <p> | div.fig-live-post.fig-live-post__item.fig-live-post--important
+    9 <p> | div.fig-wrapper-flex-column.fig-wrapper-flex-column--comments-taboola
+
+exemple de <p> long :
+  La Fédération russe de gymnastique a annoncé samedi que des gymnastes russes s’abstiendraient de participer aux prochaines compétitions de la Fédération internationale bien qu’ils aient obtenu le droi
+
+======================================================================
+le_monde
+https://www.lemonde.fr/a-la-une/article/2005/06/20/crise-dans-les-transports-franciliens_664088_3208.html
+sélecteur actuel : 'div.article__content' -> 0 mots
+<p> longs (>200 car.) trouvés : 1
+
+parent le + fréquent des <p> longs (= conteneur réel) :
+    1 × article.article__content.old__article-content-single
+
+top conteneurs riches en <p> :
+   23 <p> | main.main.LeMondeMain.main--free
+   23 <p> | section.article.article--single.article--iso.article--content
+   23 <p> | section.zone.zone--article.zone--article-offer.old__zone
+   19 <p> | section.article__wrapper
+   17 <p> | section.article__siblings.article__siblings--iso
+   17 <p> | section.article__siblings-container.old__article-siblings-container
+    4 <p> | section.zone.zone--footer.old__zone
+    3 <p> | section.footer__main
+    3 <p> | section.footer__top
+    3 <p> | section.footer__middle
+
+exemple de <p> long :
+  LA RÉGION Ile-de-France ne désignera pas ses représentants au conseil d'administration du Syndicat des transports d'Ile-de-France (STIF), a décidé Jean-Paul Huchon, président (PS) de la région, à laqu
+
+======================================================================
+le_monde
+https://www.lemonde.fr/m-perso/article/2017/06/02/le-duel-koh-lanta-versus-the-island_5137977_4497916.html
+sélecteur actuel : 'div.article__content' -> 0 mots
+<p> longs (>200 car.) trouvés : 7
+
+parent le + fréquent des <p> longs (= conteneur réel) :
+    7 × article.article__content.old__article-content-single
+
+top conteneurs riches en <p> :
+   47 <p> | main.main.LeMondeMain.main--free
+   47 <p> | section.article.article--single.article--iso.article--content
+   47 <p> | section.zone.zone--article.zone--article-opinion.zone--article-offer.old__zone
+   25 <p> | section.article__wrapper
+   17 <p> | section.article__siblings.article__siblings--iso
+   17 <p> | section.article__siblings-container.old__article-siblings-container
+   16 <p> | section.services-carousel
+   16 <p> | div.services-carousel-item
+   16 <p> | div.services-list
+   16 <p> | div.services-list__list.js-carousel-services
+
+exemple de <p> long :
+  Du riz et des jeux. En quinze ans, « Koh Lanta » s’est imposé comme LE programme d’aventures ; chaque vendredi soir, ce subtil mélange entre Les Révoltés du Bounty et « Intervilles » réunit près de si
