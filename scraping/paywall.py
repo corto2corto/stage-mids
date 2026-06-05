@@ -54,8 +54,12 @@ SIGNAUX_PAYWALL = {
     # telerama : badge « Cet article est réservé aux abonnés » OU « Réservé aux
     # abonnés ». NE matche PAS « réservée à nos inscrits » (UI présente partout).
     "telerama":    r"réservée?s? aux abonnés",
-    "paris_match": r"la suite de cet article est réservée aux abonnés",
     "les_echos":   r"contenu réservé aux abonnés",
+    # paris_match : signal RETIRÉ. La comparaison avec/sans bypass montre que
+    # « La suite… réservée aux abonnés » persiste même bypass actif et sur des
+    # articles qui se lisent comme complets → risque de rejeter du bon contenu.
+    # Priorité = ne pas perdre d'articles → on ne met aucun signal (OK par défaut).
+    "paris_match": "",
     # nice_matin : « Abonnez-vous… ou regardez une publicité pour débloquer votre
     # article ». On vise le fragment distinctif (les libellés « réservée aux
     # utilisateurs connectés » sont sur toutes les pages → inutilisables).
