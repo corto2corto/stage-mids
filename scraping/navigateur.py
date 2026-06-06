@@ -60,7 +60,11 @@ def configurer_ublock():
 
 def ouvrir_firefox():
     """Ouvre un Firefox headless avec bypass + uBlock, prêt à scraper."""
-    os.environ["TMPDIR"] = "/data/elias/tmp/firefox"
+    # Firefox ne peut écrire son profil temporaire que sous $HOME : on garde donc
+    # TMPDIR dans le home (et non sous /data/elias, hors $HOME → "Process
+    # unexpectedly closed with status 1").
+    os.environ["TMPDIR"] = os.path.expanduser("~/tmp/firefox")
+    os.makedirs(os.environ["TMPDIR"], exist_ok=True)
     options = Options()
     options.add_argument("--headless")
     options.set_preference("permissions.default.image", 2)
