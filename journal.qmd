@@ -2,8 +2,7 @@
 title: "Moissonnage MIDS"
 author: "Corto"
 date: "2026-05-05"
-execute:
-    eval: false
+engine: markdown
 format:
   html:
     toc: true
