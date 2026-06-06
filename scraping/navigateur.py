@@ -20,7 +20,7 @@ RACINE = Path(__file__).resolve().parent.parent
 UBLOCK_ID = "uBlock0@raymondhill.net"
 MANAGED_DIR = os.path.expanduser("~/.mozilla/managed-storage")
 ATTENTE_LISTES = 20   # au démarrage : uBlock télécharge ses listes (une fois)
-ATTENTE_PAGE = 5      # laisse le bypass agir sur chaque page
+ATTENTE_PAGE = 8      # laisse le bypass agir sur chaque page
 
 ADMIN_SETTINGS = {
     "userSettings": {
