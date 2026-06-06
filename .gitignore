@@ -1,6 +1,7 @@
 # --- Données scrappées ---
 # On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
-data/*.csv
+data/
+exploration/html/
 *.json
 *.jsonl
 *.parquet
