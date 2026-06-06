@@ -18,12 +18,9 @@ from selenium.webdriver.firefox.service import Service
 # Racine du dépôt : sert à retrouver les ressources versionnées (extensions/).
 RACINE = Path(__file__).resolve().parent.parent
 
-# Geckodriver perso : Firefox 151 réclame geckodriver 0.37, mais le 0.36 du PATH
-# partagé (/usr/local/bin) appartient à un autre utilisateur — on n'y touche pas.
-# On pointe vers une copie 0.37 dans le home. Override possible via GECKODRIVER_PATH.
-GECKODRIVER_PATH = os.environ.get(
-    "GECKODRIVER_PATH", RACINE/"extensions"/"geckodriver"/"geckodriver"
-)
+# Geckodriver 0.36 partagé de /usr/local/bin (il nous appartient).
+# Override possible via la variable d'environnement GECKODRIVER_PATH.
+GECKODRIVER_PATH = os.environ.get("GECKODRIVER_PATH", "/usr/local/bin/geckodriver")
 
 UBLOCK_ID = "uBlock0@raymondhill.net"
 MANAGED_DIR = os.path.expanduser("~/.mozilla/managed-storage")
