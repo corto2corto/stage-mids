@@ -32,15 +32,9 @@ env/
 
 # --- Quarto ---
 /.quarto/
+/quarto_tmp/
 *_files/
-*_cache/
-/site_libs/
-journal/journal.html
-journal/*.quarto_ipynb*
-journal/2026-05-05*
-
-# --- HTML temporaires (sorties de scrapers) ---
-!journal/*.qmd
+journal.html
 
 # --- Notebooks ---
 .ipynb_checkpoints/
@@ -73,3 +67,5 @@ models/
 extensions/firefox/
 extensions/geckodriver/
 extensions/chrome-linux-profile
+
+**/*.quarto_ipynb
