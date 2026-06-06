@@ -13,14 +13,9 @@ from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
 
 # Racine du dépôt : sert à retrouver les ressources versionnées (extensions/).
 RACINE = Path(__file__).resolve().parent.parent
-
-# Geckodriver 0.36 partagé de /usr/local/bin (il nous appartient).
-# Override possible via la variable d'environnement GECKODRIVER_PATH.
-GECKODRIVER_PATH = os.environ.get("GECKODRIVER_PATH", "/usr/local/bin/geckodriver")
 
 UBLOCK_ID = "uBlock0@raymondhill.net"
 MANAGED_DIR = os.path.expanduser("~/.mozilla/managed-storage")
@@ -65,10 +60,7 @@ def ouvrir_firefox():
     options = Options()
     options.add_argument("--headless")
     options.set_preference("permissions.default.image", 2)
-    if os.path.exists(GECKODRIVER_PATH):
-        driver = webdriver.Firefox(options=options, service=Service(GECKODRIVER_PATH))
-    else:
-        driver = webdriver.Firefox(options=options)
+    driver = webdriver.Firefox(options=options)
     extensions_dir = RACINE/"extensions"/"firefox"
     for xpi in os.listdir(extensions_dir):
         if xpi.endswith(".xpi"):
