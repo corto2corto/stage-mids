@@ -132,7 +132,7 @@ def avancement():
 
     _afficher(
         "Avancement du scraping (source : urls.db)",
-        ["média", "total", "réussis", "échecs", "restants", "% traité"],
+        ["média", "total", "réussis", "échecs", "restants", "% traité", "% succès"],
         lignes,
     )
     return par_media
@@ -141,8 +141,9 @@ def avancement():
 def _ligne_avancement(media, compte):
     total = compte[0] + compte[1] + compte[2]
     traites = compte[1] + compte[2]
-    pct = f"{100 * traites / total:.1f}%" if total else "—"
-    return [media, total, compte[2], compte[1], compte[0], pct]
+    pct_traite = f"{100 * traites / total:.1f}%" if total else "—"
+    pct_succes = f"{100 * compte[2] / traites:.1f}%" if traites else "—"
+    return [media, total, compte[2], compte[1], compte[0], pct_traite, pct_succes]
 
 
 def echecs():
