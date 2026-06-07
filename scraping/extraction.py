@@ -8,6 +8,7 @@ Chaque média est routé via le dico MEDIAS, qui dit pour ce média :
 """
 
 import json
+import re
 from bs4 import BeautifulSoup
 
 MEDIAS = {
@@ -91,7 +92,8 @@ def extraire_corps(media, regle, soup):
             paragraphes[-1].get_text(strip=True) == "La suite de cet article est réservée aux abonnés.":
         paragraphes = paragraphes[:-1]
 
-    return " ".join(p.get_text() for p in paragraphes)
+    texte = " ".join(p.get_text() for p in paragraphes)
+    return re.sub(r"\s+", " ", texte).strip()   # un seul espace, pas de sauts de ligne
 
 
 def extraire(media, html):
