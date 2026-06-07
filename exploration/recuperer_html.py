@@ -19,8 +19,9 @@ SORTIE = RACINE / "exploration" / "html"
 
 # nom de fichier -> URL. Le nom devient <nom>.html dans exploration/html/.
 CIBLES = {
-    "jdd_1": "https://www.lejdd.fr/International/guerre-au-moyen-orient-jd-vance-quitte-le-pakistan-sans-accord-avec-liran-171252",
-    "jdd_2": "https://www.lejdd.fr/International/guerre-en-iran-jd-vance-au-pakistan-des-echanges-prevus-entre-le-liban-et-israel-171123",
+    "jdd_std_payant_1": "https://www.lejdd.fr/sport/equipe-de-france-le-dernier-chapitre-de-didier-deschamps-chez-les-bleus-175803",
+    "jdd_std_payant_2": "https://www.lejdd.fr/Societe/jerome-fourquet-sur-le-canon-francais-la-mise-en-avant-de-traditions-populaires-est-automatiquement-suspecte-175443",
+    "jdd_std_gratuit":  "https://www.lejdd.fr/International/quest-ce-que-le-hikikomori-175572",
 }
 
 os.makedirs(SORTIE, exist_ok=True)
