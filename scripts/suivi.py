@@ -1,11 +1,13 @@
 """
 Suivi de l'avancement du scraping.
 
-Ce script NE FAIT QUE LIRE les données produites par le scraping :
+Ce script lit les données produites par le scraping :
 - la base sqlite `urls.db`  -> pour savoir où on en est (combien d'URLs traitées) ;
 - les CSV de sortie (un par média) -> pour les statistiques de contenu.
 
-Il ne modifie rien et ne touche à aucun module du dossier scraping/.
+Il ne touche à aucun module du dossier scraping/. Seule exception à la lecture
+seule : `snapshot` tient un journal de bord (`suivi_journal.csv`) — ses propres
+données, pas celles du scraping — pour suivre le taux de réussite dans le temps.
 
 Chaque indicateur est une fonction indépendante, appelable de deux façons :
 - en ligne de commande :  python -m scripts.suivi <indicateur> [média]
@@ -23,6 +25,8 @@ Indicateurs disponibles :
   sections    rubriques les plus fréquentes                (source : CSV)
   auteurs     signatures les plus fréquentes               (source : CSV)
   acces       part d'articles en accès libre / payant       (source : CSV)
+  tendance    évolution du taux de réussite dans le temps   (source : journal)
+  snapshot    enregistre un instantané des compteurs        (écrit : journal)
 
 Les indicateurs lus dans les CSV acceptent un nom de média en argument pour
 se limiter à ce média (sinon : tous les médias confondus).
@@ -41,9 +45,11 @@ import csv
 import os
 import sqlite3
 import sys
+import urllib.request
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
-from statistics import mean, median
+from statistics import mean, median, stdev
 
 # Source unique de vérité pour l'emplacement des données ; surchargeable en local.
 from scraping.stockage import DATA_DIR as _DATA_DIR_DEFAUT
@@ -51,6 +57,14 @@ from scraping.stockage import DATA_DIR as _DATA_DIR_DEFAUT
 DATA_DIR = Path(os.environ.get("STAGE_DATA_DIR", _DATA_DIR_DEFAUT))
 BASE = DATA_DIR / "urls.db"
 DOSSIER_CSV = DATA_DIR / "csv"
+JOURNAL = DATA_DIR / "suivi_journal.csv"
+
+# Carte de contrôle : on signale un décrochage quand le taux d'un intervalle
+# passe sous (moyenne − 3σ) de l'historique du média. MIN_BASELINE = nombre
+# d'intervalles de référence requis avant de juger (sinon la moyenne ne veut rien
+# dire et on alerterait pour du bruit).
+SEUIL_SIGMA = 3
+MIN_BASELINE = 5
 
 # Les CSV contiennent des articles entiers : on relève la limite de taille d'un champ.
 csv.field_size_limit(min(sys.maxsize, 2**31 - 1))
@@ -290,6 +304,190 @@ def resume():
 
 
 # --------------------------------------------------------------------------- #
+# Surveillance dans le temps (journal d'instantanés + carte de contrôle)
+# --------------------------------------------------------------------------- #
+#
+# Le scraping tourne en continu, des jours durant. On veut repérer le moment où
+# le taux de réussite d'un média s'effondre (ex. son HTML change, le bypass
+# casse). `snapshot` note régulièrement les compteurs cumulés (réussis/échecs par
+# média) dans un journal ; le taux « entre deux instantanés » se déduit par
+# différence. `tendance` affiche cette série ; un décrochage sous la carte de
+# contrôle (moyenne − 3σ de l'historique du média) déclenche une notif ntfy.
+
+
+def _compteurs_db():
+    """Compteurs cumulés (réussis, échecs) par média, lus dans urls.db."""
+    with _connexion() as conn:
+        rows = conn.execute(
+            "SELECT media, etat, COUNT(*) FROM urls WHERE etat IN (1, 2) "
+            "GROUP BY media, etat"
+        ).fetchall()
+    par_media = {}
+    for media, etat, n in rows:
+        par_media.setdefault(media, {1: 0, 2: 0})[etat] = n
+    return {m: (c[2], c[1]) for m, c in par_media.items()}   # (réussis, échecs)
+
+
+def _lire_journal():
+    """Lignes du journal (ordre chronologique d'écriture) ; [] s'il n'existe pas."""
+    if not JOURNAL.exists():
+        return []
+    with open(JOURNAL, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def _series_par_media(journal):
+    """journal -> {media: [(réussis, échecs), ...]} en ordre chronologique."""
+    series = {}
+    for ligne in journal:
+        series.setdefault(ligne["media"], []).append(
+            (int(ligne["reussis"]), int(ligne["echecs"]))
+        )
+    return series
+
+
+def _intervalles(points):
+    """Compteurs cumulés -> taux par intervalle : [(n_articles, taux), ...]."""
+    intervalles = []
+    for (r0, e0), (r1, e1) in zip(points, points[1:]):
+        n = (r1 - r0) + (e1 - e0)
+        if n > 0:
+            intervalles.append((n, (r1 - r0) / n))
+    return intervalles
+
+
+def _carte_controle(intervalles):
+    """Bornes (moyenne, sigma, borne_basse) calculées sur l'historique.
+
+    L'historique = tous les intervalles sauf le dernier (celui qu'on teste).
+    Renvoie None s'il n'y a pas assez de recul, ou si l'historique est plat.
+    """
+    if len(intervalles) < MIN_BASELINE + 1:
+        return None
+    taux = [t for _, t in intervalles[:-1]]
+    moyenne = mean(taux)
+    sigma = stdev(taux)
+    if sigma == 0:
+        return None
+    return moyenne, sigma, moyenne - SEUIL_SIGMA * sigma
+
+
+def snapshot(min_nouveaux=0):
+    """Enregistre un instantané des compteurs dans le journal de suivi.
+
+    Écrit une ligne par média (réussis/échecs cumulés), horodatée. Si
+    `min_nouveaux` > 0, n'enregistre que si au moins ce nombre d'articles ont été
+    traités depuis le dernier instantané : c'est le déclencheur « tous les N »
+    utilisé par le pipeline (insensible aux relances, car les compteurs vivent en
+    base). Sur un nouvel instantané, vérifie chaque média et notifie (ntfy) en
+    cas de décrochage. Renvoie True si un instantané a été écrit.
+    """
+    compteurs = _compteurs_db()
+    if not compteurs:
+        print("Aucun article traité pour l'instant — rien à enregistrer.")
+        return False
+
+    journal = _lire_journal()
+    total = sum(r + e for r, e in compteurs.values())
+    if journal:
+        dernier = journal[-1]["horodatage"]
+        total_precedent = sum(int(l["reussis"]) + int(l["echecs"])
+                              for l in journal if l["horodatage"] == dernier)
+    else:
+        total_precedent = 0
+
+    if min_nouveaux and total - total_precedent < min_nouveaux:
+        return False   # pas assez de nouveaux articles : on n'enregistre rien
+
+    horodatage = datetime.now().isoformat(timespec="seconds")
+    nouveau_fichier = not JOURNAL.exists()
+    with open(JOURNAL, "a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        if nouveau_fichier:
+            w.writerow(["horodatage", "media", "reussis", "echecs"])
+        for media in sorted(compteurs):
+            reussis, echecs = compteurs[media]
+            w.writerow([horodatage, media, reussis, echecs])
+
+    print(f"Instantané enregistré : {total} articles traités au total "
+          f"({len(compteurs)} médias).")
+    _verifier_decrochages()
+    return True
+
+
+def _verifier_decrochages():
+    """Pour chaque média, teste le dernier intervalle et notifie un décrochage."""
+    for media, points in _series_par_media(_lire_journal()).items():
+        intervalles = _intervalles(points)
+        bornes = _carte_controle(intervalles)
+        if not bornes:
+            continue
+        moyenne, _sigma, borne = bornes
+        n, taux = intervalles[-1]
+        if taux < borne:
+            titre = f"Chute du taux de reussite : {media}"
+            corps = (f"{media} : {taux:.0%} sur les {n} derniers articles "
+                     f"(habituel {moyenne:.0%}, seuil {borne:.0%}). "
+                     f"Le bypass décroche.")
+            print(f"  ⚠ {corps}")
+            _notifier(titre, corps)
+
+
+def _notifier(titre, corps):
+    """Notification ntfy si STAGE_NTFY_TOPIC est défini (sinon ne fait rien).
+
+    Topic et serveur viennent de l'environnement (rien en dur). Toute erreur
+    réseau est avalée : une notification ratée ne doit jamais casser le run.
+    """
+    topic = os.environ.get("STAGE_NTFY_TOPIC")
+    if not topic:
+        return
+    base = os.environ.get("STAGE_NTFY_URL", "https://ntfy.sh").rstrip("/")
+    requete = urllib.request.Request(
+        f"{base}/{topic}",
+        data=corps.encode("utf-8"),
+        headers={"Title": titre, "Priority": "high", "Tags": "warning"},
+        method="POST",
+    )
+    try:
+        urllib.request.urlopen(requete, timeout=10)
+    except Exception as e:
+        print(f"  (notification ntfy échouée : {type(e).__name__})")
+
+
+def tendance(media=None):
+    """Évolution du taux de réussite par intervalle (source : journal de suivi).
+
+    Chaque ligne = un intervalle entre deux instantanés : nombre d'articles
+    traités et taux de réussite. Un ⚠ marque un intervalle passé sous la carte
+    de contrôle (moyenne − 3σ de l'historique du média).
+    """
+    journal = _lire_journal()
+    if not journal:
+        print("\nJournal de suivi vide. Prends un premier instantané :\n"
+              "  python -m scripts.suivi snapshot")
+        return
+
+    series = _series_par_media(journal)
+    for m in ((media,) if media else sorted(series)):
+        intervalles = _intervalles(series.get(m, []))
+        if not intervalles:
+            continue
+        taux = [t for _, t in intervalles]
+        moyenne = mean(taux)
+        sigma = stdev(taux) if len(taux) >= 2 else 0
+        borne = moyenne - SEUIL_SIGMA * sigma
+        lignes = []
+        for i, (n, t) in enumerate(intervalles, 1):
+            marque = "⚠" if (sigma and t < borne) else ""
+            lignes.append([i, n, f"{100 * t:.1f}%", marque])
+        titre = (f"Taux de réussite par intervalle — {m} "
+                 f"(habituel {100 * moyenne:.1f}%"
+                 + (f", seuil {100 * borne:.1f}%" if sigma else "") + ")")
+        _afficher(titre, ["#", "traités", "taux", ""], lignes)
+
+
+# --------------------------------------------------------------------------- #
 # Ligne de commande
 # --------------------------------------------------------------------------- #
 
@@ -303,8 +501,10 @@ INDICATEURS = {
     "sections": sections,
     "auteurs": auteurs,
     "acces": acces,
+    "tendance": tendance,
+    "snapshot": snapshot,
 }
-SANS_MEDIA = {"resume", "avancement", "echecs"}
+SANS_MEDIA = {"resume", "avancement", "echecs", "snapshot"}
 
 
 def main(argv=None):

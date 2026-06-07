@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from scraping.batch import new_batch
 from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
+from scripts.suivi import snapshot
 
 # Média -> moteur de scraping. Aujourd'hui tout en Firefox, mais ce mapping
 # permettra de router certains médias vers un autre moteur sans toucher au reste.
@@ -48,36 +49,68 @@ def scraper_batch(batch, navigateurs):
         return dict(ex.map(scraper_url, navigateurs))
 
 
+def traiter_vague(conn, batch, navigateurs):
+    """Scrape une vague (une URL par média), écrit CSV + état, renvoie le nombre
+    d'URLs traitées. Une vague = une transaction (commit groupé en fin de vague).
+
+    Toute URL non récupérée — HTML manquant, extraction qui échoue ou contenu
+    resté derrière le paywall — finit à etat=1 (échec), sans distinction : on se
+    fiche de l'origine. Un article mal formé ne bloque jamais le run.
+    """
+    actifs = {media: navigateurs[media] for media in batch if media in navigateurs}
+    resultats = scraper_batch(batch, actifs)
+
+    for media, (id, url, html) in resultats.items():
+        try:
+            etat = ecriture_csv(media, id, url, html) if html else 1
+        except Exception:
+            etat = 1
+        print(f"  {media:<24} id={id}  etat={etat} ({'succès' if etat == 2 else 'échec'})")
+        maj_bdd(conn, id, etat)
+
+    conn.commit()
+    return len(resultats)
+
+
 def main():
+    """Scrape en continu jusqu'à épuisement des URLs à etat=0.
+
+    Pensé pour tourner plusieurs jours : on ouvre un Firefox par média une seule
+    fois, puis on enchaîne les vagues (une URL par média) sans limite. L'état est
+    commité vague par vague — le run est interruptible et reprend tout seul. Tous
+    les 1000 articles, un instantané alimente le suivi et alerte (ntfy) en cas de
+    décrochage du bypass.
+    """
     debut = time.time()
-
-    # Écrit la config uBlock dans ~/.mozilla/managed-storage/ (listes anti-bandeaux)
     configurer_ublock()
-
-    # Connexion persistante pour les mises à jour d'état (commit par batch)
     conn = sqlite3.connect(DATA_DIR/"urls.db")
 
-    # Une URL par média depuis la BDD (etat=0)
+    # Le premier batch fixe l'ensemble des médias à traiter, donc les navigateurs
+    # à ouvrir (aucun média ne peut en gagner en cours de route).
     batch = new_batch()
+    if not batch:
+        print("Aucune URL à etat=0 — rien à faire.")
+        conn.close()
+        return
 
-    # Un Firefox par média, en parallèle
+    print(f"Ouverture d'un Firefox pour : {', '.join(sorted(batch))}")
     navigateurs = ouvrir_multi_firefox(batch)
 
+    traitees = 0
+    vague = 0
     try:
-        resultats = scraper_batch(batch, navigateurs)
-        for media, (id, url, html) in resultats.items():
-            if html is None:
-                print(f"{media}: ECHEC")
-                maj_bdd(conn, id, etat=1)
-                continue
-            etat = ecriture_csv(media, id, url, html)
-            maj_bdd(conn, id, etat=etat)
-        conn.commit()   # un seul commit pour tout le batch
-        print(f"\nTemps total : {time.time() - debut:.1f}s")
+        while batch:
+            vague += 1
+            print(f"\n=== Vague {vague}  ({traitees} URLs traitées) ===")
+            traitees += traiter_vague(conn, batch, navigateurs)
+            snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
+            batch = new_batch()
     finally:
         for driver in navigateurs.values():
             driver.quit()
         conn.close()
+
+    print(f"\n{traitees} URLs traitées en {time.time() - debut:.1f}s.")
 
 
 if __name__ == "__main__":
