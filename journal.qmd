@@ -351,18 +351,7 @@ urls.db      ← mise à jour de l'etat (1 échec / 2 succès)
 
 ### Schéma de la base
 
-```sql
-CREATE TABLE urls (
-    id    INTEGER PRIMARY KEY,
-    media TEXT NOT NULL,
-    url   TEXT NOT NULL,
-    etat  INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE INDEX idx_media_etat ON urls(media, etat);
-```
-
-Convention des états : `0` = à scraper, `1` = visité avec échec (HTML absent ou article tronqué), `2` = visité avec succès. La base ne sert que de todo-list ; le contenu extrait part dans les CSV.
+La base `urls.db` contient une seule table avec quatre colonnes : identifiant, nom du média, URL, et état. L'état vaut `0` (à scraper), `1` (échec : page vide ou contenu tronqué) ou `2` (succès). C'est une simple todo-list, le corp des articles sera écrit dans des CSV.
 
 ### Les modules
 
@@ -375,80 +364,11 @@ Convention des états : `0` = à scraper, `1` = visité avec échec (HTML absent
 | stockage | [`scraping/stockage.py`](scraping/stockage.py) | écrit le CSV du média, met à jour l'`etat` en base |
 | orchestration | [`scraping/pipeline.py`](scraping/pipeline.py) | enchaîne le tout ; lancé par `python -m scraping.pipeline` |
 
-### Principes
+Le pipeline tourne en vagues : à chaque vague, une URL par média est scrapée en parallèle, puis les résultats sont écrits d'un coup. La base est mise à jour après chaque vague, donc si le script s'arrête en plein milieu, les URLs non encore traitées restent à `etat=0` et le relancement reprend automatiquement où on en était.
 
-- Une vague = une URL par média (dix aujourd'hui), scrapées en parallèle, puis écriture groupée et un seul `commit` en fin de vague.
-- Pas de WAL ni de pragmas exotiques : un seul writer par vague suffit.
-- Pas d'état « en cours » ni de compteur de tentatives — un échec reste un échec, l'URL restant simplement à `etat=0` tant qu'elle n'est pas traitée.
-- Reprise après interruption gratuite : la base est mise à jour vague par vague ; un Ctrl-C ou un crash laisse les URLs non faites à `etat=0`, un relancement reprend là où on en était.
-- Si un navigateur freeze ou lève une exception, le `with webdriver` garantit sa fermeture et `html=None` est retourné (état `1`).
+## Firefox + extensions sur le serveur
 
-### Mise en place sur le serveur
-
-Les scripts de préparation [`scripts/2_creer_bdd.py`](scripts/2_creer_bdd.py) puis [`scripts/3_importer_csv.py`](scripts/3_importer_csv.py) ont tourné sur le serveur (`/data/elias/stage-mids/`). La base `urls.db` contient ~10 millions de lignes, toutes à `etat=0`, réparties sur 10 médias. Les CSV de sortie (un par média, en-têtes seuls) sont créés par [`scripts/creer_csv.py`](scripts/creer_csv.py).
-
-### Architecture complète du pipeline (version consolidée)
-
-```
-urls.db (todo-list)
-    ↓ 4_creation_batch.py
-batch {media: (id, url)}
-    ↓ 5_scrap.py
-htmls {media: (id, url, html|None)}
-    ↓ 6_verification.py
-    ↓ 7_extraction.py
-résultats {media: (id, etat, métadonnées)}
-    ↓
-urls.db  ← mise à jour etat (1 ou 2)
-<media>.csv ← métadonnées extraites
-```
-
-#### Exploration (5_scrap.py)
-
-Prend `batch` en entrée, lance N navigateurs Selenium en parallèle (`ThreadPoolExecutor`, timeout fixe). Le routage `media → stratégie de scraping` est centralisé dans un dictionnaire `SCRAPERS` — il y a en réalité 3-4 variantes (Firefox simple, Firefox avec sleep, Firefox avec suppression de cookies, Chrome). Si un navigateur freeze ou lève une exception, le `with webdriver` garantit sa fermeture et `html=None` est retourné. Uniformisation du scraper à faire plus tard.
-
-#### Vérification (6_verification.py)
-
-Prend un `html` en entrée, renvoie `True/False` (ou etat 1/2). Logique : à fixer.
-
-#### Extraction des métadonnées (7_extraction.py)
-
-Prend `html` et `media` en entrée, renvoie un dict de métadonnées. Le routage `media → fonction d'extraction` suit le même pattern que `SCRAPERS`. Les métadonnées disponibles varient selon le média (auteur, date, titre, texte, etc.).
-
-#### Stockage des résultats
-
-- `urls.db` : mise à jour de `etat` uniquement (todo-list).
-- Un CSV par média (`le_monde.csv`, `le_figaro.csv`, etc.) pour les métadonnées extraites. Chaque CSV a ses propres colonnes selon ce que le média expose. Choix du CSV plutôt que SQLite car les métadonnées sont hétérogènes — pandas gère nativement les valeurs manquantes sans contrainte de type.
-
-## Industrialisation du scraping : Firefox + extensions sur serveur
-
-Le prototypage local utilisait le profil Firefox personnel de la machine Windows (`-profile` pointant vers `AppData`). Cette approche ne tient pas sur le serveur Linux headless : pas d'interface graphique, pas de profil personnel. On a donc reconstruit toute la chaîne pour qu'elle tourne en autonomie sur le serveur.
-
-### Pourquoi Firefox plutôt que Chrome
-
-Chrome headless charge mal les extensions non signées (bypass-paywalls), et le mode `--headless=new` a un comportement instable avec les profils personnalisés. Firefox expose une API Selenium dédiée (`install_addon`) qui installe une extension après le démarrage du navigateur, y compris non signée (`temporary=True`). C'est la méthode recommandée par Mozilla et la seule fiable en headless.
-
-### Envoi des extensions sur le serveur
-
-Les deux extensions sont transférées sous forme de `.xpi` dans `extensions/firefox/` :
-
-- `uBlock0@raymondhill.net.xpi` (uBlock Origin, signée, depuis AMO)
-- `magnolia@12.34.xpi` (bypass-paywalls-clean, non signée)
-
-Ces fichiers vivent uniquement sur le serveur (ils sont dans `.gitignore`, pour ne pas alourdir le dépôt). Le profil Chrome Linux est ignoré de la même manière.
-
-### Installation des extensions au démarrage
-
-Plutôt que de pré-installer les extensions dans un profil (ce qui déclenche un bug geckodriver connu : les extensions apparaissent activées mais sont inertes en headless, cf. issues #1517/#1612), on les installe à chaud après le lancement :
-
-```{python}
-options = Options()
-options.add_argument("--headless")
-driver = webdriver.Firefox(options=options)
-for xpi in os.listdir(EXTENSIONS_DIR):
-    if xpi.endswith(".xpi"):
-        driver.install_addon(os.path.join(EXTENSIONS_DIR, xpi), temporary=True)
-```
+On utilise Firefox plutôt que Chrome : son API Selenium expose `install_addon`, qui permet d'installer les extensions directement au démarrage du navigateur, y compris des extensions non signées comme bypass-paywalls-clean. Sur le serveur, pas de profil pré-configuré — Selenium part d'un profil vide et charge les `.xpi` à chaud.
 
 ### Configuration d'uBlock sans interface : le managed storage
 
@@ -895,6 +815,12 @@ Le JDD a été re-dumpé sur un **article standard** (le 1er dump était un live
 ### Branchement au pipeline
 
 `extraire()` est désormais câblé : [`scraping/stockage.py`](scraping/stockage.py) appelle `extraire()`, applique `est_bloque()`, puis écrit la ligne dans le CSV du média (`etat=2`) ou marque l'échec (`etat=1`). Les CSV de sortie sont initialisés par [`scripts/creer_csv.py`](scripts/creer_csv.py) avec les colonnes communes `id, url, titre, auteur, date, section, free, contenu`.
+
+## Déduplication : écarter les articles déjà disponibles
+
+Une bonne partie des articles qu'on voulait scraper sont déjà publiés dans une base existante : [`regicid/press_metadata`](https://huggingface.co/datasets/regicid/press_metadata), un jeu de métadonnées de presse française sur Hugging Face (~11,17 M d'URLs). Plutôt que de les re-scraper, on les écarte avec [`scripts/4_marquer_doublons.py`](scripts/4_marquer_doublons.py).
+
+Le principe : on récupère les URLs de regicid (`load_dataset` sur chaque sous-ensemble), puis un `UPDATE urls SET etat = 3 WHERE etat = 0 AND url IN (...)` marque d'un nouvel état `3` (« déjà présent ailleurs ») celles qu'on retrouve à l'identique. Résultat : 7 273 332 doublons écartés, que le batch (`etat = 0`) ignorera.
 
 ## État actuel et prochaines étapes
 

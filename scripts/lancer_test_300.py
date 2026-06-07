@@ -28,7 +28,7 @@ from scraping.navigateur import configurer_ublock
 from scraping.pipeline import ouvrir_multi_firefox, scraper_batch
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
 
-CIBLE_DEFAUT = 300   # nombre d'URLs à traiter au total
+CIBLE_DEFAUT = 5000   # nombre d'URLs à traiter au total
 
 
 def traiter_vague(conn, batch, navigateurs):
