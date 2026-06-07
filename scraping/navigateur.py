@@ -13,9 +13,21 @@ from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 
 # Racine du dépôt : sert à retrouver les ressources versionnées (extensions/).
 RACINE = Path(__file__).resolve().parent.parent
+
+# Geckodriver 0.36 à nous, dans extensions/geckodriver/ (pointé explicitement pour
+# que Selenium n'aille pas chercher via le PATH ni déclencher Selenium Manager).
+# Override possible via la variable d'environnement GECKODRIVER_PATH.
+GECKODRIVER_PATH = os.environ.get("GECKODRIVER_PATH", RACINE/"extensions"/"geckodriver"/"geckodriver")
+
+# Firefox NON-snap (le snap est confiné au home et crashe avec un profil sur /data).
+# On pointe le binaire déjà téléchargé par Selenium. Override via FIREFOX_BIN.
+FIREFOX_BIN = os.environ.get(
+    "FIREFOX_BIN", "/home/ubuntu/.cache/selenium/firefox/linux64/151.0.2/firefox"
+)
 
 UBLOCK_ID = "uBlock0@raymondhill.net"
 MANAGED_DIR = os.path.expanduser("~/.mozilla/managed-storage")
@@ -52,15 +64,16 @@ def configurer_ublock():
 
 def ouvrir_firefox():
     """Ouvre un Firefox headless avec bypass + uBlock, prêt à scraper."""
-    # Firefox ne peut écrire son profil temporaire que sous $HOME : on garde donc
-    # TMPDIR dans le home (et non sous /data/elias, hors $HOME → "Process
-    # unexpectedly closed with status 1").
-    os.environ["TMPDIR"] = os.path.expanduser("~/tmp/firefox")
+    # Profils + temporaires de Firefox sous /data (et non le home/racine, petit et
+    # vite saturé). Possible car on utilise un Firefox non-snap : le snap, lui, est
+    # confiné au home et crashe avec un profil hors du home ("status 1").
+    os.environ["TMPDIR"] = str(RACINE/"extensions"/"firefox"/"tmp")
     os.makedirs(os.environ["TMPDIR"], exist_ok=True)
     options = Options()
     options.add_argument("--headless")
+    options.binary_location = FIREFOX_BIN
     options.set_preference("permissions.default.image", 2)
-    driver = webdriver.Firefox(options=options)
+    driver = webdriver.Firefox(options=options, service=Service(str(GECKODRIVER_PATH)))
     extensions_dir = RACINE/"extensions"/"firefox"
     for xpi in os.listdir(extensions_dir):
         if xpi.endswith(".xpi"):

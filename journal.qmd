@@ -370,67 +370,9 @@ Le pipeline tourne en vagues : à chaque vague, une URL par média est scrapée 
 
 On utilise Firefox plutôt que Chrome : son API Selenium expose `install_addon`, qui permet d'installer les extensions directement au démarrage du navigateur, y compris des extensions non signées comme bypass-paywalls-clean. Sur le serveur, pas de profil pré-configuré — Selenium part d'un profil vide et charge les `.xpi` à chaud.
 
-### Configuration d'uBlock sans interface : le managed storage
+### Configuration d'uBlock
 
-Problème rencontré : uBlock fraîchement installé via `install_addon` repart de sa **configuration d'usine**, qui ne bloque **pas** les bandeaux de consentement cookies (les listes "Annoyances" sont désactivées par défaut). Or ces bandeaux gênent le bypass. Les réglages personnalisés (faits à la main sur le Mac) ne voyagent pas avec le `.xpi` : ils sont stockés dans le profil, pas dans le code de l'extension.
-
-Solution : le **managed storage**. Firefox lit au démarrage un manifeste JSON placé dans un dossier fixe, indépendant du profil :
-
-```
-~/.mozilla/managed-storage/uBlock0@raymondhill.net.json
-```
-
-uBlock y cherche une clé `adminSettings` et écrase ses réglages avec les nôtres. On y injecte la sauvegarde de configuration exportée depuis uBlock (clé `selectedFilterLists`), notamment les listes anti-bandeaux `fanboy-cookiemonster`, `ublock-cookies-easylist` et la liste externe `i-dont-care-about-cookies`. Comme le manifeste est lu hors profil, il fonctionne même avec le profil temporaire jetable que Selenium recrée à chaque lancement.
-
-### Réutilisation des navigateurs : éviter le re-téléchargement
-
-Au premier lancement, uBlock télécharge ses listes de filtres (~15-20s). Avec le modèle initial « un navigateur par URL », ce coût se répète pour **chaque** article — ruineux sur des millions d'URLs.
-
-La parade : garder chaque navigateur **ouvert** et lui faire enchaîner plusieurs URLs. L'analogie est celle d'une caisse de supermarché — on n'éteint pas la caisse entre deux clients, on nettoie juste le tapis. Concrètement, l'ouverture (démarrage + téléchargement uBlock) est sortie de la boucle :
-
-| Étape | Navigateur par URL | Navigateur réutilisé |
-|---|---:|---:|
-| Démarrage Firefox | ~5s | 0 |
-| Téléchargement uBlock | ~15-20s | 0 |
-| Scraping (`sleep`) | ~5s | ~5s |
-| **Total par URL** | **~25-30s** | **~5s** |
-
-Entre deux URLs, on repart d'un état propre avec `driver.delete_all_cookies()` — léger, et suffisant pour que le bypass refonctionne (le journal Libération avait déjà montré que vider les cookies est le bon levier). Le cache des listes uBlock, lui, reste en place.
-
-### Architecture du code
-
-Le scraping est découpé en trois briques réutilisables dans [`scrapers/bypass_firefox.py`](scrapers/bypass_firefox.py) :
-
-| Fonction | Appelée | Rôle |
-|---|---|---|
-| `configurer_ublock()` | 1 fois | écrit le manifeste managed-storage |
-| `ouvrir_firefox()` | 1 fois par média | lance Firefox, installe les `.xpi`, laisse uBlock télécharger ses listes |
-| `scraper(driver, url)` | par URL | vide les cookies, charge la page, renvoie le HTML |
-
-L'orchestration dans [`data/scripts/5_scrap.py`](data/scripts/5_scrap.py) ouvre les navigateurs une seule fois, puis boucle :
-
-```{python}
-configurer_ublock()
-navigateurs = ouvrir_navigateurs()        # 1 Firefox par média, en parallèle
-try:
-    while batch := lire_batch():          # 1 URL non traitée par média
-        resultats = scraper_batch(batch, navigateurs)
-        sauver_html(resultats)            # sauvegarde HTML (interim)
-        ecrire_resultats(resultats)       # etat = 2 (succès) ou 1 (échec)
-finally:
-    for driver in navigateurs.values():
-        driver.quit()
-```
-
-Propriétés clés :
-
-- **Reprise après interruption** : la BDD est mise à jour après chaque vague. Un arrêt (Ctrl-C, crash) laisse les URLs non traitées à `etat=0` ; un relancement reprend automatiquement.
-- **Parallélisme** : un `ThreadPoolExecutor` lance les navigateurs des différents médias simultanément (ouverture et scraping).
-- **Pas d'accumulation** : les cookies sont vidés entre chaque URL, on conserve seulement le cache des listes uBlock.
-
-### État Firefox par média
-
-Les médias confirmés sous Firefox sont pour l'instant `le_journal_du_dimanche`, `le_monde`, `le_figaro` et `paris_match`. Les autres (Chrome) seront intégrés au routage `media → stratégie` ultérieurement.
+uBlock a besoin d'être configuré pour que le bypass fonctionne. On lui passe des paramètres via un fichier JSON (`managed storage`) que Firefox lit au démarrage. Les listes sont téléchargées une seule fois à l'ouverture du navigateur et réutilisées pour toutes les URLs de la session. Un navigateur Firefox est ouvert une fois par média et réutilisé pour toutes les URLs.
 
 ## Vérifier que le bypass a réussi : `est_bloque`
 
