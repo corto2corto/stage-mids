@@ -21,7 +21,7 @@ MEDIAS = {
     "paris_match":            {"meta": "json_ld", "corps": "section.content-rte"},
     "le_nouvel_observateur":  {"meta": "json_ld", "corps": "p.node__paragraphe"},
     "nice_matin":             {"meta": "json_ld", "corps": "article"},
-    "le_journal_du_dimanche": {"meta": "corps",   "corps": "div.rte"},
+    "le_journal_du_dimanche": {"meta": "corps",   "corps": "article.live-element-content div.rte p"},
 }
 
 
