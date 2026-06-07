@@ -11,7 +11,8 @@ def new_batch():
     batch = {}
     with sqlite3.connect(DATA_DIR/"urls.db") as conn:
         rows = conn.execute(
-            "SELECT media, id, url FROM urls WHERE etat=0 GROUP BY media"
+            "SELECT media, id, url FROM urls WHERE etat=0 "
+            "GROUP BY media HAVING id = MAX(id)"
         ).fetchall()
         for media, id, url in rows:
             batch[media] = (id, url)
