@@ -500,58 +500,56 @@ def tendance(media=None):
           f"ou `python -m http.server` dans {DATA_DIR}).")
 
 
+# Palette qualitative (Plotly D3) : une couleur stable par média, en boucle.
+COULEURS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+
+
 def _html_tendance(courbes):
-    """Construit la page HTML autonome (Plotly via CDN) à partir des courbes."""
+    """Construit la page HTML autonome (Plotly via CDN) à partir des courbes.
+
+    Toutes les courbes sont tracées, une couleur par média. La légende fait
+    office de cases à cocher : cliquer un média masque/affiche sa courbe (et son
+    seuil, regroupés via legendgroup). La page remplit la hauteur de la fenêtre.
+    """
     import json
 
     noms = sorted(courbes)
     traces = []
     for i, m in enumerate(noms):
         c = courbes[m]
-        visible = i == 0                 # seul le 1er média visible au départ
+        couleur = COULEURS[i % len(COULEURS)]
         traces.append({
-            "x": c["batches"], "y": c["taux"], "name": "taux de réussite",
-            "type": "scatter", "mode": "lines+markers", "visible": visible,
-            "hovertemplate": "batch %{x}<br>%{y:.1f}%<extra></extra>",
-            "_media": m,
+            "x": c["batches"], "y": c["taux"], "name": m,
+            "type": "scatter", "mode": "lines+markers",
+            "line": {"color": couleur}, "legendgroup": m,
+            "hovertemplate": f"{m}<br>batch %{{x}}<br>%{{y:.1f}}%<extra></extra>",
         })
         if c["seuil"] is not None:
             traces.append({
                 "x": [c["batches"][0], c["batches"][-1]],
                 "y": [c["seuil"], c["seuil"]],
-                "name": f"seuil ({c['seuil']:.1f}%)", "type": "scatter",
-                "mode": "lines", "visible": visible,
-                "line": {"dash": "dash", "color": "crimson"},
-                "hoverinfo": "skip", "_media": m,
+                "name": f"seuil {m}", "type": "scatter", "mode": "lines",
+                "line": {"dash": "dash", "color": couleur, "width": 1},
+                "legendgroup": m, "showlegend": False, "hoverinfo": "skip",
             })
 
-    # Un bouton par média dans le menu déroulant : il (dé)masque les traces.
-    boutons = []
-    for m in noms:
-        boutons.append({
-            "label": m, "method": "update",
-            "args": [{"visible": [t["_media"] == m for t in traces]},
-                     {"title": f"Taux de réussite — {m}"}],
-        })
-
-    for t in traces:                     # _media servait à construire les masques
-        t.pop("_media")
-
     layout = {
-        "title": f"Taux de réussite — {noms[0]}",
+        "title": "Taux de réussite par média",
         "yaxis": {"title": "taux (%)", "rangemode": "tozero"},
         "xaxis": {"title": "batch", "dtick": 1},
         "template": "plotly_white",
-        "updatemenus": [{"buttons": boutons, "x": 0, "y": 1.15,
-                         "xanchor": "left", "yanchor": "top"}],
+        "legend": {"title": {"text": "médias (cliquer pour filtrer)"}},
+        "margin": {"t": 60},
     }
 
     return (
         "<!doctype html><html lang='fr'><head><meta charset='utf-8'>"
         "<title>Tendance du scraping</title>"
         "<script src='https://cdn.plot.ly/plotly-2.35.2.min.js'></script>"
-        "</head><body style='font-family:sans-serif;margin:2rem'>"
-        "<h2>Taux de réussite par média</h2>"
+        "<style>html,body{height:100%;margin:0}"
+        "#g{width:100%;height:100vh}</style>"
+        "</head><body>"
         "<div id='g'></div><script>"
         f"Plotly.newPlot('g', {json.dumps(traces)}, {json.dumps(layout)}, "
         "{responsive:true});"
