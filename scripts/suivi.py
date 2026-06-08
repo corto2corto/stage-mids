@@ -25,7 +25,7 @@ Indicateurs disponibles :
   sections    rubriques les plus fréquentes                (source : CSV)
   auteurs     signatures les plus fréquentes               (source : CSV)
   acces       part d'articles en accès libre / payant       (source : CSV)
-  tendance    évolution du taux de réussite dans le temps   (source : journal)
+  tendance    page HTML du taux de réussite, batch par batch (source : journal)
   snapshot    enregistre un instantané des compteurs        (écrit : journal)
 
 Les indicateurs lus dans les CSV acceptent un nom de média en argument pour
@@ -70,9 +70,7 @@ MIN_BASELINE = 5
 csv.field_size_limit(min(sys.maxsize, 2**31 - 1))
 
 
-# --------------------------------------------------------------------------- #
 # Helpers : affichage et accès aux données
-# --------------------------------------------------------------------------- #
 
 def _afficher(titre, entetes, lignes):
     """Affiche un tableau aligné. 1re colonne à gauche, le reste à droite."""
@@ -119,9 +117,7 @@ def _lire_csv(media):
         yield from csv.DictReader(f)
 
 
-# --------------------------------------------------------------------------- #
 # Indicateurs lus dans la base sqlite
-# --------------------------------------------------------------------------- #
 
 def avancement():
     """Où en est le scraping : URLs traitées par média (source : urls.db)."""
@@ -194,9 +190,7 @@ def echecs():
     return par_media
 
 
-# --------------------------------------------------------------------------- #
 # Indicateurs lus dans les CSV de sortie
-# --------------------------------------------------------------------------- #
 
 def contenu(media=None):
     """Longueur des articles écrits dans les CSV, en mots (source : CSV)."""
@@ -303,9 +297,7 @@ def resume():
     contenu()
 
 
-# --------------------------------------------------------------------------- #
 # Surveillance dans le temps (journal d'instantanés + carte de contrôle)
-# --------------------------------------------------------------------------- #
 #
 # Le scraping tourne en continu, des jours durant. On veut repérer le moment où
 # le taux de réussite d'un média s'effondre (ex. son HTML change, le bypass
@@ -455,12 +447,30 @@ def _notifier(titre, corps):
         print(f"  (notification ntfy échouée : {type(e).__name__})")
 
 
-def tendance(media=None):
-    """Évolution du taux de réussite par intervalle (source : journal de suivi).
+PAGE_TENDANCE = DATA_DIR / "tendance.html"
 
-    Chaque ligne = un intervalle entre deux instantanés : nombre d'articles
-    traités et taux de réussite. Un ⚠ marque un intervalle passé sous la carte
-    de contrôle (moyenne − 3σ de l'historique du média).
+
+def _seuil_carte(taux):
+    """Borne basse de la carte de contrôle (moyenne − 3σ), ou None.
+
+    Même logique que les alertes : None s'il n'y a pas assez de recul ou si
+    l'historique est plat (σ nul). En pointillés sur le graphe.
+    """
+    if len(taux) < 2:
+        return None
+    sigma = stdev(taux)
+    return mean(taux) - SEUIL_SIGMA * sigma if sigma else None
+
+
+def tendance(media=None):
+    """Écrit une page HTML interactive du taux de réussite, batch par batch.
+
+    Une courbe par média : en abscisse le numéro de batch (un intervalle entre
+    deux instantanés du journal), en ordonnée le taux de réussite. Un menu
+    déroulant choisit le média ; la borne basse de la carte de contrôle apparaît
+    en pointillés. Page autonome : Plotly est chargé depuis un CDN à l'ouverture,
+    rien à installer côté Python. `media` limite la page à un seul média.
+    Source : suivi_journal.csv.
     """
     journal = _lire_journal()
     if not journal:
@@ -469,27 +479,87 @@ def tendance(media=None):
         return
 
     series = _series_par_media(journal)
+    courbes = {}                         # media -> {batches, taux, seuil}
     for m in ((media,) if media else sorted(series)):
-        intervalles = _intervalles(series.get(m, []))
-        if not intervalles:
-            continue
-        taux = [t for _, t in intervalles]
-        moyenne = mean(taux)
-        sigma = stdev(taux) if len(taux) >= 2 else 0
-        borne = moyenne - SEUIL_SIGMA * sigma
-        lignes = []
-        for i, (n, t) in enumerate(intervalles, 1):
-            marque = "⚠" if (sigma and t < borne) else ""
-            lignes.append([i, n, f"{100 * t:.1f}%", marque])
-        titre = (f"Taux de réussite par intervalle — {m} "
-                 f"(habituel {100 * moyenne:.1f}%"
-                 + (f", seuil {100 * borne:.1f}%" if sigma else "") + ")")
-        _afficher(titre, ["#", "traités", "taux", ""], lignes)
+        taux = [100 * t for _, t in _intervalles(series.get(m, []))]
+        if taux:
+            courbes[m] = {
+                "batches": list(range(1, len(taux) + 1)),
+                "taux": taux,
+                "seuil": _seuil_carte(taux),
+            }
+
+    if not courbes:
+        print("Pas encore assez d'instantanés pour tracer une courbe "
+              "(il en faut au moins deux). Relance après quelques snapshots.")
+        return
+
+    PAGE_TENDANCE.write_text(_html_tendance(courbes), encoding="utf-8")
+    print(f"Page écrite : {PAGE_TENDANCE}\n"
+          f"Ouvre-la dans un navigateur (sur le serveur : récupère le fichier, "
+          f"ou `python -m http.server` dans {DATA_DIR}).")
 
 
-# --------------------------------------------------------------------------- #
+def _html_tendance(courbes):
+    """Construit la page HTML autonome (Plotly via CDN) à partir des courbes."""
+    import json
+
+    noms = sorted(courbes)
+    traces = []
+    for i, m in enumerate(noms):
+        c = courbes[m]
+        visible = i == 0                 # seul le 1er média visible au départ
+        traces.append({
+            "x": c["batches"], "y": c["taux"], "name": "taux de réussite",
+            "type": "scatter", "mode": "lines+markers", "visible": visible,
+            "hovertemplate": "batch %{x}<br>%{y:.1f}%<extra></extra>",
+            "_media": m,
+        })
+        if c["seuil"] is not None:
+            traces.append({
+                "x": [c["batches"][0], c["batches"][-1]],
+                "y": [c["seuil"], c["seuil"]],
+                "name": f"seuil ({c['seuil']:.1f}%)", "type": "scatter",
+                "mode": "lines", "visible": visible,
+                "line": {"dash": "dash", "color": "crimson"},
+                "hoverinfo": "skip", "_media": m,
+            })
+
+    # Un bouton par média dans le menu déroulant : il (dé)masque les traces.
+    boutons = []
+    for m in noms:
+        boutons.append({
+            "label": m, "method": "update",
+            "args": [{"visible": [t["_media"] == m for t in traces]},
+                     {"title": f"Taux de réussite — {m}"}],
+        })
+
+    for t in traces:                     # _media servait à construire les masques
+        t.pop("_media")
+
+    layout = {
+        "title": f"Taux de réussite — {noms[0]}",
+        "yaxis": {"title": "taux (%)", "rangemode": "tozero"},
+        "xaxis": {"title": "batch", "dtick": 1},
+        "template": "plotly_white",
+        "updatemenus": [{"buttons": boutons, "x": 0, "y": 1.15,
+                         "xanchor": "left", "yanchor": "top"}],
+    }
+
+    return (
+        "<!doctype html><html lang='fr'><head><meta charset='utf-8'>"
+        "<title>Tendance du scraping</title>"
+        "<script src='https://cdn.plot.ly/plotly-2.35.2.min.js'></script>"
+        "</head><body style='font-family:sans-serif;margin:2rem'>"
+        "<h2>Taux de réussite par média</h2>"
+        "<div id='g'></div><script>"
+        f"Plotly.newPlot('g', {json.dumps(traces)}, {json.dumps(layout)}, "
+        "{responsive:true});"
+        "</script></body></html>"
+    )
+
+
 # Ligne de commande
-# --------------------------------------------------------------------------- #
 
 # Indicateurs prenant un nom de média facultatif (ceux lus dans les CSV).
 INDICATEURS = {
