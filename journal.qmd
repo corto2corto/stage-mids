@@ -248,81 +248,86 @@ Un fichier JSONL par journal, stocké dans Google Drive. Pour chaque ligne, l'in
 - Penser à un autre format de stockage : directement passer à CSV ? SQLite pour éviter les tuples, faire du comptage etc ? 
 - Passage à la parallélisation/scraping sur serveur.
 
-## Pipeline de moissonnage des articles
+## Pipeline de scraping
 
-On a maintenant la liste des URLs (≈ 10 millions). Reste à aller chercher le contenu de chaque article. L'idée : garder toutes les URLs dans une petite base, marquées « à faire », et les traiter par **batchs** jusqu'à épuisement. À chaque batch, une URL par journal, scrapée en parallèle.
+On a maintenant la liste des URLs (≈ 10 millions). Reste à aller chercher le contenu de chaque article. L'idée : garder toutes les URLs dans une petite base, et les traiter par batchs jusqu'à épuisement. À chaque batch, une URL par journal, scrapée en parallèle.
 
 ```
-urls.db (etat=0)
-   ↓  batch.new_batch()         une URL par média encore à traiter
-batch {media: (id, url)}
-   ↓  navigateur.scraper()      un Firefox par média, en parallèle
-{media: (id, url, html|None)}
-   ↓  extraction.extraire()     métadonnées + corps
-   ↓  paywall.est_bloque()      rejette les articles tronqués ou vides
+urls.db
+   ↓  batch.new_batch()
+batch 
+   ↓  navigateur.scraper()
+html
+   ↓  extraction.extraire()
+   ↓  paywall.est_bloque()
 résultats
    ↓  stockage
-<media>.csv  ← métadonnées extraites
-urls.db      ← mise à jour de l'etat (1 échec / 2 succès)
+<media>.csv
+urls.db
 ```
 
 Chaque étape est un module séparé. Les sections suivantes les reprennent un par un, dans l'ordre du trajet.
 
 | Module | Rôle |
 |---|---|
-| [`batch.py`](scraping/batch.py) | choisit les URLs du prochain batch |
-| [`navigateur.py`](scraping/navigateur.py) | pilote Firefox + bypass, récupère le HTML |
-| [`extraction.py`](scraping/extraction.py) | HTML → titre, auteur, date, section, corps |
-| [`paywall.py`](scraping/paywall.py) | vérifie que l'article n'est pas tronqué |
-| [`stockage.py`](scraping/stockage.py) | écrit le CSV, met à jour l'état en base |
+| [`batch.py`](scraping/batch.py) | génère une URL non traitée par média |
+| [`navigateur.py`](scraping/navigateur.py) | ouvre un Firefox pour chaque URL (un Firefox = un média), récupère le HTML |
+| [`extraction.py`](scraping/extraction.py) | extrait métadonnées + article (titre, auteur, date, section, corps) |
+| [`paywall.py`](scraping/paywall.py) | rejette les articles tronqués ou vides |
+| [`stockage.py`](scraping/stockage.py) | écrit les métadonnées dans `<media>.csv`, met à jour l'état en base (1 échec / 2 succès) |
 | [`pipeline.py`](scraping/pipeline.py) | enchaîne le tout, batch après batch |
 
-### La base `urls.db` : une todo-list
+### 0 . La base urls.db 
 
-Une seule table SQLite, quatre colonnes : `id`, `media`, `url`, `etat`. Tout est piloté par `etat` :
+Une seule table SQLite, quatre colonnes : `id`, `media`, `url`, `etat`. Chaque URL a un état :
 
 | `etat` | signification |
 |---|---|
 | `0` | à scraper |
 | `1` | échec (page vide ou contenu tronqué) |
 | `2` | succès (article écrit dans le CSV) |
-| `3` | déjà disponible ailleurs, inutile de scraper |
+| `3` | déjà disponible via regicid |
 
-La base ne stocke pas les articles, juste leur état d'avancement (le texte part dans des CSV, un par journal). Elle ne répond qu'à « qu'est-ce qu'il reste à faire ? », et c'est ce qui rend le scraping reprenable : les URLs encore à `0` sont reprises au prochain lancement.
+La base ne stocke pas les articles, juste leur état d'avancement.
 
-### Préparation : écarter les doublons
+Avant de scraper, on retire ce qui existe déjà ailleurs. Une bonne partie de nos URLs sont déjà publiées, métadonnées comprises, dans un jeu de données public : [`regicid/press_metadata`](https://huggingface.co/datasets/regicid/press_metadata) (~11,17 M d'URLs de presse française). 
+On a un petit script qui met tous les articles déjà scrapés à l'état 3 :
+[`scripts/4_marquer_doublons.py`](scripts/4_marquer_doublons.py). Résultat : **7 273 332 doublons écartés**.
 
-Avant de scraper, on retire ce qui existe déjà ailleurs. Une bonne partie de nos URLs sont déjà publiées, métadonnées comprises, dans un jeu de données public : [`regicid/press_metadata`](https://huggingface.co/datasets/regicid/press_metadata) (~11,17 M d'URLs de presse française). [`scripts/4_marquer_doublons.py`](scripts/4_marquer_doublons.py) les passe à l'`etat = 3`, et le scraping (qui ne traite que les `etat = 0`) les ignore. Résultat : **7 273 332 doublons écartés**.
+### 1. `batch.py` : constituer un batch
 
-### `batch.py` : constituer un batch
-
-[`batch.py`](scraping/batch.py) renvoie une URL par journal encore à traiter :
+La première étape est de sélectionner dans la BDD un article non traité par média, c'est le rôle de [`batch.py`](scraping/batch.py). Il interroge la base avec la commande SQL :
 
 ```sql
 SELECT media, id, url FROM urls WHERE etat=0 GROUP BY media
 ```
 
-On obtient un dictionnaire `{media: (id, url)}`. Pourquoi une seule par journal ? Parce qu'on ouvre **un navigateur par journal** tournant en parallèle : une URL par navigateur à chaque tour répartit la charge et fait avancer tous les journaux en même temps.
+On obtient un dictionnaire `{media: (id, url)}`, par exemple la première ligne du dictionnaire sera :
+{"le_monde": (3, www.url_d_un_article.fr)}
+Cela va nous permettre d'ouvrir un Firefox par média, où chaque Firefox ouvre l'article associé à son média.
 
-### `navigateur.py` : piloter Firefox avec le bypass
+### 2. `navigateur.py` : Lancer des Firefox pré-configurés bypass
 
-C'est ici qu'on récupère le HTML. La difficulté : la plupart des articles sont derrière un paywall.
-
-On utilise **Firefox plutôt que Chrome** : son API Selenium expose `install_addon`, qui installe une extension au démarrage, y compris non signée (bypass-paywalls-clean + uBlock Origin). Pas de profil pré-configuré sur le serveur : on part d'un Firefox vierge et on injecte les `.xpi` à chaud.
+Pour récupérer le html des articles couverts par un paywall (cela fonctionne aussi sans paywall), on a besoin d'installer deux extensions sur Firefox qui travaillent en collaboration : bpc & ublock (parfois les cookies empêchent bpc de fonctionner, c'est alors à ublock de les désactiver).
+On utilise **Firefox plutôt que Chrome** car Selenium permet d'y injecter facilement des extensions : on lance un Firefox vierge, puis `install_addon` installe au démarrage les fichiers `.xpi` (le format des extensions). bpc & uBlock deviennent alors actives.
+Le module va permettre d'effectuer cette action via 3 fonctions.
 
 Trois fonctions :
 
-- `configurer_ublock()` — appelée **une fois**. uBlock ne marche pas tel quel : il faut activer les bonnes listes de filtres (dont les anti-bandeaux de cookies, qui sinon bloquent le bypass), passées via un fichier JSON lu au démarrage (*managed storage*).
+- `configurer_ublock()` — appelée une fois. uBlock ne marche pas tel quel : il faut activer des listes de filtres qui permettent de filtrer les cookies. On lit un fichier JSON au démarrage qui indique à uBlock quelles listes il doit activer.
 - `ouvrir_firefox()` — ouvre un Firefox headless, installe les extensions, attend ~20 s qu'uBlock télécharge ses listes (une fois par session).
-- `scraper(driver, url)` — vide les cookies (certains journaux ne déclenchent le paywall qu'au-delà d'un quota d'articles compté en cookie), charge la page, attend ~8 s que le bypass agisse, lit le HTML.
+- `scraper(driver, url)` — vide les cookies (pour la reproductibilité), charge la page, attend ~8 s que le bypass agisse, lit le HTML.
 
-Un navigateur est ouvert une fois par journal puis réutilisé : démarrer Firefox coûte cher. Côté serveur : `--headless`, images désactivées (inutiles pour du texte), et un Firefox + geckodriver « maison » plutôt que la version *snap* d'Ubuntu, qui plante avec nos profils sur `/data`.
+P.S : La configuration d'uBlock et des extensions n'a lieu qu'une fois : les Firefox restent ouverts toute la durée du run. À chaque nouveau batch, on réutilise le même navigateur et on se contente de vider ses cookies, pour repartir d'un état propre. On désactive aussi les images, pour accélérer le chargement.
 
-### `extraction.py` : du HTML aux métadonnées et au corps
 
-On a le HTML brut, il faut en sortir le **titre, l'auteur, la date, la rubrique, l'accès libre/payant** et le **corps**. Problème : chaque journal range ça différemment.
+### 3. `extraction.py` : Extraire les métadonnées et l'article du HTML
 
-**Métadonnées → JSON-LD.** La plupart des sites insèrent un bloc de données structurées [schema.org](https://schema.org) (`<script type="application/ld+json">`), où les champs portent les mêmes noms partout (`headline`, `datePublished`, `author`, `articleSection`…). Au lieu de chercher des balises différentes par journal, on lit les mêmes champs partout. Présent sur 9 médias sur 10, souvent plus complet que les `<meta>`.
+À l'étape précédente, on a obtenu le HTML brut de chaque article ; reste à en extraire le **titre, l'auteur, la date, la rubrique, l'accès libre/payant** et le **corps**. Problème : chaque journal range ça différemment.
+
+Pour les métadonnées, la plupart des sites possèdent un JSON-LD (9/10) : un petit document qui contient la majeure partie des métadonnées, mais pas le corps de l'article. Dès qu'il est présent, il nous donne directement les métadonnées — c'est le cas idéal.
+
+Sans JSON-LD, on doit explorer le corps du html, et dans ce cas on fait du cas par cas.
 
 **Corps → HTML.** Le JSON-LD ne contient pas le texte complet ; on va le chercher dans la page via un sélecteur CSS propre à chaque journal. Trois familles :
 
@@ -332,7 +337,7 @@ On a le HTML brut, il faut en sortir le **titre, l'auteur, la date, la rubrique,
 | CMS « lmnr » partagé | le_journal_du_dimanche, paris_match | `div.rte` (règle commune) |
 | Sans conteneur clair | nice_matin, le_nouvel_observateur | `<p>` dispersés, au cas par cas |
 
-**Un dictionnaire route chaque média**, en indiquant *où* lire les métadonnées et *où* trouver le corps. Par exemple :
+On réutilise encore le mécanisme de dictionnaire : comme chaque média peut avoir ses métadonnées et son article à un endroit différent, on fournit **un dictionnaire qui route chaque média**, en indiquant où lire les métadonnées et où trouver le corps. Par exemple pour Le Monde, on aura une ligne du genre :
 
 ```python
 "le_monde": {"meta": "json_ld", "corps": ".article__content"}
@@ -340,9 +345,9 @@ On a le HTML brut, il faut en sortir le **titre, l'auteur, la date, la rubrique,
 
 `extraire(media, html)` lit ces deux indications et applique la bonne méthode ; seules les deux valeurs changent d'un média à l'autre. Seul le JDD fait exception : sans JSON-LD, ses métadonnées sont lues dans le HTML (`meta: corps`). Le sélecteur de chaque média est dans [`detail_metadonnees.md`](detail_metadonnees.md).
 
-### `paywall.py` : vérifier que le bypass a réussi
+### 4. `paywall.py` : vérifier que le bypass a réussi
 
-Le bypass ne marche pas à tous les coups. [`est_bloque(contenu)`](scraping/paywall.py) renvoie `True` si le contenu est vide, ou si une phrase-signal de troncature apparaît dans les **300 derniers caractères** (« il vous reste X % à découvrir », « réservé aux abonnés »…) — c'est là que ces messages se logent. Un article bloqué reçoit `etat=1` et n'est pas écrit.
+Une fois le corps de l'article extrait, il est temps d'analyser si l'article est complet, car le bypass ne marche pas à tous les coups. [`est_bloque(contenu)`](scraping/paywall.py) renvoie `True` si le contenu est vide, ou si une phrase-signal de troncature apparaît dans les **300 derniers caractères** (« il vous reste X % à découvrir », « réservé aux abonnés »…) — c'est là que ces messages se logent. Un article bloqué reçoit `etat=1` et n'est pas écrit.
 
 Pour calibrer les signaux, on a comparé les pages avec et sans bypass. Trois comportements :
 
@@ -352,14 +357,14 @@ Pour calibrer les signaux, on a comparé les pages avec et sans bypass. Trois co
 | Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin, paris_match |
 | Bypass échoué | le_nouvel_observateur *(non résolu)* |
 
-### `stockage.py` : écrire les résultats
+### 5. `stockage.py` : écrire les résultats
 
 [`stockage.py`](scraping/stockage.py) fait deux choses :
 
 - `ecriture_csv(...)` extrait les métadonnées, passe le corps à `est_bloque`, et — si l'article est complet — ajoute une ligne au CSV du journal (`id, url, titre, auteur, date, section, free, contenu`). Renvoie l'état : `2` si écrit, `1` si bloqué.
-- `maj_bdd(...)` met à jour l'`etat` de l'URL. Le `commit` est laissé à l'appelant, pour grouper tout un batch en une transaction.
+- `maj_bdd(...)` met à jour l'`etat` de l'URL. (passage à 2 ou 1)
 
-### `pipeline.py` : orchestrer les batchs
+### 6. `pipeline.py` : orchestrer les batchs
 
 [`pipeline.py`](scraping/pipeline.py) assemble le tout. Conçu pour tourner plusieurs jours sans surveillance :
 
@@ -368,10 +373,6 @@ Pour calibrer les signaux, on a comparé les pages avec et sans bypass. Trois co
 3. **Fin** quand il n'y a plus d'`etat=0` : on ferme les navigateurs.
 
 Le commit par batch rend le run **reprenable** : si le script meurt, les URLs non commitées restent à `0` et sont reprises au lancement suivant. Une URL qui échoue finit à `etat=1`, sans faire tomber le batch.
-
-```bash
-python -m scraping.pipeline
-```
 
 ### Suivi du run
 
