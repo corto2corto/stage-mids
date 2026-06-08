@@ -294,7 +294,7 @@ Avant de scraper, on retire ce qui existe déjà ailleurs. Une bonne partie de n
 On a un petit script qui met tous les articles déjà scrapés à l'état 3 :
 [`scripts/4_marquer_doublons.py`](scripts/4_marquer_doublons.py). Résultat : **7 273 332 doublons écartés**.
 
-### 1. `batch.py` : constituer un batch
+### 1. `batch.py` : Constituer un batch
 
 La première étape est de sélectionner dans la BDD un article non traité par média, c'est le rôle de [`batch.py`](scraping/batch.py). Il interroge la base avec la commande SQL :
 
@@ -345,7 +345,7 @@ On réutilise encore le mécanisme de dictionnaire : comme chaque média peut av
 
 `extraire(media, html)` lit ces deux indications et applique la bonne méthode ; seules les deux valeurs changent d'un média à l'autre. Seul le JDD fait exception : sans JSON-LD, ses métadonnées sont lues dans le HTML (`meta: corps`). Le sélecteur de chaque média est dans [`detail_metadonnees.md`](detail_metadonnees.md).
 
-### 4. `paywall.py` : vérifier que le bypass a réussi
+### 4. `paywall.py` : Vérifier que le bypass a réussi
 
 Une fois le corps de l'article extrait, il est temps d'analyser si l'article est complet, car le bypass ne marche pas à tous les coups. [`est_bloque(contenu)`](scraping/paywall.py) renvoie `True` si le contenu est vide, ou si une phrase-signal de troncature apparaît dans les **300 derniers caractères** (« il vous reste X % à découvrir », « réservé aux abonnés »…) — c'est là que ces messages se logent. Un article bloqué reçoit `etat=1` et n'est pas écrit.
 
@@ -357,14 +357,14 @@ Pour calibrer les signaux, on a comparé les pages avec et sans bypass. Trois co
 | Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin, paris_match |
 | Bypass échoué | le_nouvel_observateur *(non résolu)* |
 
-### 5. `stockage.py` : écrire les résultats
+### 5. `stockage.py` : Écrire les résultats
 
 [`stockage.py`](scraping/stockage.py) fait deux choses :
 
 - `ecriture_csv(...)` extrait les métadonnées, passe le corps à `est_bloque`, et — si l'article est complet — ajoute une ligne au CSV du journal (`id, url, titre, auteur, date, section, free, contenu`). Renvoie l'état : `2` si écrit, `1` si bloqué.
 - `maj_bdd(...)` met à jour l'`etat` de l'URL. (passage à 2 ou 1)
 
-### 6. `pipeline.py` : orchestrer les batchs
+### 6. `pipeline.py` : Orchestrer les batchs
 
 [`pipeline.py`](scraping/pipeline.py) assemble le tout. Conçu pour tourner plusieurs jours sans surveillance :
 
@@ -382,6 +382,15 @@ Le commit par batch rend le run **reprenable** : si le script meurt, les URLs no
 python -m scripts.suivi                    # vue d'ensemble
 python -m scripts.suivi avancement         # URLs traitées par média
 python -m scripts.suivi contenu le_monde   # longueur des articles
+python -m scripts.suivi tendance           # page HTML du taux de réussite
 ```
 
-**Détection des décrochages.** Sur un run de plusieurs jours, le HTML d'un journal peut changer et casser son bypass sans qu'on le voie. Le pipeline appelle donc `snapshot()` tous les 1000 articles et surveille le taux de réussite récent avec une **carte de contrôle** : si un journal passe sous *moyenne − 3σ* de son historique, une notification part via [ntfy](https://ntfy.sh).
+Pour visualiser les données depuis le serveur, la sous-commande `tendance` écrit une page Plotly dans `data/tendance.html`. On la sert ensuite via un serveur HTTP local :
+
+```bash
+cd /data/elias/stage-mids && source .venv/bin/activate
+python -m scripts.suivi tendance
+python -m http.server --directory data 8000
+```
+
+Puis ouvrir <http://IP_DU_SERVEUR:8000/tendance.html> dans un navigateur.
