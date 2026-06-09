@@ -1,6 +1,6 @@
 # Détail des métadonnées par média
 
-Pour chaque média, inspection du HTML réel (post-bypass, via `exploration/html/<media>.html`) pour identifier les balises BeautifulSoup à cibler. Métadonnées recherchées : titre, auteur, date, corps de l'article.
+Pour chaque média, inspection du HTML réel (post-bypass, via `exploration/<media>.html`) pour identifier les balises BeautifulSoup à cibler. Métadonnées recherchées : titre, auteur, date, corps de l'article.
 
 ## Le Capital
 
