@@ -2,7 +2,7 @@
 et la chaîne de ses parents (tag.class), pour repérer quoi cibler.
 
 Lancement :
-    python exploration/situer_texte.py exploration/html/les_echos.html "Laurent Dandrieu"
+    python exploration/situer_texte.py exploration/lemonde_ok_sanfrancisco.html "San Francisco"
 """
 
 import sys

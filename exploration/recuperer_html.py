@@ -1,4 +1,4 @@
-"""Scrape une ou plusieurs URLs et sauve le HTML brut dans exploration/html/.
+"""Scrape une ou plusieurs URLs et sauve le HTML brut dans exploration/.
 
 Sert à inspecter en local ce que Firefox+bypass a réellement récupéré (pour
 diagnostiquer un échec d'extraction : sélecteur absent ? bypass raté ?).
@@ -15,9 +15,9 @@ import os
 
 from scraping.navigateur import RACINE, configurer_ublock, ouvrir_firefox, scraper
 
-SORTIE = RACINE / "exploration" / "html"
+SORTIE = RACINE / "exploration"
 
-# nom de fichier -> URL. Le nom devient <nom>.html dans exploration/html/.
+# nom de fichier -> URL. Le nom devient <nom>.html dans exploration/.
 CIBLES = {
     "jdd_std_payant_1": "https://www.lejdd.fr/sport/equipe-de-france-le-dernier-chapitre-de-didier-deschamps-chez-les-bleus-175803",
     "jdd_std_payant_2": "https://www.lejdd.fr/Societe/jerome-fourquet-sur-le-canon-francais-la-mise-en-avant-de-traditions-populaires-est-automatiquement-suspecte-175443",

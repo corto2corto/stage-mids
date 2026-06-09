@@ -1,6 +1,6 @@
 """Liste tous les couples (tag, class) uniques d'un fichier HTML.
 
-Lancement : python exploration/lister_balises.py exploration/html/le_monde.html
+Lancement : python exploration/lister_balises.py exploration/lemonde_ok_sanfrancisco.html
 """
 
 import sys
