@@ -12,14 +12,11 @@ SIGNAUX_BLOCAGE = [
 ]
 _PATRON = re.compile("|".join(SIGNAUX_BLOCAGE), re.IGNORECASE)
 
-# supprimer ce genre de variable inutile. 
-LONGUEUR_FIN = 300   # nombre de caractères de fin de contenu inspectés
 
-
-def est_bloque(contenu):
+def est_bloque(contenu, longueur_fin=300):
     if not contenu.strip():
         return True
-    return _PATRON.search(contenu[-LONGUEUR_FIN:]) is not None
+    return _PATRON.search(contenu[-longueur_fin:]) is not None
 
 
 if __name__ == "__main__":
@@ -30,4 +27,4 @@ if __name__ == "__main__":
     media, url = sys.argv[1], sys.argv[2]
     contenu = extraire_url(media, url)["contenu"]
     print(f"bloqué : {est_bloque(contenu)}")
-    print(f"fin    : ...{contenu[-LONGUEUR_FIN:]}")
+    print(f"fin    : ...{contenu[-300:]}")

@@ -1,28 +1,16 @@
 """
 Extraction des métadonnées et du corps d'un article à partir de son HTML.
 
-Chaque média est routé via le dico MEDIAS, qui dit pour ce média :
-- "meta"  : indique dans quels balises extraire les métadonnées (titre, auteur, date, section, free)
-            soit via le "json_ld" (schema.org NewsArticle) ou alors directement dans le "corps" (lu dans le HTML) ;
-- "corps" : comment récupérer le texte de l'article (sélecteur CSS du conteneur, ou règle spéciale pour les médias sans conteneur unique).
+Le routage par média vit dans scraping/medias.py (clé "meta") :
+- "strategie" : "json_ld" (schema.org NewsArticle) ou "balises" (lues dans le HTML) ;
+- "corps"     : sélecteur CSS du corps (les cas spéciaux sont gérés dans extraire_corps).
 """
 
 import json
 import re
 from bs4 import BeautifulSoup
 
-MEDIAS = {
-    "le_capital":             {"meta": "json_ld", "corps": "div.articleBody"},
-    "le_figaro":              {"meta": "json_ld", "corps": "div.fig-content-body"},
-    "le_monde":               {"meta": "json_ld", "corps": ".article__content"},
-    "telerama":               {"meta": "json_ld", "corps": "article.article__page-content"},
-    "valeurs_actuelles":      {"meta": "json_ld", "corps": "div.post__content"},
-    "les_echos":              {"meta": "json_ld", "corps": "div.post-paywall"},
-    "paris_match":            {"meta": "json_ld", "corps": "section.content-rte"},
-    "le_nouvel_observateur":  {"meta": "json_ld", "corps": "p.node__paragraphe"},
-    "nice_matin":             {"meta": "json_ld", "corps": "article"},
-    "le_journal_du_dimanche": {"meta": "corps",   "corps": "section.content-rte div.rte p, article.live-element-content div.rte p"},
-}
+from scraping.medias import MEDIAS
 
 
 def meta_json_ld(soup):
@@ -62,11 +50,11 @@ def meta_json_ld(soup):
     }
 
 
-def meta_corps(soup):
-    """ Extraction des metadatas via le corp html"""
-    titre = soup.find("h1", class_="main-title")
-    auteur = soup.find("a", class_="author")
-    date = soup.find("time")
+def meta_balises(soup, meta):
+    """Extraction des métadonnées directement dans les balises HTML (cas sans json_ld)."""
+    titre = soup.select_one(meta["titre"])
+    auteur = soup.select_one(meta["auteur"])
+    date = soup.select_one(meta["date"])
     return {
         "titre":   titre.get_text(strip=True) if titre else "",
         "auteur":  auteur.get_text(strip=True) if auteur else "",
@@ -99,11 +87,11 @@ def extraire_corps(media, regle, soup):
 def extraire(media, html):
     """Renvoie les métadonnées + le contenu d'un article sous forme de dict."""
     soup = BeautifulSoup(html, "html.parser")
-    config = MEDIAS[media]
+    meta = MEDIAS[media]["meta"]
 
-    meta = meta_json_ld(soup) if config["meta"] == "json_ld" else meta_corps(soup)
-    meta["contenu"] = extraire_corps(media, config["corps"], soup)
-    return meta
+    infos = meta_json_ld(soup) if meta["strategie"] == "json_ld" else meta_balises(soup, meta)
+    infos["contenu"] = extraire_corps(media, meta["corps"], soup)
+    return infos
 
 
 def extraire_url(media, url):

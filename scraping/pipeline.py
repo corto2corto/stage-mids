@@ -2,34 +2,21 @@
 Point d'entrée : main(). Lancé via `python -m scraping.pipeline`.
 """
 
+import csv
 import sqlite3
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 from scraping.batch import new_batch
+from scraping.medias import MEDIAS
 from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
 from scripts.suivi import snapshot
 
-# Média -> moteur de scraping. Aujourd'hui tout en Firefox, mais ce mapping
-# permettra de router certains médias vers un autre moteur sans toucher au reste.
-SCRAPERS = {
-    "le_monde":               "firefox",
-    "le_figaro":              "firefox",
-    "le_journal_du_dimanche": "firefox",
-    "paris_match":            "firefox",
-    "le_capital":             "firefox",
-    "les_echos":              "firefox",
-    "valeurs_actuelles":      "firefox",
-    "le_nouvel_observateur":  "firefox",
-    "nice_matin":             "firefox",
-    "telerama":               "firefox",
-}
-
 
 def ouvrir_multi_firefox(batch):
     """Ouvre un Firefox par média (en parallèle). Retourne {media: driver}."""
-    medias = [m for m in batch if SCRAPERS.get(m) == "firefox"]
+    medias = [m for m in batch if MEDIAS[m]["moteur"] == "firefox"]
     with ThreadPoolExecutor(max_workers=len(medias)) as ex:
         drivers = list(ex.map(lambda _: ouvrir_firefox(), medias))
     return dict(zip(medias, drivers))
@@ -72,6 +59,20 @@ def traiter_vague(conn, batch, navigateurs):
     return len(resultats)
 
 
+def charger_nouvelles_urls(conn):
+    """Importe les URLs des *_articles.csv pas encore en base (etat=0)."""
+    existantes = {u for (u,) in conn.execute("SELECT url FROM urls")}
+    for chemin in DATA_DIR.glob("*_articles.csv"):
+        media = chemin.stem.removesuffix("_articles")
+        with open(chemin, newline="", encoding="utf-8") as f:
+            nouvelles = [(media, ligne["url"]) for ligne in csv.DictReader(f)
+                         if ligne["url"] not in existantes]
+        conn.executemany("INSERT INTO urls (media, url, etat) VALUES (?, ?, 0)", nouvelles)
+        if nouvelles:
+            print(f"{media} : {len(nouvelles)} nouvelles URLs chargées")
+    conn.commit()
+
+
 def main():
     """Scrape en continu jusqu'à épuisement des URLs à etat=0.
 
@@ -84,6 +85,7 @@ def main():
     debut = time.time()
     configurer_ublock()
     conn = sqlite3.connect(DATA_DIR/"urls.db")
+    charger_nouvelles_urls(conn)
 
     # Le premier batch fixe l'ensemble des médias à traiter, donc les navigateurs
     # à ouvrir (aucun média ne peut en gagner en cours de route).
