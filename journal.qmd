@@ -394,3 +394,14 @@ python -m http.server --directory data 8000
 ```
 
 Puis ouvrir <http://IP_DU_SERVEUR:8000/tendance.html> dans un navigateur.
+
+### Ajouter un nouveau média
+
+1. Déposer `data/<nom_media>_articles.csv` (colonne `url`) sur le serveur.
+2. Ajouter une entrée dans [`scraping/medias.py`](scraping/medias.py) :
+
+```python
+"nom_media": {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.article-body"}},
+```
+
+`pipeline.py` charge les URLs au démarrage ; `creer_csv.py` crée le fichier de sortie. Pour trouver le bon sélecteur CSS, utiliser `exploration/recuperer_html.py`.

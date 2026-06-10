@@ -25,7 +25,7 @@ def ecriture_csv(media, id, url, html):
         return 1
     chemin = DATA_DIR/"csv"/f"{media}.csv"
     with open(chemin, "a", newline="", encoding="utf-8") as f:
-        csv.writer(f).writerow([id, url, meta["titre"], meta["auteur"], meta["date"], meta["section"], meta["free"], meta["contenu"]])
+        csv.DictWriter(f, fieldnames=COLONNES).writerow({"id": id, "url": url, **meta})
     return 2
 
 

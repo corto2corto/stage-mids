@@ -82,11 +82,11 @@ def ouvrir_firefox():
     return driver
 
 
-def scraper(driver, url):
+def scraper(driver, url, attente=ATTENTE_PAGE):
     """Récupère le HTML d'une URL en repartant d'un état propre (cookies vidés)."""
     driver.delete_all_cookies()
     driver.get(url)
-    time.sleep(ATTENTE_PAGE)
+    time.sleep(attente)
     return driver.page_source
 
 
