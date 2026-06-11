@@ -73,6 +73,8 @@ def ouvrir_firefox():
     options.add_argument("--headless")
     options.binary_location = FIREFOX_BIN
     options.set_preference("permissions.default.image", 2)
+    options.set_preference("fission.autostart", False)
+    options.set_preference("dom.ipc.processCount", 1)
     driver = webdriver.Firefox(options=options, service=Service(str(GECKODRIVER_PATH)))
     extensions_dir = RACINE/"extensions"/"firefox"
     for xpi in os.listdir(extensions_dir):
