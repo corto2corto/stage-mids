@@ -4,3 +4,5 @@ selenium>=4.20.0
 beautifulsoup4>=4.12.0
 pandas>=2.1.0
 huggingface_hub>=1.16.1
+ipykernel>=6.29.0
+ipywidgets>=8.0.0
