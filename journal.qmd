@@ -405,3 +405,39 @@ Puis ouvrir <http://IP_DU_SERVEUR:8000/tendance.html> dans un navigateur.
 ```
 
 `pipeline.py` charge les URLs au démarrage ; `creer_csv.py` crée le fichier de sortie. Pour trouver le bon sélecteur CSS, utiliser `exploration/recuperer_html.py`.
+
+### Médias ajoutés
+
+On a ajouté six nouveaux journaux au pipeline : Atlantico, La Dépêche, L'Opinion, Sud Ouest, Challenges et Le Télégramme. Tous ont un JSON-LD pour les métadonnées, et tous se cartographient via leur sitemap.
+
+Nouveaux médias potentiels :
+- Le Parisien (Wayback)
+- L'Express (Ok, suffit de taper année/mois dans le sidebar)
+- Marianne (Wayback)
+- Atlantico (Ok) — MAJ : ✅ Ajouté
+- L'Opinion (Ok) — MAJ : ✅ Ajouté
+- La Tribune (Wayback)
+- Challenges (Ok) — MAJ : ✅ Ajouté
+- UsineNouvelle (Wayback)
+- Le Nouvel Economiste (à l'air ok, mais présentation un peu spécial, à travailler)
+- Journal Du Net (Ok, un peu spécial)
+- Les Inrocks (Ok, un peu spécial)
+- Charlie Hebdo (Ok, un peu spécial)
+- Causeur (ok, mais la sitemap est ici :  https://www.causeur.fr/sitemap_index.xml)
+- Esprit (Ok)
+- Elle (Wayback)
+- Connaissance des arts (Wayback)
+- Science et Vie (Ok, un peu spécial)
+- Sciences et Avenir (Ok)
+- L'Equipe (Wayback)
+- La nouvelle république (Ok, mais deux parties différentes sur les xml)
+- Le Telegramme (Ok) — MAJ : ✅ Ajouté
+- DNA (Wayback)
+- L'Alsace (Wayback)
+- EstRepublicain (Wayback)
+- La Depeche (Ok) — MAJ : ✅ Ajouté
+- SudOuest (Ok) — MAJ : ✅ Ajouté
+- La voix du nord (Ok)
+- Courrier Picard (à voir)
+- L'Union (2023)
+
