@@ -3,7 +3,8 @@ Extraction des métadonnées et du corps d'un article à partir de son HTML.
 
 Le routage par média vit dans scraping/medias.py (clé "meta") :
 - "strategie" : "json_ld" (schema.org NewsArticle) ou "balises" (lues dans le HTML) ;
-- "corps"     : sélecteur CSS du corps (les cas spéciaux sont gérés dans extraire_corps).
+- "corps"     : sélecteur CSS du corps (les cas spéciaux sont gérés dans extraire_corps),
+  ou "json_ld" quand le corps est dans le champ articleBody du JSON-LD.
 """
 
 import json
@@ -13,19 +14,21 @@ from bs4 import BeautifulSoup
 from scraping.medias import MEDIAS
 
 
-def meta_json_ld(soup):
-    """ Extraction des metadatas via le json-ld"""
-    article = {}
+def noeud_json_ld(soup):
+    """Renvoie le noeud Article du JSON-LD de la page (ou {})."""
     for script in soup.find_all("script", type="application/ld+json"):
         data = json.loads(script.get_text())
         # Certains sites emballent les données dans une liste sous "@graph".
         noeuds = data.get("@graph", [data]) if isinstance(data, dict) else data
         for noeud in noeuds:
             if "Article" in str(noeud.get("@type", "")):
-                article = noeud
-                break
-        if article:
-            break
+                return noeud
+    return {}
+
+
+def meta_json_ld(soup):
+    """ Extraction des metadatas via le json-ld"""
+    article = noeud_json_ld(soup)
 
     auteur = article.get("author", "")
     if isinstance(auteur, dict):
@@ -90,7 +93,11 @@ def extraire(media, html):
     meta = MEDIAS[media]["meta"]
 
     infos = meta_json_ld(soup) if meta["strategie"] == "json_ld" else meta_balises(soup, meta)
-    infos["contenu"] = extraire_corps(media, meta["corps"], soup)
+    if meta["corps"] == "json_ld":
+        corps = noeud_json_ld(soup).get("articleBody", "")
+        infos["contenu"] = re.sub(r"\s+", " ", corps).strip()
+    else:
+        infos["contenu"] = extraire_corps(media, meta["corps"], soup)
     return infos
 
 
