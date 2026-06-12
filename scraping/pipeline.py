@@ -59,6 +59,9 @@ def traiter_vague(conn, batch, navigateurs):
     return len(resultats)
 
 
+DUREE_SESSION = 6 * 3600
+
+
 def charger_nouvelles_urls(conn):
     """Importe les URLs des *_articles.csv pas encore en base (etat=0)."""
     existantes = {u for (u,) in conn.execute("SELECT url FROM urls")}
@@ -101,7 +104,7 @@ def main():
     traitees = 0
     vague = 0
     try:
-        while batch:
+        while batch and time.time() - debut < DUREE_SESSION:
             vague += 1
             print(f"\n=== Vague {vague}  ({traitees} URLs traitées) ===")
             traitees += traiter_vague(conn, batch, navigateurs)
