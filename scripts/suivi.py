@@ -339,12 +339,22 @@ def _series_par_media(journal):
 
 
 def _intervalles(points):
-    """Compteurs cumulés -> taux par intervalle : [(n_articles, taux), ...]."""
+    """Compteurs cumulés -> taux par intervalle : [(n_articles, taux), ...].
+
+    Réussis et échecs sont cumulés depuis la base. Mais un échec peut redevenir
+    une réussite quand une URL est rejouée avec succès : le compteur d'échecs
+    baisse alors d'un instantané à l'autre. Sans précaution, l'écart négatif fait
+    grimper le taux au-dessus de 100 %. On borne chaque écart à 0 : un intervalle
+    où les échecs n'augmentent pas compte simplement comme 100 % de réussite, et
+    le taux reste toujours dans [0, 1].
+    """
     intervalles = []
     for (r0, e0), (r1, e1) in zip(points, points[1:]):
-        n = (r1 - r0) + (e1 - e0)
+        reussis = max(0, r1 - r0)
+        echecs = max(0, e1 - e0)
+        n = reussis + echecs
         if n > 0:
-            intervalles.append((n, (r1 - r0) / n))
+            intervalles.append((n, reussis / n))
     return intervalles
 
 
@@ -466,11 +476,11 @@ def tendance(media=None):
     """Écrit une page HTML interactive du taux de réussite, batch par batch.
 
     Une courbe par média : en abscisse le numéro de batch (un intervalle entre
-    deux instantanés du journal), en ordonnée le taux de réussite. Un menu
-    déroulant choisit le média ; la borne basse de la carte de contrôle apparaît
-    en pointillés. Page autonome : Plotly est chargé depuis un CDN à l'ouverture,
-    rien à installer côté Python. `media` limite la page à un seul média.
-    Source : suivi_journal.csv.
+    deux instantanés du journal), en ordonnée le taux de réussite. Cliquer un
+    média dans la légende masque/affiche sa courbe ; la borne basse de la carte
+    de contrôle apparaît en pointillés. Page autonome : Plotly est chargé depuis
+    un CDN à l'ouverture, rien à installer côté Python. `media` limite la page à
+    un seul média. Source : suivi_journal.csv.
     """
     journal = _lire_journal()
     if not journal:
@@ -479,13 +489,15 @@ def tendance(media=None):
         return
 
     series = _series_par_media(journal)
-    courbes = {}                         # media -> {batches, taux, seuil}
+    courbes = {}                         # media -> {batches, taux, n, seuil}
     for m in ((media,) if media else sorted(series)):
-        taux = [100 * t for _, t in _intervalles(series.get(m, []))]
-        if taux:
+        intervalles = _intervalles(series.get(m, []))
+        if intervalles:
+            taux = [100 * t for _, t in intervalles]
             courbes[m] = {
                 "batches": list(range(1, len(taux) + 1)),
                 "taux": taux,
+                "n": [n for n, _ in intervalles],
                 "seuil": _seuil_carte(taux),
             }
 
@@ -508,9 +520,10 @@ COULEURS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
 def _html_tendance(courbes):
     """Construit la page HTML autonome (Plotly via CDN) à partir des courbes.
 
-    Toutes les courbes sont tracées, une couleur par média. La légende fait
-    office de cases à cocher : cliquer un média masque/affiche sa courbe (et son
-    seuil, regroupés via legendgroup). La page remplit la hauteur de la fenêtre.
+    Au départ aucune courbe n'est tracée (trop de médias se chevauchent) : la
+    légende sert de cases à cocher, on clique les médias qu'on veut voir. Chaque
+    clic affiche/masque la courbe et son seuil ensemble (mêmes legendgroup). Une
+    couleur stable par média. La page remplit la hauteur de la fenêtre.
     """
     import json
 
@@ -521,25 +534,39 @@ def _html_tendance(courbes):
         couleur = COULEURS[i % len(COULEURS)]
         traces.append({
             "x": c["batches"], "y": c["taux"], "name": m,
-            "type": "scatter", "mode": "lines+markers",
+            "customdata": c["n"],
+            "type": "scatter", "mode": "lines",
             "line": {"color": couleur}, "legendgroup": m,
-            "hovertemplate": f"{m}<br>batch %{{x}}<br>%{{y:.1f}}%<extra></extra>",
+            "visible": "legendonly",     # masqué au départ : on coche dans la légende
+            "hovertemplate": f"{m}<br>batch %{{x}} — %{{y:.1f}} %"
+                             "<br>%{customdata} articles<extra></extra>",
         })
-        if c["seuil"] is not None:
+        # Borne basse de la carte de contrôle : pointillés, seulement si elle est
+        # exploitable (None = pas assez de recul, <= 0 = seuil sans signification).
+        # Même legendgroup que la courbe : la case de la légende les (dé)coche ensemble.
+        if c["seuil"] is not None and c["seuil"] > 0:
             traces.append({
                 "x": [c["batches"][0], c["batches"][-1]],
                 "y": [c["seuil"], c["seuil"]],
                 "name": f"seuil {m}", "type": "scatter", "mode": "lines",
                 "line": {"dash": "dash", "color": couleur, "width": 1},
                 "legendgroup": m, "showlegend": False, "hoverinfo": "skip",
+                "visible": "legendonly",
             })
+
+    # Une graduation tous les `pas` batchs : au plus ~15 étiquettes sur l'axe X,
+    # sinon elles se chevauchent (il peut y avoir des centaines de batchs).
+    n_max = max((len(c["batches"]) for c in courbes.values()), default=1)
+    pas = max(1, -(-n_max // 15))        # division entière arrondie au plafond
 
     layout = {
         "title": "Taux de réussite par média",
-        "yaxis": {"title": "taux (%)", "rangemode": "tozero"},
-        "xaxis": {"title": "batch", "dtick": 1},
+        "yaxis": {"title": "taux de réussite (%)", "range": [0, 102]},
+        "xaxis": {"title": "batch (intervalle entre deux instantanés)",
+                  "tick0": 1, "dtick": pas},
         "template": "plotly_white",
-        "legend": {"title": {"text": "médias (cliquer pour filtrer)"}},
+        "hovermode": "closest",
+        "legend": {"title": {"text": "médias (cliquer pour afficher)"}},
         "margin": {"t": 60},
     }
 
