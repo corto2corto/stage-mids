@@ -88,7 +88,7 @@ def main():
     debut = time.time()
     configurer_ublock()
     conn = sqlite3.connect(DATA_DIR/"urls.db")
-    charger_nouvelles_urls(conn)
+    # charger_nouvelles_urls(conn)  # désactivé : pas de nouveaux CSV pour l'instant
 
     # Le premier batch fixe l'ensemble des médias à traiter, donc les navigateurs
     # à ouvrir (aucun média ne peut en gagner en cours de route).

@@ -441,3 +441,11 @@ Nouveaux médias potentiels :
 - Courrier Picard (à voir)
 - L'Union (2023)
 
+Vérifier que les archives du monde
+
+Suite :
+- Analyser les prénoms
+- time series
+- comptage de mots (TF-IDF)
+- saut intraséque et interséque (voir article de Mala)
+- MOR (traitement automatique des langues)
