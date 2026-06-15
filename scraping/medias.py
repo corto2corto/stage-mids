@@ -1,16 +1,4 @@
-"""Registre des médias : source unique de vérité, une entrée par média.
-
-Chaque étape du pipeline lit la clé qui la concerne :
-- "moteur" : quel navigateur ouvrir (aujourd'hui "firefox") ;
-- "meta"   : quoi extraire du HTML (métadonnées + corps) —
-    - "strategie" : "json_ld" (schema.org) ou "balises" (lues dans le HTML, on
-      fournit alors les sélecteurs titre/auteur/date) ;
-    - "corps"     : sélecteur CSS du corps de l'article, ou "json_ld" si le
-      corps n'est pas dans le HTML mais dans le champ articleBody du JSON-LD
-      (challenges, le_telegramme).
-
-Ajouter un média = déposer <media>_articles.csv (les URLs) + une entrée ici.
-"""
+"""Registre des médias et de leur méthode de scraping. Dès qu'on ajoute un média, il faut lui créé une entrée ici."""
 
 MEDIAS = {
     "le_capital":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.articleBody"}},
@@ -28,14 +16,5 @@ MEDIAS = {
     "sud_ouest":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.full-content"}},
     "challenges":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_telegramme":         {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
-    "le_journal_du_dimanche": {
-        "moteur": "firefox",
-        "meta": {
-            "strategie": "balises",
-            "corps":  "section.content-rte div.rte p, article.live-element-content div.rte p",
-            "titre":  "h1.main-title",
-            "auteur": "a.author",
-            "date":   "time",
-        },
-    },
+    "le_journal_du_dimanche": {"moteur": "firefox", "meta": {"strategie": "balises", "corps": "section.content-rte div.rte p, article.live-element-content div.rte p", "titre": "h1.main-title", "auteur": "a.author", "date": "time"}},
 }

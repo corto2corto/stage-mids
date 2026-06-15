@@ -37,13 +37,6 @@ def scraper_batch(batch, navigateurs):
 
 
 def traiter_vague(conn, batch, navigateurs):
-    """Scrape une vague (une URL par média), écrit CSV + état, renvoie le nombre
-    d'URLs traitées. Une vague = une transaction (commit groupé en fin de vague).
-
-    Toute URL non récupérée — HTML manquant, extraction qui échoue ou contenu
-    resté derrière le paywall — finit à etat=1 (échec), sans distinction : on se
-    fiche de l'origine. Un article mal formé ne bloque jamais le run.
-    """
     actifs = {media: navigateurs[media] for media in batch if media in navigateurs}
     resultats = scraper_batch(batch, actifs)
 
