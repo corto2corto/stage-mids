@@ -10,8 +10,8 @@ seule : `snapshot` tient un journal de bord (`suivi_journal.csv`) — ses propre
 données, pas celles du scraping — pour suivre le taux de réussite dans le temps.
 
 Chaque indicateur est une fonction indépendante, appelable de deux façons :
-- en ligne de commande :  python -m scripts.suivi <indicateur> [média]
-- par import           :  from scripts.suivi import avancement; avancement()
+- en ligne de commande :  python -m scraping.suivi <indicateur> [média]
+- par import           :  from scraping.suivi import avancement; avancement()
 
 À lancer depuis la racine du dépôt (forme `-m`, pour que le package scraping
 soit importable).
@@ -32,13 +32,13 @@ Les indicateurs lus dans les CSV acceptent un nom de média en argument pour
 se limiter à ce média (sinon : tous les médias confondus).
 
 Exemples :
-  python -m scripts.suivi
-  python -m scripts.suivi avancement
-  python -m scripts.suivi contenu le_monde
+  python -m scraping.suivi
+  python -m scraping.suivi avancement
+  python -m scraping.suivi contenu le_monde
 
 Les données vivent sur le serveur (DATA_DIR dans scraping/stockage.py). Pour
 tester ce script sur une copie locale, pointer ailleurs avec la variable
-d'environnement STAGE_DATA_DIR (ex : STAGE_DATA_DIR=./data python -m scripts.suivi).
+d'environnement STAGE_DATA_DIR (ex : STAGE_DATA_DIR=./data python -m scraping.suivi).
 """
 
 import csv
@@ -485,7 +485,7 @@ def tendance(media=None):
     journal = _lire_journal()
     if not journal:
         print("\nJournal de suivi vide. Prends un premier instantané :\n"
-              "  python -m scripts.suivi snapshot")
+              "  python -m scraping.suivi snapshot")
         return
 
     series = _series_par_media(journal)

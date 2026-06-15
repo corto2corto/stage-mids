@@ -11,7 +11,7 @@ from scraping.batch import new_batch
 from scraping.medias import MEDIAS
 from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
-from scripts.suivi import snapshot
+from scraping.suivi import snapshot
 
 
 def ouvrir_multi_firefox(batch):

@@ -376,21 +376,21 @@ Le commit par batch rend le run **reprenable** : si le script meurt, les URLs no
 
 ### Suivi du run
 
-[`scripts/suivi.py`](scripts/suivi.py) lit la base et les CSV (en lecture seule) et expose des indicateurs en ligne de commande :
+[`scraping/suivi.py`](scraping/suivi.py) lit la base et les CSV (en lecture seule) et expose des indicateurs en ligne de commande :
 
 ```bash
-python -m scripts.suivi                    # vue d'ensemble
-python -m scripts.suivi avancement         # URLs traitées par média
-python -m scripts.suivi contenu le_monde   # longueur des articles
-python -m scripts.suivi tendance           # page HTML du taux de réussite
+python -m scraping.suivi                    # vue d'ensemble
+python -m scraping.suivi avancement         # URLs traitées par média
+python -m scraping.suivi contenu le_monde   # longueur des articles
+python -m scraping.suivi tendance           # page HTML du taux de réussite
 ```
 
 Pour visualiser les données depuis le serveur, la sous-commande `tendance` écrit une page Plotly dans `data/tendance.html`. On la sert ensuite via un serveur HTTP local :
 
 ```bash
-cd /data/elias/stage-mids && source .venv/bin/activate
-python -m scripts.suivi tendance
-python -m http.server --directory data 8000
+ssh gallica 'cd /data/elias/stage-mids && source .venv/bin/activate && python -m scraping.suivi tendance' \
+  && scp gallica:/data/elias/stage-mids/data/tendance.html /tmp/tendance.html \
+  && open /tmp/tendance.html
 ```
 
 Puis ouvrir <http://IP_DU_SERVEUR:8000/tendance.html> dans un navigateur.
@@ -404,7 +404,7 @@ Puis ouvrir <http://IP_DU_SERVEUR:8000/tendance.html> dans un navigateur.
 "nom_media": {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.article-body"}},
 ```
 
-`pipeline.py` charge les URLs au démarrage ; `creer_csv.py` crée le fichier de sortie. Pour trouver le bon sélecteur CSS, utiliser `exploration/recuperer_html.py`.
+`pipeline.py` charge les URLs au démarrage ; `3_creer_csv.py` crée le fichier de sortie. Pour trouver le bon sélecteur CSS, utiliser `exploration/recuperer_html.py`.
 
 ### Médias ajoutés
 
