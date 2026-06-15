@@ -21,8 +21,8 @@ stage-mids/
 ├── scripts/              # préparation, à lancer une fois dans l'ordre
 │   ├── 1_telecharger_donnees.py   # télécharge les URLs depuis Hugging Face
 │   ├── 2_creer_bdd.py             # crée la base sqlite urls.db
-│   ├── 3_importer_csv.py          # importe les URLs dans la base
-│   └── creer_csv.py               # crée les CSV de sortie (un par média)
+│   ├── 3_creer_csv.py             # crée les CSV de sortie (un par média)
+│   └── 4_marquer_doublons.py      # marque les articles déjà scrappés ailleurs
 │
 ├── exploration/          # prototypes et tests (référence, hors prod)
 ├── notebooks/            # notebooks d'analyse
@@ -53,8 +53,8 @@ Préparation de la base (une seule fois, dans l'ordre) :
 ```bash
 python scripts/1_telecharger_donnees.py
 python scripts/2_creer_bdd.py
-python scripts/3_importer_csv.py
-python scripts/creer_csv.py
+python scripts/3_creer_csv.py
+python scripts/4_marquer_doublons.py
 ```
 
 Lancer le scraping :
