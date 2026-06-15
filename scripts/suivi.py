@@ -572,6 +572,7 @@ def _html_tendance(courbes):
 
     return (
         "<!doctype html><html lang='fr'><head><meta charset='utf-8'>"
+        "<meta http-equiv='refresh' content='600'>"   # recharge toutes les 10 min
         "<title>Tendance du scraping</title>"
         "<script src='https://cdn.plot.ly/plotly-2.35.2.min.js'></script>"
         "<style>html,body{height:100%;margin:0}"
