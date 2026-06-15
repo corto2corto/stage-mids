@@ -59,8 +59,6 @@ def traiter_vague(conn, batch, navigateurs):
     return len(resultats)
 
 
-DUREE_SESSION = 6 * 3600
-
 
 def charger_nouvelles_urls(conn):
     """Importe les URLs des *_articles.csv pas encore en base (etat=0)."""
@@ -77,14 +75,6 @@ def charger_nouvelles_urls(conn):
 
 
 def main():
-    """Scrape en continu jusqu'à épuisement des URLs à etat=0.
-
-    Pensé pour tourner plusieurs jours : on ouvre un Firefox par média une seule
-    fois, puis on enchaîne les vagues (une URL par média) sans limite. L'état est
-    commité vague par vague — le run est interruptible et reprend tout seul. Tous
-    les 1000 articles, un instantané alimente le suivi et alerte (ntfy) en cas de
-    décrochage du bypass.
-    """
     debut = time.time()
     configurer_ublock()
     conn = sqlite3.connect(DATA_DIR/"urls.db")
@@ -104,7 +94,7 @@ def main():
     traitees = 0
     vague = 0
     try:
-        while batch and time.time() - debut < DUREE_SESSION:
+        while batch and time.time() - debut < (3*3600):
             vague += 1
             print(f"\n=== Vague {vague}  ({traitees} URLs traitées) ===")
             traitees += traiter_vague(conn, batch, navigateurs)
