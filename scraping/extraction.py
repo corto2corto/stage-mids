@@ -1,10 +1,5 @@
 """
 Extraction des métadonnées et du corps d'un article à partir de son HTML.
-
-Le routage par média vit dans scraping/medias.py (clé "meta") :
-- "strategie" : "json_ld" (schema.org NewsArticle) ou "balises" (lues dans le HTML) ;
-- "corps"     : sélecteur CSS du corps (les cas spéciaux sont gérés dans extraire_corps),
-  ou "json_ld" quand le corps est dans le champ articleBody du JSON-LD.
 """
 
 import json
@@ -12,7 +7,6 @@ import re
 from bs4 import BeautifulSoup
 
 from scraping.medias import MEDIAS
-
 
 def noeud_json_ld(soup):
     """Renvoie le noeud Article du JSON-LD de la page (ou {})."""
@@ -32,7 +26,7 @@ def meta_json_ld(soup):
 
     auteur = article.get("author", "")
     if isinstance(auteur, dict):
-        auteur = auteur.get("name") or ""          # name peut être null (archives Échos)
+        auteur = auteur.get("name") or ""         
     elif isinstance(auteur, list):
         auteur = ", ".join((a.get("name") or "") if isinstance(a, dict) else a for a in auteur)
 
@@ -49,8 +43,7 @@ def meta_json_ld(soup):
         "auteur":  auteur,
         "date":    article.get("datePublished", ""),
         "section": section,
-        "free":    free,
-    }
+        "free":    free}
 
 
 def meta_balises(soup, meta):
@@ -101,9 +94,7 @@ def extraire(media, html):
     return infos
 
 
-def extraire_url(media, url):
-    """Fonction facultative qui permet de scraper un URL et d'obtenir ses metadatas + contenu"""
-    
+def extraire_url(media, url):  
     from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
 
     configurer_ublock()

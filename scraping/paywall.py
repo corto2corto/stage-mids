@@ -21,10 +21,9 @@ def est_bloque(contenu, longueur_fin=300):
 
 if __name__ == "__main__":
     import sys
-
     from scraping.extraction import extraire_url
 
     media, url = sys.argv[1], sys.argv[2]
     contenu = extraire_url(media, url)["contenu"]
     print(f"bloqué : {est_bloque(contenu)}")
-    print(f"fin    : ...{contenu[-300:]}")
+    print(f"fin    : ...{contenu[-250:]}")
