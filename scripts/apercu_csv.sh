@@ -1,7 +1,7 @@
 #!/bin/bash
 SERVEUR="gallica"
 REMOTE_DIR="/data/elias/stage-mids/data/csv"
-LOCAL_DIR="$(dirname "$0")/../data/tmp"
+LOCAL_DIR="$(dirname "$0")/../tmp"
 
 mkdir -p "$LOCAL_DIR"
 
