@@ -14,7 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 
-from scraping.config import (RACINE, GECKODRIVER_PATH, FIREFOX_BIN, MANAGED_DIR, ADMIN_SETTINGS)
+from scraping.config import (RACINE, GECKODRIVER_PATH, FIREFOX_BIN, MANAGED_DIR, ADMIN_SETTINGS, TMP_FIREFOX)
 
 
 def configurer_ublock():
@@ -30,9 +30,8 @@ def configurer_ublock():
 
 
 def ouvrir_firefox():
-    tmp = RACINE / "extensions" / "firefox" / "tmp"
-    tmp.mkdir(parents=True, exist_ok=True)
-    os.environ["TMPDIR"] = str(tmp)
+    TMP_FIREFOX.mkdir(parents=True, exist_ok=True)
+    os.environ["TMPDIR"] = str(TMP_FIREFOX)
 
     options = Options()
     options.add_argument("--headless")
@@ -40,10 +39,16 @@ def ouvrir_firefox():
     options.set_preference("permissions.default.image", 2)
     driver = webdriver.Firefox(options=options, service=Service(str(GECKODRIVER_PATH)))
 
-    extensions_dir = RACINE / "extensions" / "firefox"
-    for xpi in extensions_dir.glob("*.xpi"):
-        driver.install_addon(str(xpi), temporary=True)
-    time.sleep(15)   # uBlock télécharge ses listes sur le web
+    # Si l'installation des extensions échoue, on ferme le Firefox déjà lancé
+    # pour ne pas laisser de processus orphelin.
+    try:
+        extensions_dir = RACINE / "extensions" / "firefox"
+        for xpi in extensions_dir.glob("*.xpi"):
+            driver.install_addon(str(xpi), temporary=True)
+        time.sleep(15)   # uBlock télécharge ses listes sur le web
+    except Exception:
+        driver.quit()
+        raise
     return driver
 
 

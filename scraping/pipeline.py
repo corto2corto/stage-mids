@@ -3,11 +3,13 @@ Point d'entrée : main(). Lancé via `python -m scraping.pipeline`.
 """
 
 import csv
+import shutil
 import sqlite3
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 from scraping.batch import new_batch
+from scraping.config import TMP_FIREFOX
 from scraping.medias import MEDIAS
 from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
@@ -96,6 +98,7 @@ def main():
     finally:
         for driver in navigateurs.values():
             driver.quit()
+        shutil.rmtree(TMP_FIREFOX, ignore_errors=True)   # profils temp de la session
         conn.close()
 
     print(f"\n{traitees} URLs traitées en {time.time() - debut:.1f}s.")
