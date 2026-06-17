@@ -450,7 +450,15 @@ Suite :
 - saut intraséque et interséque (voir article de Mala)
 - MOR (traitement automatique des langues)
 
-- Voir le site web html 
+- Voir le site web html
 - Faire les premiers comptages de mot sur les 10 000 premiers articles de chaque média
 - Décider de sous quels formats mettre la BDD
 - Voir si on peut utiliser Bert pour l'analyse de sentiment
+
+## Site de suivi
+
+Mise en place d'un site de suivi du scraping avec **Evidence.dev** (dossier `site/`) : on écrit des pages en Markdown + SQL, Evidence en fait un site statique propre. Trois rubriques (menu latéral) : **Avancement** (URLs restantes par média, source `urls.db`), **Taux de réussite** (tableau + classement), **Évolution du taux de réussite** (graphe temporel avec sélecteur de médias), plus une page détail par média.
+
+Hébergé sur **GitHub Pages** en mode *GitHub Actions* (build automatique à chaque push sur `main`, plus de branche `gh-pages`). Les données viennent de deux CSV versionnés dans `site/sources/suivi/` : `suivi_journal.csv` (copié depuis `data/`) et `avancement.csv` (généré par `exporter_avancement()` depuis `urls.db`). Un **cron quotidien** (`scripts/maj_csv_suivi.sh`, 4h) rafraîchit ces CSV et pousse sur `main` → le site se reconstruit seul.
+
+Site : <https://corto2corto.github.io/stage-mids/>
