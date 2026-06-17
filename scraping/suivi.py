@@ -59,6 +59,8 @@ BASE = DATA_DIR / "urls.db"
 DOSSIER_CSV = DATA_DIR / "csv"
 JOURNAL = DATA_DIR / "suivi_journal.csv"
 
+SOURCES_SITE = Path(__file__).resolve().parent.parent / "site" / "sources" / "suivi"
+
 # Carte de contrôle : on signale un décrochage quand le taux d'un intervalle
 # passe sous (moyenne − 3σ) de l'historique du média. MIN_BASELINE = nombre
 # d'intervalles de référence requis avant de juger (sinon la moyenne ne veut rien
@@ -154,6 +156,20 @@ def _ligne_avancement(media, compte):
     pct_traite = f"{100 * traites / total:.1f}%" if total else "—"
     pct_succes = f"{100 * compte[2] / traites:.1f}%" if traites else "—"
     return [media, total, compte[2], compte[1], compte[0], pct_traite, pct_succes]
+
+
+def exporter_avancement():
+    """Écrit l'avancement par média dans site/sources/suivi/avancement.csv (pour le site)."""
+    par_media = avancement()
+    SOURCES_SITE.mkdir(parents=True, exist_ok=True)
+    chemin = SOURCES_SITE / "avancement.csv"
+    with open(chemin, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["media", "restants", "echecs", "reussis", "total"])
+        for media in sorted(par_media):
+            c = par_media[media]
+            w.writerow([media, c[0], c[1], c[2], c[0] + c[1] + c[2]])
+    print(f"\nAvancement exporté : {chemin}")
 
 
 def echecs():
@@ -599,8 +615,9 @@ INDICATEURS = {
     "acces": acces,
     "tendance": tendance,
     "snapshot": snapshot,
+    "exporter_avancement": exporter_avancement,
 }
-SANS_MEDIA = {"resume", "avancement", "echecs", "snapshot"}
+SANS_MEDIA = {"resume", "avancement", "echecs", "snapshot", "exporter_avancement"}
 
 
 def main(argv=None):
