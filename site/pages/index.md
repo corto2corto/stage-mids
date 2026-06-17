@@ -61,7 +61,7 @@ Clique sur un média pour voir le détail.
     <Column id=traites title="Traités" fmt='#,##0'/>
     <Column id=reussis title="Réussis" fmt='#,##0'/>
     <Column id=echecs title="Échecs" fmt='#,##0'/>
-    <Column id=taux_succes title="% succès" contentType=colorscale scaleColor=green/>
+    <Column id=taux_succes title="% succès" contentType=colorscale colorScale=positive/>
 </DataTable>
 
 ## Taux de réussite comparé
