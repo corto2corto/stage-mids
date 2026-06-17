@@ -1,7 +1,7 @@
 """Télécharge le HTML d'articles des nouveaux médias (pas encore dans MEDIAS),
 pour inspecter leur structure et écrire leurs méthodes d'extraction.
 
-Pour chaque <media>_articles.csv sans entrée dans le registre MEDIAS, prend
+Pour chaque <media>_url.csv sans entrée dans le registre MEDIAS, prend
 3 URLs réparties dans le fichier (25 %, 50 %, 75 %) — les sitemaps étant
 grossièrement chronologiques, ça varie les époques et augmente la chance
 d'avoir du payant ET du gratuit. Le HTML est sauvé dans exploration/.
@@ -23,8 +23,8 @@ SORTIE = RACINE / "exploration"
 
 # Sélection : pour chaque CSV d'un média absent du registre, 3 URLs réparties.
 cibles = {}
-for chemin in sorted(DATA_DIR.glob("*_articles.csv")):
-    media = chemin.stem.removesuffix("_articles")
+for chemin in sorted(DATA_DIR.glob("*_url.csv")):
+    media = chemin.stem.removesuffix("_url")
     if media in MEDIAS:
         continue
     with open(chemin, newline="", encoding="utf-8") as f:

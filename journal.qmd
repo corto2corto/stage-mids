@@ -449,3 +449,8 @@ Suite :
 - comptage de mots (TF-IDF)
 - saut intraséque et interséque (voir article de Mala)
 - MOR (traitement automatique des langues)
+
+- Voir le site web html 
+- Faire les premiers comptages de mot sur les 10 000 premiers articles de chaque média
+- Décider de sous quels formats mettre la BDD
+- Voir si on peut utiliser Bert pour l'analyse de sentiment
