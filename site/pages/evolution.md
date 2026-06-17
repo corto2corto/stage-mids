@@ -3,9 +3,8 @@ title: Évolution du taux de réussite
 sidebar_position: 3
 ---
 
-Évolution du taux de réussite du scraping au fil du temps, média par média.
-Une courbe qui plonge signale un bypass paywall qui décroche à un moment donné.
-Source : journal de bord (`suivi_journal.csv`).
+On suit ici comment le taux de réussite évolue dans le temps. Choisissez un ou
+plusieurs médias pour comparer leurs courbes.
 
 ```sql medias
 select

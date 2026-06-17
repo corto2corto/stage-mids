@@ -3,8 +3,14 @@ title: Avancement
 sidebar_position: 1
 ---
 
-Où en est le scraping des médias français : part déjà traitée et nombre d'URLs
-restant à parcourir, par média. Source : base des URLs (`avancement.csv`).
+<Alert status=info>
+Ce site suit l'avancement du stage stage-mids, qui consiste à récupérer
+automatiquement des articles de la presse française. Les chiffres sont mis à jour
+chaque jour.
+</Alert>
+
+On regarde ici où en est le scraping de chaque média, et combien d'articles il
+reste encore à récupérer.
 
 ```sql avancement
 select

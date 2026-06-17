@@ -3,9 +3,9 @@ title: Taux de réussite
 sidebar_position: 2
 ---
 
-Taux de réussite du scraping par média : part des URLs récupérées avec succès
-parmi celles déjà traitées. Un taux bas signale un bypass paywall qui décroche.
-Source : journal de bord (`suivi_journal.csv`).
+Parmi les articles déjà traités, on voit ici combien ont vraiment pu être
+récupérés, média par média. Le graphique permet de comparer les médias d'un coup
+d'œil.
 
 ```sql dernier_etat
 with derniers as (
