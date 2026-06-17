@@ -70,3 +70,12 @@ extensions/geckodriver/
 extensions/chrome-linux-profile
 
 **/*.quarto_ipynb
+
+# --- Site de suivi (Evidence, dossier site/) ---
+# Le site est versionné pour que la GitHub Action puisse le construire.
+# Les règles *.json / *.jsonl ci-dessus ignorent tout JSON : on ré-autorise
+# explicitement les fichiers de config Evidence nécessaires au build.
+!site/package.json
+!site/package-lock.json
+# Le .gitignore interne de site/ (fourni par Evidence) ignore déjà
+# node_modules/, build/, .svelte-kit/, static/data/, etc.

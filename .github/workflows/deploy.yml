@@ -1,0 +1,62 @@
+name: Déploiement du site de suivi (GitHub Pages)
+
+# Construit le site Evidence (dossier site/) et le publie sur GitHub Pages
+# à chaque push sur main. Pas de branche gh-pages ni de force-push :
+# GitHub build et publie lui-même via l'API Pages.
+
+on:
+  push:
+    branches: 'main'
+    # On ne reconstruit que si le site (ou ses données) change.
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy.yml'
+  # Permet aussi de lancer la publication à la main depuis l'onglet Actions.
+  workflow_dispatch:
+
+# Le projet Evidence vit dans site/ : toutes les commandes s'y exécutent.
+defaults:
+  run:
+    working-directory: site
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du dépôt
+        uses: actions/checkout@v4
+
+      - name: Installation de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Installation des dépendances
+        run: npm install
+
+      - name: Construction du site
+        run: |
+          npm run sources
+          npm run build
+
+      - name: Préparation de l'artefact Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # EVIDENCE_BUILD_DIR (dans package.json) écrit dans site/build/stage-mids
+          path: 'site/build/stage-mids'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publication sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

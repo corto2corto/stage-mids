@@ -56,10 +56,10 @@ def traiter_vague(conn, batch, navigateurs):
 
 
 def charger_nouvelles_urls(conn):
-    """Importe les URLs des *_articles.csv pas encore en base (etat=0)."""
+    """Importe les URLs des *_url.csv pas encore en base (etat=0)."""
     existantes = {u for (u,) in conn.execute("SELECT url FROM urls")}
-    for chemin in DATA_DIR.glob("*_articles.csv"):
-        media = chemin.stem.removesuffix("_articles")
+    for chemin in DATA_DIR.glob("*_url.csv"):
+        media = chemin.stem.removesuffix("_url")
         with open(chemin, newline="", encoding="utf-8") as f:
             nouvelles = [(media, ligne["url"]) for ligne in csv.DictReader(f)
                          if ligne["url"] not in existantes]
