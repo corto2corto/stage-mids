@@ -1,80 +1,48 @@
 ---
-title: Suivi du scraping
+title: Avancement
+sidebar_position: 1
 ---
 
-Vue d'ensemble du scraping des médias français. Les chiffres proviennent du
-journal de bord (`suivi_journal.csv`) : un instantané régulier des compteurs
-réussis / échecs par média.
+Où en est le scraping des médias français : part déjà traitée et nombre d'URLs
+restant à parcourir, par média. Source : base des URLs (`avancement.csv`).
 
-```sql dernier_etat
--- Dernier instantané connu pour chaque média (compteurs cumulés)
-with derniers as (
-    select
-        media,
-        max(horodatage) as horodatage_max
-    from suivi.suivi_journal
-    group by media
-)
+```sql avancement
 select
-    coalesce(l.nom, j.media) as nom,
-    j.reussis,
-    j.echecs,
-    j.reussis + j.echecs as traites,
-    round(100.0 * j.reussis / nullif(j.reussis + j.echecs, 0), 1) as taux_succes,
-    '/media/' || j.media as lien
-from suivi.suivi_journal j
-inner join derniers d
-    on j.media = d.media and j.horodatage = d.horodatage_max
-left join suivi.libelles l on j.media = l.media
-order by taux_succes desc
+    coalesce(l.nom, a.media) as nom,
+    a.media,
+    a.restants,
+    a.echecs,
+    a.reussis,
+    a.reussis + a.echecs as traites,
+    a.total,
+    round(100.0 * (a.reussis + a.echecs) / nullif(a.total, 0), 1) as pct_traite,
+    '/media/' || a.media as lien
+from suivi.avancement a
+left join suivi.libelles l on a.media = l.media
+order by pct_traite desc
 ```
 
 ## Chiffres clés
 
 ```sql totaux
--- Totaux tous médias confondus, calculés directement en SQL
 select
-    sum(traites) as total_traites,
-    count(*)     as nb_medias
-from ${dernier_etat}
+    sum(total)            as total_urls,
+    sum(reussis + echecs) as traites,
+    sum(restants)         as restants
+from ${avancement}
 ```
 
-<BigValue
-    data={totaux}
-    value=total_traites
-    title="Articles traités (tous médias)"
-    fmt='#,##0'
-/>
+<BigValue data={totaux} value=total_urls title="URLs au total" fmt='#,##0'/>
+<BigValue data={totaux} value=traites title="Déjà traitées" fmt='#,##0'/>
+<BigValue data={totaux} value=restants title="Restant à scraper" fmt='#,##0'/>
 
-<BigValue
-    data={totaux}
-    value=nb_medias
-    title="Médias suivis"
-/>
+## Progression par média
 
-## Par média
+Clique sur un média pour voir son détail.
 
-Clique sur un média pour voir le détail.
-
-<DataTable data={dernier_etat} link=lien rows=all>
+<DataTable data={avancement} link=lien rows=all>
     <Column id=nom title="Média"/>
+    <Column id=pct_traite title="Avancement" contentType=bar barColor=#236aa4 fmt='0.0"%"'/>
+    <Column id=restants title="Restants" fmt='#,##0'/>
     <Column id=traites title="Traités" fmt='#,##0'/>
-    <Column id=reussis title="Réussis" fmt='#,##0'/>
-    <Column id=echecs title="Échecs" fmt='#,##0'/>
-    <Column id=taux_succes title="% succès" contentType=colorscale colorScale=positive/>
 </DataTable>
-
-## Taux de réussite comparé
-
-```sql classement
-select nom, taux_succes from ${dernier_etat} order by taux_succes desc
-```
-
-<BarChart
-    data={classement}
-    x=nom
-    y=taux_succes
-    swapXY=true
-    title="Taux de réussite par média (%)"
-    yAxisTitle="% de succès"
-/>

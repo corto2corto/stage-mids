@@ -52,14 +52,13 @@ from pathlib import Path
 from statistics import mean, median, stdev
 
 # Source unique de vérité pour l'emplacement des données ; surchargeable en local.
+from scraping.config import SOURCES_SITE
 from scraping.stockage import DATA_DIR as _DATA_DIR_DEFAUT
 
 DATA_DIR = Path(os.environ.get("STAGE_DATA_DIR", _DATA_DIR_DEFAUT))
 BASE = DATA_DIR / "urls.db"
 DOSSIER_CSV = DATA_DIR / "csv"
 JOURNAL = DATA_DIR / "suivi_journal.csv"
-
-SOURCES_SITE = Path(__file__).resolve().parent.parent / "site" / "sources" / "suivi"
 
 # Carte de contrôle : on signale un décrochage quand le taux d'un intervalle
 # passe sous (moyenne − 3σ) de l'historique du média. MIN_BASELINE = nombre
