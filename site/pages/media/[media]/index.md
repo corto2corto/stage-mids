@@ -1,5 +1,5 @@
 ---
-title: "{params.media}"
+breadcrumbs: false
 ---
 
 <a href="/">← Retour au tableau de bord</a>
