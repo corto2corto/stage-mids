@@ -89,7 +89,7 @@ def main():
     traitees = 0
     vague = 0
     try:
-        while batch and time.time() - debut < (3*3600):
+        while batch and time.time() - debut < (2*3600):
             vague += 1
             print(f"\n=== Vague {vague}  ({traitees} URLs traitées) ===")
             traitees += traiter_vague(conn, batch, navigateurs)
