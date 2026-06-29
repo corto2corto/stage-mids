@@ -1,13 +1,16 @@
 -- Filtre les bases ngram : supprime les uni/bi/trigrammes vus une seule fois
 -- dans tout le corpus (total global n = 1), garde ceux avec total >= 2.
 -- Recrée chaque table filtrée puis remplace l'originale (pas de DELETE en place).
+-- En profite pour typer les colonnes en INTEGER : sans type, l'optimiseur n'utilise
+-- pas la clé pour la jointure token.id=w1 (SCAN au lieu de SEARCH). Avec INTEGER,
+-- le JOIN lisible redevient rapide.
 -- Réutilisable sur les 3 bases :  sqlite3 lemonde_ngram.db < scripts/filtre_ngram.sql
 
 PRAGMA journal_mode = OFF;
 PRAGMA synchronous = OFF;
 
 -- unigram
-CREATE TABLE unigram_new (w1, annee, mois, jour, n,
+CREATE TABLE unigram_new (w1 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
     PRIMARY KEY (w1, annee, mois, jour)) WITHOUT ROWID;
 INSERT INTO unigram_new
 SELECT w1, annee, mois, jour, n FROM (
@@ -17,7 +20,7 @@ DROP TABLE unigram;
 ALTER TABLE unigram_new RENAME TO unigram;
 
 -- bigram
-CREATE TABLE bigram_new (w1, w2, annee, mois, jour, n,
+CREATE TABLE bigram_new (w1 INTEGER, w2 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
     PRIMARY KEY (w1, w2, annee, mois, jour)) WITHOUT ROWID;
 INSERT INTO bigram_new
 SELECT w1, w2, annee, mois, jour, n FROM (
@@ -27,7 +30,7 @@ DROP TABLE bigram;
 ALTER TABLE bigram_new RENAME TO bigram;
 
 -- trigram
-CREATE TABLE trigram_new (w1, w2, w3, annee, mois, jour, n,
+CREATE TABLE trigram_new (w1 INTEGER, w2 INTEGER, w3 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
     PRIMARY KEY (w1, w2, w3, annee, mois, jour)) WITHOUT ROWID;
 INSERT INTO trigram_new
 SELECT w1, w2, w3, annee, mois, jour, n FROM (
