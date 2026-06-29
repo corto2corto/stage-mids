@@ -1,50 +1,65 @@
--- Filtre les bases ngram : supprime les uni/bi/trigrammes vus une seule fois
--- dans tout le corpus (total global n = 1), garde ceux avec total >= 2.
--- Recrée chaque table filtrée puis remplace l'originale (pas de DELETE en place).
--- En profite pour typer les colonnes en INTEGER : sans type, l'optimiseur n'utilise
--- pas la clé pour la jointure token.id=w1 (SCAN au lieu de SEARCH). Avec INTEGER,
--- le JOIN lisible redevient rapide.
--- Réutilisable sur les 3 bases :  sqlite3 lemonde_ngram.db < scripts/filtre_ngram.sql
+-- Reconstruit une base ngram filtrée À PARTIR d'une base existante, sans la modifier.
+-- L'ancienne base est attachée comme 'old' au lancement :
+--   sqlite3 lemonde_ngram_filtre.db -cmd "ATTACH 'lemonde_ngram.db' AS old" < scripts/filtre_ngram.sql
+--
+-- - Garde les ngrams vus > 10 fois sur tout le corpus (filtre agressif, base légère).
+-- - Conserve les totaux journaliers AVANT filtrage (total_*) = dénominateur N_t des
+--   fréquences relatives (occurrences du mot / total du jour).
+-- - Colonnes typées INTEGER -> la jointure token.id=w1 utilise la clé (rapide).
+-- - Base neuve = compacte d'emblée : pas de VACUUM, et l'original n'est jamais touché
+--   (filet naturel en cas d'interruption ; relançable tel quel).
 
 PRAGMA journal_mode = OFF;
 PRAGMA synchronous = OFF;
 
--- unigram
-CREATE TABLE unigram_new (w1 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
+DROP TABLE IF EXISTS total_unigram;
+DROP TABLE IF EXISTS total_bigram;
+DROP TABLE IF EXISTS total_trigram;
+DROP TABLE IF EXISTS unigram;
+DROP TABLE IF EXISTS bigram;
+DROP TABLE IF EXISTS trigram;
+DROP TABLE IF EXISTS token;
+
+-- Totaux journaliers (sur l'ancienne base, complète)
+CREATE TABLE total_unigram (annee INTEGER, mois INTEGER, jour INTEGER, total INTEGER,
+    PRIMARY KEY (annee, mois, jour)) WITHOUT ROWID;
+INSERT INTO total_unigram SELECT annee, mois, jour, SUM(n) FROM old.unigram GROUP BY annee, mois, jour;
+
+CREATE TABLE total_bigram (annee INTEGER, mois INTEGER, jour INTEGER, total INTEGER,
+    PRIMARY KEY (annee, mois, jour)) WITHOUT ROWID;
+INSERT INTO total_bigram SELECT annee, mois, jour, SUM(n) FROM old.bigram GROUP BY annee, mois, jour;
+
+CREATE TABLE total_trigram (annee INTEGER, mois INTEGER, jour INTEGER, total INTEGER,
+    PRIMARY KEY (annee, mois, jour)) WITHOUT ROWID;
+INSERT INTO total_trigram SELECT annee, mois, jour, SUM(n) FROM old.trigram GROUP BY annee, mois, jour;
+
+-- Tables filtrées (total global > 10), typées INTEGER
+CREATE TABLE unigram (w1 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
     PRIMARY KEY (w1, annee, mois, jour)) WITHOUT ROWID;
-INSERT INTO unigram_new
+INSERT INTO unigram
 SELECT w1, annee, mois, jour, n FROM (
-    SELECT *, SUM(n) OVER (PARTITION BY w1) AS tot FROM unigram
-) WHERE tot >= 2;
-DROP TABLE unigram;
-ALTER TABLE unigram_new RENAME TO unigram;
+    SELECT *, SUM(n) OVER (PARTITION BY w1) AS tot FROM old.unigram
+) WHERE tot > 10;
 
--- bigram
-CREATE TABLE bigram_new (w1 INTEGER, w2 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
+CREATE TABLE bigram (w1 INTEGER, w2 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
     PRIMARY KEY (w1, w2, annee, mois, jour)) WITHOUT ROWID;
-INSERT INTO bigram_new
+INSERT INTO bigram
 SELECT w1, w2, annee, mois, jour, n FROM (
-    SELECT *, SUM(n) OVER (PARTITION BY w1, w2) AS tot FROM bigram
-) WHERE tot >= 2;
-DROP TABLE bigram;
-ALTER TABLE bigram_new RENAME TO bigram;
+    SELECT *, SUM(n) OVER (PARTITION BY w1, w2) AS tot FROM old.bigram
+) WHERE tot > 10;
 
--- trigram
-CREATE TABLE trigram_new (w1 INTEGER, w2 INTEGER, w3 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
+CREATE TABLE trigram (w1 INTEGER, w2 INTEGER, w3 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
     PRIMARY KEY (w1, w2, w3, annee, mois, jour)) WITHOUT ROWID;
-INSERT INTO trigram_new
+INSERT INTO trigram
 SELECT w1, w2, w3, annee, mois, jour, n FROM (
-    SELECT *, SUM(n) OVER (PARTITION BY w1, w2, w3) AS tot FROM trigram
-) WHERE tot >= 2;
-DROP TABLE trigram;
-ALTER TABLE trigram_new RENAME TO trigram;
+    SELECT *, SUM(n) OVER (PARTITION BY w1, w2, w3) AS tot FROM old.trigram
+) WHERE tot > 10;
 
--- token : retire les mots devenus orphelins (plus référencés nulle part)
-DELETE FROM token WHERE id NOT IN (
+-- token : seulement les mots encore référencés dans les tables filtrées
+CREATE TABLE token (id INTEGER PRIMARY KEY, word TEXT UNIQUE);
+INSERT INTO token
+SELECT id, word FROM old.token WHERE id IN (
     SELECT w1 FROM unigram
     UNION SELECT w1 FROM bigram  UNION SELECT w2 FROM bigram
     UNION SELECT w1 FROM trigram UNION SELECT w2 FROM trigram UNION SELECT w3 FROM trigram
 );
-
-PRAGMA journal_mode = WAL;
-VACUUM;
