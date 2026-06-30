@@ -58,15 +58,45 @@ for chunk in reader:
 
 # staging -> final : SUM(n) agrège les jours répartis sur plusieurs chunks
 conn.executescript("""
-    CREATE TABLE unigram (w1, annee, mois, jour, n, PRIMARY KEY (w1, annee, mois, jour)) WITHOUT ROWID;
-    INSERT INTO unigram SELECT w1, annee, mois, jour, SUM(n) FROM unigram_staging GROUP BY w1, annee, mois, jour;
+    -- totaux journaliers AVANT filtrage (denominateur N_t des frequences relatives)
+    CREATE TABLE total_unigram (annee INTEGER, mois INTEGER, jour INTEGER, total INTEGER,
+        PRIMARY KEY (annee, mois, jour)) WITHOUT ROWID;
+    INSERT INTO total_unigram SELECT annee, mois, jour, SUM(n) FROM unigram_staging GROUP BY annee, mois, jour;
+    CREATE TABLE total_bigram (annee INTEGER, mois INTEGER, jour INTEGER, total INTEGER,
+        PRIMARY KEY (annee, mois, jour)) WITHOUT ROWID;
+    INSERT INTO total_bigram SELECT annee, mois, jour, SUM(n) FROM bigram_staging GROUP BY annee, mois, jour;
+    CREATE TABLE total_trigram (annee INTEGER, mois INTEGER, jour INTEGER, total INTEGER,
+        PRIMARY KEY (annee, mois, jour)) WITHOUT ROWID;
+    INSERT INTO total_trigram SELECT annee, mois, jour, SUM(n) FROM trigram_staging GROUP BY annee, mois, jour;
+
+    -- tables finales : agregees par jour, typees INTEGER, filtrees sur le total GLOBAL du ngram (> 10)
+    CREATE TABLE unigram (w1 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
+        PRIMARY KEY (w1, annee, mois, jour)) WITHOUT ROWID;
+    INSERT INTO unigram SELECT w1, annee, mois, jour, n FROM (
+        SELECT w1, annee, mois, jour, SUM(n) AS n, SUM(SUM(n)) OVER (PARTITION BY w1) AS tot
+        FROM unigram_staging GROUP BY w1, annee, mois, jour
+    ) WHERE tot > 10;
     DROP TABLE unigram_staging;
-    CREATE TABLE bigram (w1, w2, annee, mois, jour, n, PRIMARY KEY (w1, w2, annee, mois, jour)) WITHOUT ROWID;
-    INSERT INTO bigram SELECT w1, w2, annee, mois, jour, SUM(n) FROM bigram_staging GROUP BY w1, w2, annee, mois, jour;
+    CREATE TABLE bigram (w1 INTEGER, w2 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
+        PRIMARY KEY (w1, w2, annee, mois, jour)) WITHOUT ROWID;
+    INSERT INTO bigram SELECT w1, w2, annee, mois, jour, n FROM (
+        SELECT w1, w2, annee, mois, jour, SUM(n) AS n, SUM(SUM(n)) OVER (PARTITION BY w1, w2) AS tot
+        FROM bigram_staging GROUP BY w1, w2, annee, mois, jour
+    ) WHERE tot > 10;
     DROP TABLE bigram_staging;
-    CREATE TABLE trigram (w1, w2, w3, annee, mois, jour, n, PRIMARY KEY (w1, w2, w3, annee, mois, jour)) WITHOUT ROWID;
-    INSERT INTO trigram SELECT w1, w2, w3, annee, mois, jour, SUM(n) FROM trigram_staging GROUP BY w1, w2, w3, annee, mois, jour;
+    CREATE TABLE trigram (w1 INTEGER, w2 INTEGER, w3 INTEGER, annee INTEGER, mois INTEGER, jour INTEGER, n INTEGER,
+        PRIMARY KEY (w1, w2, w3, annee, mois, jour)) WITHOUT ROWID;
+    INSERT INTO trigram SELECT w1, w2, w3, annee, mois, jour, n FROM (
+        SELECT w1, w2, w3, annee, mois, jour, SUM(n) AS n, SUM(SUM(n)) OVER (PARTITION BY w1, w2, w3) AS tot
+        FROM trigram_staging GROUP BY w1, w2, w3, annee, mois, jour
+    ) WHERE tot > 10;
     DROP TABLE trigram_staging;
+    -- token : retire les mots devenus orphelins apres filtrage
+    DELETE FROM token WHERE id NOT IN (
+        SELECT w1 FROM unigram
+        UNION SELECT w1 FROM bigram  UNION SELECT w2 FROM bigram
+        UNION SELECT w1 FROM trigram UNION SELECT w2 FROM trigram UNION SELECT w3 FROM trigram
+    );
 """)
 conn.execute("PRAGMA journal_mode = WAL")
 conn.execute("VACUUM")
