@@ -23,7 +23,7 @@ SORTIE = RACINE / "exploration"
 
 # Sélection : pour chaque CSV d'un média absent du registre, 3 URLs réparties.
 cibles = {}
-for chemin in sorted(DATA_DIR.glob("*_url.csv")):
+for chemin in sorted((DATA_DIR/"urls").glob("*_url.csv")):
     media = chemin.stem.removesuffix("_url")
     if media in MEDIAS:
         continue

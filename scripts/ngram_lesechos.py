@@ -11,8 +11,10 @@ import pandas as pd
 
 conn = sqlite3.connect("/data/elias/stage-mids/data/corpus/lesechos_ngram.db")
 conn.executescript("""
+    PRAGMA page_size = 65536;       -- 64 ko/page : ~16x moins d'operations sur disque lent
     PRAGMA journal_mode = OFF;
     PRAGMA synchronous = OFF;
+    PRAGMA cache_size = -8000000;   -- ~8 Go de cache en RAM (negatif = ko)
     CREATE TABLE IF NOT EXISTS token (id INTEGER PRIMARY KEY, word TEXT UNIQUE);
     CREATE TABLE unigram_staging (w1, annee, mois, jour, n);
     CREATE TABLE bigram_staging  (w1, w2, annee, mois, jour, n);
