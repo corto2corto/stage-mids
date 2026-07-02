@@ -48,7 +48,6 @@
     border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
   }
   #mot { width: 260px; }
-  #marqueurs { width: 250px; }
   button { cursor: pointer; }
   button[type=submit] {
     font-weight: 600; padding: 7px 18px;
@@ -160,10 +159,6 @@
         <option value="13">± 6 périodes</option>
       </select>
     </div>
-    <div>
-      <label for="marqueurs">Événements à marquer (optionnel)</label>
-      <input id="marqueurs" placeholder="2015-11-12 Rachat ; 2018-05-03 Vente" autocomplete="off">
-    </div>
     <button type="submit">Tracer</button>
   </form>
 
@@ -185,7 +180,7 @@
   </div>
   <p class="note">Fréquence = occurrences ÷ nombre total de mots publiés sur la période, ×100 000 —
   donc comparable entre journaux et entre périodes. Un mot absent de la base donne une courbe à zéro.
-  L'adresse de la page se met à jour à chaque tracé : copie-la pour partager le graphique.</p>
+  L'adresse de la page se met à jour à chaque tracé&nbsp;: copie-la pour partager le graphique.</p>
 </section>
 
 <!-- ═══════════ TOP ═══════════ -->
@@ -350,7 +345,6 @@ const infobulle = document.getElementById("infobulle");
 let series = [];      // [{nom, couleur, points: Map(t -> {freq, lisse, n})}]
 let temps = [];       // dates (ms) présentes, triées
 let resolutionCourante = "mois";
-let marqueurs = [];   // [{t, libelle}]
 
 document.getElementById("formulaire").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -362,7 +356,6 @@ document.getElementById("formulaire").addEventListener("submit", async (e) => {
   const de = document.getElementById("de").value || "1991-01-01";
   const a = document.getElementById("a").value || "2024-12-31";
   const lissage = +document.getElementById("lissage").value;
-  marqueurs = parserMarqueurs(document.getElementById("marqueurs").value);
   document.getElementById("titre").textContent = "Fréquence dans " +
     listeCorpus.map(c => NOMS_CORPUS[c]).join(" et ");
   zone.classList.add("chargement");
@@ -379,8 +372,6 @@ document.getElementById("formulaire").addEventListener("submit", async (e) => {
     const partage = new URLSearchParams({ mot, corpus: corpusChoisi,
       resolution: resolutionCourante, de, a });
     if (lissage > 1) partage.set("lissage", lissage);
-    const texteMarqueurs = document.getElementById("marqueurs").value.trim();
-    if (texteMarqueurs) partage.set("marqueurs", texteMarqueurs);
     history.replaceState(null, "", "?" + partage);
   } catch (err) {
     afficherErreur(zone, err.message);
@@ -388,20 +379,6 @@ document.getElementById("formulaire").addEventListener("submit", async (e) => {
   }
   zone.classList.remove("chargement");
 });
-
-function parserMarqueurs(texte) {
-  const resultat = [];
-  for (const morceau of texte.split(";")) {
-    const m = morceau.trim().match(
-      /^(?:(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})\/(\d{1,2})\/(\d{4})|(\d{4}))\s*(.*)$/);
-    if (!m) continue;
-    const t = m[1] ? Date.UTC(+m[1], +m[2] - 1, +m[3])
-            : m[6] ? Date.UTC(+m[6], +m[5] - 1, +m[4])
-            : Date.UTC(+m[7], 0, 1);
-    resultat.push({ t, libelle: m[8] });
-  }
-  return resultat;
-}
 
 function preparer(blocs, lissage) {
   const parSerie = new Map();
@@ -496,16 +473,6 @@ function dessiner() {
   for (const tick of ticks.filter((_, i) => i % saut === 0))
     el("text", { x: x(tick.t), y: hauteur - 8, "text-anchor": "middle",
       fill: "var(--muted)", "font-size": 11.5 }).textContent = tick.libelle;
-
-  // marqueurs d'événements : trait vertical pointillé + libellé
-  for (const marqueur of marqueurs) {
-    if (marqueur.t < t0 || marqueur.t > t1) continue;
-    el("line", { x1: x(marqueur.t), x2: x(marqueur.t), y1: m.haut, y2: hauteur - m.bas,
-                 stroke: "var(--axis)", "stroke-width": 1, "stroke-dasharray": "4 3" });
-    if (marqueur.libelle)
-      el("text", { x: x(marqueur.t) + 4, y: m.haut + 6, fill: "var(--muted)",
-        "font-size": 11 }).textContent = marqueur.libelle;
-  }
 
   // courbes : 2px, jointures rondes ; trous (dates sans total) = trait interrompu,
   // et un point seul entre deux trous devient un petit cercle (sinon invisible)
@@ -793,10 +760,8 @@ function dessinerEvolution(donnees) {
 const paramsURL = new URLSearchParams(location.search);
 if (paramsURL.get("mot")) {
   document.getElementById("mot").value = paramsURL.get("mot");
-  for (const [param, id] of [["corpus", "corpus"], ["resolution", "resolution"],
-                             ["de", "de"], ["a", "a"], ["lissage", "lissage"],
-                             ["marqueurs", "marqueurs"]])
-    if (paramsURL.get(param)) document.getElementById(id).value = paramsURL.get(param);
+  for (const param of ["corpus", "resolution", "de", "a", "lissage"])
+    if (paramsURL.get(param)) document.getElementById(param).value = paramsURL.get(param);
   document.getElementById("formulaire").requestSubmit();
 }
 </script>
