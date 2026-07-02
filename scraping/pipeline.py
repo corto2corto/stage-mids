@@ -10,36 +10,34 @@ from concurrent.futures import ThreadPoolExecutor
 
 from scraping.batch import new_batch
 from scraping.config import TMP_FIREFOX
-from scraping.medias import MEDIAS
-from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
+from scraping.moteurs import fermer_session, ouvrir_session, scraper
+from scraping.navigateur import configurer_ublock
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
 from scraping.suivi import snapshot
 
 
-def ouvrir_multi_firefox(batch):
-    """Ouvre un Firefox par média (en parallèle). Retourne {media: driver}."""
-    medias = [m for m in batch if MEDIAS[m]["moteur"] == "firefox"]
-    with ThreadPoolExecutor(max_workers=len(medias)) as ex:
-        drivers = list(ex.map(lambda _: ouvrir_firefox(), medias))
-    return dict(zip(medias, drivers))
+def ouvrir_sessions(batch):
+    """Ouvre une session par média (en parallèle) selon son moteur. Retourne {media: session}."""
+    with ThreadPoolExecutor(max_workers=len(batch)) as ex:
+        return dict(zip(batch, ex.map(ouvrir_session, batch)))
 
 
-def scraper_batch(batch, navigateurs):
+def scraper_batch(batch, sessions):
     """Scrape toutes les URLs du batch en parallèle. Retourne {media: (id, url, html)}."""
     def scraper_url(media):
         id, url = batch[media]
         try:
-            html = scraper(navigateurs[media], url)
+            html = scraper(media, sessions[media], url)
         except Exception:
             html = None
         return media, (id, url, html)
 
-    with ThreadPoolExecutor(max_workers=len(navigateurs)) as ex:
-        return dict(ex.map(scraper_url, navigateurs))
+    with ThreadPoolExecutor(max_workers=len(sessions)) as ex:
+        return dict(ex.map(scraper_url, sessions))
 
 
-def traiter_vague(conn, batch, navigateurs):
-    actifs = {media: navigateurs[media] for media in batch if media in navigateurs}
+def traiter_vague(conn, batch, sessions):
+    actifs = {media: sessions[media] for media in batch if media in sessions}
     resultats = scraper_batch(batch, actifs)
 
     for media, (id, url, html) in resultats.items():
@@ -75,7 +73,7 @@ def main():
     conn = sqlite3.connect(DATA_DIR/"urls.db")
     # charger_nouvelles_urls(conn)  # désactivé : pas de nouveaux CSV pour l'instant
 
-    # Le premier batch fixe l'ensemble des médias à traiter, donc les navigateurs
+    # Le premier batch fixe l'ensemble des médias à traiter, donc les sessions
     # à ouvrir (aucun média ne peut en gagner en cours de route).
     batch = new_batch()
     if not batch:
@@ -83,8 +81,8 @@ def main():
         conn.close()
         return
 
-    print(f"Ouverture d'un Firefox pour : {', '.join(sorted(batch))}")
-    navigateurs = ouvrir_multi_firefox(batch)
+    print(f"Ouverture des sessions pour : {', '.join(sorted(batch))}")
+    sessions = ouvrir_sessions(batch)
 
     traitees = 0
     vague = 0
@@ -92,12 +90,12 @@ def main():
         while batch and time.time() - debut < (2*3600):
             vague += 1
             print(f"\n=== Vague {vague}  ({traitees} URLs traitées) ===")
-            traitees += traiter_vague(conn, batch, navigateurs)
+            traitees += traiter_vague(conn, batch, sessions)
             snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
             batch = new_batch()
     finally:
-        for driver in navigateurs.values():
-            driver.quit()
+        for media, session in sessions.items():
+            fermer_session(media, session)
         shutil.rmtree(TMP_FIREFOX, ignore_errors=True)   # profils temp de la session
         conn.close()
 

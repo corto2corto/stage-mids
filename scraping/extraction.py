@@ -94,15 +94,16 @@ def extraire(media, html):
     return infos
 
 
-def extraire_url(media, url):  
-    from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
+def extraire_url(media, url):
+    from scraping.moteurs import fermer_session, ouvrir_session, scraper
+    from scraping.navigateur import configurer_ublock
 
     configurer_ublock()
-    driver = ouvrir_firefox()
+    session = ouvrir_session(media)
     try:
-        return extraire(media, scraper(driver, url))
+        return extraire(media, scraper(media, session, url))
     finally:
-        driver.quit()
+        fermer_session(media, session)
 
 
 if __name__ == "__main__":

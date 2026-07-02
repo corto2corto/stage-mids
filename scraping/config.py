@@ -6,6 +6,7 @@ RACINE = Path("/data/elias/stage-mids")
 GECKODRIVER_PATH = RACINE / "extensions" / "geckodriver" / "geckodriver"
 TMP_FIREFOX = RACINE / "extensions" / "firefox" / "tmp"
 SOURCES_SITE = RACINE / "site" / "sources" / "suivi"
+IDENTIFIANTS = RACINE / "identifiants.json"   # comptes abonnés (moteur "log"), jamais versionné
 FIREFOX_BIN = "/home/ubuntu/.cache/selenium/firefox/linux64/151.0.2/firefox"
 
 MANAGED_DIR = Path.home() / ".mozilla" / "managed-storage"

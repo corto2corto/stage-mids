@@ -52,8 +52,10 @@ def ouvrir_firefox():
     return driver
 
 
-def scraper(driver, url, attente=6):
-    driver.delete_all_cookies()
+def scraper(driver, url, attente=6, garder_cookies=False):
+    # garder_cookies=True pour le moteur "log" : effacer les cookies déconnecterait le compte.
+    if not garder_cookies:
+        driver.delete_all_cookies()
     driver.get(url)
     time.sleep(attente)
     return driver.page_source
