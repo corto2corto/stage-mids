@@ -2,9 +2,10 @@
 # Route /query compatible avec le front React de Benoît (réponse CSV).
 # Lancement (serveur) : python -m api.app  puis  http://localhost:8501/query?mot=inflation&corpus=lesechos
 
+import os
 import re
 import sqlite3
-from flask import Flask, Response, request
+from flask import Flask, Response, request, send_file
 from flask_cors import CORS
 import pandas as pd
 
@@ -37,6 +38,11 @@ def serie(conn, tokens, date_min, date_max):
     return pd.read_sql_query(
         f"SELECT date, n FROM {TABLE[len(tokens)]} WHERE {conditions} AND date BETWEEN ? AND ?",
         conn, params=ids + [date_min, date_max])
+
+
+@app.route("/")
+def accueil():
+    return send_file(os.path.join(os.path.dirname(__file__), "index.html"))
 
 
 @app.route("/query")
