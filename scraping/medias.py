@@ -1,4 +1,15 @@
-"""Registre des médias et de leur méthode de scraping. Dès qu'on ajoute un média, il faut lui créé une entrée ici."""
+"""Registre des médias et de leur méthode de scraping. Dès qu'on ajoute un média, il faut lui créé une entrée ici.
+
+Champs par média :
+- moteur  : "firefox" (Selenium + bypass paywall), "log" (Firefox connecté à un
+            compte abonné, cf connexion.py) ou "basic" (simple requête HTTP,
+            sans navigateur, cf basic.py).
+- attente : secondes laissées à la page pour charger (moteurs Firefox
+            uniquement). ATTENTE_DEFAUT si absent.
+- meta    : stratégie d'extraction des métadonnées et du corps (cf extraction.py).
+"""
+
+ATTENTE_DEFAUT = 6
 
 MEDIAS = {
     "le_capital":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.articleBody"}},
@@ -16,5 +27,5 @@ MEDIAS = {
     "sud_ouest":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.full-content"}},
     "challenges":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_telegramme":         {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
-    "le_journal_du_dimanche": {"moteur": "firefox", "meta": {"strategie": "balises", "corps": "section.content-rte div.rte p, article.live-element-content div.rte p", "titre": "h1.main-title", "auteur": "a.author", "date": "time"}},
+    "le_journal_du_dimanche": {"moteur": "basic", "meta": {"strategie": "balises", "corps": "section.content-rte div.rte p, article.live-element-content div.rte p", "titre": "h1.main-title", "auteur": "a.author", "date": "time"}},
 }
