@@ -20,6 +20,16 @@ app = Flask(__name__)
 CORS(app)  # autorise un front hébergé ailleurs (Vercel) à appeler l'API
 
 
+def borne_date(texte, complement):
+    # "2020" -> 2020*10000+complement ; "2020-03" -> AAAAMM+jour ; "2020-03-14" -> 20200314
+    chiffres = re.sub(r"\D", "", texte)
+    if len(chiffres) == 8:
+        return int(chiffres)
+    if len(chiffres) == 6:
+        return int(chiffres) * 100 + (1 if complement == 101 else 31)
+    return int(chiffres) * 10000 + complement
+
+
 def tokeniser(gram):
     # même normalisation qu'à la construction des bases (scripts/ngram_*.py)
     gram = re.sub(r"(?<=[A-Z])\.", "", gram).lower().replace("’", "'")
@@ -50,8 +60,8 @@ def query():
     corpus = request.args.get("corpus", "lesechos")
     if corpus not in CORPUS:
         return f"corpus inconnu : {corpus} (choix : {', '.join(CORPUS)})", 400
-    date_min = int(request.args.get("from", 1900)) * 10000 + 101    # 1er janvier
-    date_max = int(request.args.get("to", 2100)) * 10000 + 1231     # 31 décembre
+    date_min = borne_date(request.args.get("from") or "1900", 101)   # défaut : 1er janvier
+    date_max = borne_date(request.args.get("to") or "2100", 1231)    # défaut : 31 décembre
     resolution = request.args.get("resolution", "mois")
 
     conn = sqlite3.connect(f"file:{CORPUS[corpus]}?mode=ro", uri=True)
@@ -81,6 +91,35 @@ def query():
         df = df.groupby(["gram", "annee", "mois"], as_index=False)[["n", "total"]].sum()
     else:  # jour
         df = df.drop(columns="date")
+    return Response(df.to_csv(index=False), mimetype="text/plain")
+
+
+@app.route("/top")
+def top():
+    # les ngrams les plus fréquents d'une période, lus dans <corpus>_top.db
+    # (précalculée par scripts/top_ngram.py — trop lourd à calculer à la volée)
+    corpus = request.args.get("corpus", "lesechos")
+    if corpus not in CORPUS:
+        return f"corpus inconnu : {corpus} (choix : {', '.join(CORPUS)})", 400
+    chemin = CORPUS[corpus].replace("_ngram.db", "_top.db")
+    if not os.path.exists(chemin):
+        return f"top pas encore construit pour {corpus} (scripts/top_ngram.py)", 400
+    taille = request.args.get("n", "1")
+    resolution = request.args.get("resolution", "annee")
+    if taille not in ("1", "2", "3") or resolution not in ("annee", "mois", "jour"):
+        return "paramètres invalides : n (1 à 3), resolution (annee|mois|jour)", 400
+    periode = re.sub(r"\D", "", request.args.get("periode", ""))
+    if not periode:
+        return "paramètre periode manquant (ex. 2022, 2022-03, 2022-03-14)", 400
+    k = min(int(request.args.get("k", 10)), 500)
+    filtre = "" if request.args.get("sans_stop", "1") == "0" else "AND stop = 0"
+
+    conn = sqlite3.connect(f"file:{chemin}?mode=ro", uri=True)
+    df = pd.read_sql_query(
+        f"SELECT gram, n FROM top WHERE ngram_n = ? AND resolution = ? AND periode = ? {filtre} "
+        "ORDER BY rang LIMIT ?",
+        conn, params=[int(taille), resolution, int(periode), k])
+    conn.close()
     return Response(df.to_csv(index=False), mimetype="text/plain")
 
 
