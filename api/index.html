@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ngram presse</title>
+<style>
+  :root {
+    --surface: #fcfcfb; --page: #f9f9f7;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --s1: #2a78d6; --s2: #1baf7a; --s3: #eda100; --s4: #008300;
+    --s5: #4a3aa7; --s6: #e34948; --s7: #e87ba4; --s8: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #1a1a19; --page: #0d0d0d;
+      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300;
+      --s5: #9085e9; --s6: #e66767; --s7: #d55181; --s8: #d95926;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px; max-width: 1060px; margin: 0 auto;
+  }
+  h1 { font-size: 22px; font-weight: 650; }
+  .sous-titre { color: var(--ink-2); margin: 2px 0 20px; }
+
+  form {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
+    margin-bottom: 16px;
+  }
+  label { display: block; font-size: 12.5px; color: var(--ink-2); margin-bottom: 3px; }
+  input, select, button {
+    font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
+  }
+  #mot { width: 320px; }
+  .annee-input { width: 84px; }
+  button {
+    font-weight: 600; cursor: pointer; padding: 7px 18px;
+    background: var(--s1); color: #fff; border-color: transparent;
+  }
+  button:hover { filter: brightness(1.08); }
+
+  .carte {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 18px 10px;
+  }
+  .carte h2 { font-size: 15px; font-weight: 600; }
+  .unite { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+  #legende { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 4px; font-size: 13.5px; color: var(--ink-2); }
+  #legende .cle { display: inline-flex; align-items: center; gap: 7px; }
+  #legende .trait { width: 16px; height: 0; border-top: 3px solid; border-radius: 2px; }
+
+  #zone { position: relative; }
+  #zone.chargement svg { opacity: 0.45; }
+  svg { display: block; width: 100%; }
+  .message { color: var(--ink-2); padding: 36px 8px; text-align: center; }
+  .erreur { color: #d03b3b; }
+
+  #infobulle {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12); padding: 8px 11px; font-size: 13px;
+    min-width: 150px; z-index: 2;
+  }
+  #infobulle .date { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  #infobulle .ligne { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+  #infobulle .trait { width: 12px; border-top: 3px solid; border-radius: 2px; flex: none; }
+  #infobulle .val { font-weight: 650; font-variant-numeric: tabular-nums; }
+  #infobulle .nom { color: var(--ink-2); }
+
+  details { margin-top: 14px; }
+  summary { cursor: pointer; color: var(--ink-2); font-size: 13.5px; }
+  table { border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  th, td { padding: 4px 14px 4px 0; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; border-bottom: 1px solid var(--grid); }
+  .note { color: var(--muted); font-size: 12.5px; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<h1>Ngram presse</h1>
+<p class="sous-titre">Fréquence d'un mot ou d'une expression (1 à 3 mots) dans les archives, à la manière de Gallicagram.</p>
+
+<form id="formulaire">
+  <div>
+    <label for="mot">Mots (séparés par des virgules)</label>
+    <input id="mot" value="inflation" placeholder="inflation, pouvoir d'achat" autocomplete="off">
+  </div>
+  <div>
+    <label for="corpus">Journal</label>
+    <select id="corpus">
+      <option value="lesechos">Les Échos</option>
+      <option value="lefigaro">Le Figaro</option>
+    </select>
+  </div>
+  <div>
+    <label for="resolution">Résolution</label>
+    <select id="resolution">
+      <option value="annee">Année</option>
+      <option value="mois" selected>Mois</option>
+      <option value="jour">Jour</option>
+    </select>
+  </div>
+  <div>
+    <label for="de">De</label>
+    <input id="de" class="annee-input" type="number" value="1991">
+  </div>
+  <div>
+    <label for="a">À</label>
+    <input id="a" class="annee-input" type="number" value="2024">
+  </div>
+  <button type="submit">Tracer</button>
+</form>
+
+<div class="carte">
+  <h2 id="titre">Fréquence dans Les Échos</h2>
+  <div class="unite">occurrences pour 100 000 mots publiés</div>
+  <div id="legende"></div>
+  <div id="zone">
+    <div class="message">Tape un mot puis « Tracer ».</div>
+    <div id="infobulle"></div>
+  </div>
+  <details id="bloc-tableau" hidden>
+    <summary>Voir les données</summary>
+    <div style="overflow-x:auto"><table id="tableau"></table></div>
+  </details>
+</div>
+
+<p class="note">Fréquence = occurrences ÷ nombre total de mots publiés sur la période, ×100 000.
+Un mot absent de la base donne une courbe à zéro.</p>
+
+<script>
+"use strict";
+const COULEURS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"]
+  .map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+const NOMS_CORPUS = { lesechos: "Les Échos", lefigaro: "Le Figaro" };
+const MOIS_COURTS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+const zone = document.getElementById("zone");
+const infobulle = document.getElementById("infobulle");
+let series = [];      // [{nom, couleur, points: Map(temps -> {freq, n})}]
+let temps = [];       // liste triée des dates (ms) communes au graphique
+let resolutionCourante = "mois";
+
+document.getElementById("formulaire").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const mot = document.getElementById("mot").value.trim();
+  if (!mot) return;
+  const corpus = document.getElementById("corpus").value;
+  resolutionCourante = document.getElementById("resolution").value;
+  const params = new URLSearchParams({
+    mot, corpus, resolution: resolutionCourante,
+    from: document.getElementById("de").value, to: document.getElementById("a").value,
+  });
+  document.getElementById("titre").textContent = "Fréquence dans " + NOMS_CORPUS[corpus];
+  zone.classList.add("chargement");
+  try {
+    const reponse = await fetch("/query?" + params);
+    const texte = await reponse.text();
+    if (!reponse.ok) throw new Error(texte);
+    preparer(texte);
+    dessiner();
+    remplirTableau();
+  } catch (err) {
+    zone.innerHTML = '<div class="message erreur"></div>';
+    zone.querySelector(".message").textContent = "Erreur : " + err.message;
+    zone.appendChild(infobulle);
+  }
+  zone.classList.remove("chargement");
+});
+
+function preparer(csv) {
+  const lignes = csv.trim().split("\n");
+  const entetes = lignes[0].split(",");
+  const idx = Object.fromEntries(entetes.map((nom, i) => [nom, i]));
+  const parSerie = new Map();
+  const lesTemps = new Set();
+  for (const ligne of lignes.slice(1)) {
+    const c = ligne.split(",");
+    const gram = c[idx.gram];
+    const t = Date.UTC(+c[idx.annee], (idx.mois !== undefined ? +c[idx.mois] : 1) - 1,
+                       idx.jour !== undefined ? +c[idx.jour] : 1);
+    const n = +c[idx.n], total = +c[idx.total];
+    if (!parSerie.has(gram)) parSerie.set(gram, new Map());
+    if (total > 0) parSerie.get(gram).set(t, { freq: n / total * 1e5, n });
+    lesTemps.add(t);
+  }
+  temps = [...lesTemps].sort((a, b) => a - b);
+  series = [...parSerie.entries()].map(([nom, points], i) =>
+    ({ nom, couleur: COULEURS[i % 8], points }));
+}
+
+function formaterDate(t) {
+  const d = new Date(t);
+  if (resolutionCourante === "annee") return String(d.getUTCFullYear());
+  if (resolutionCourante === "mois") return MOIS_COURTS[d.getUTCMonth()] + " " + d.getUTCFullYear();
+  return d.getUTCDate() + " " + MOIS_COURTS[d.getUTCMonth()] + " " + d.getUTCFullYear();
+}
+const formaterFreq = (v) => v.toLocaleString("fr-FR", { maximumSignificantDigits: 3 });
+
+function dessiner() {
+  const largeur = zone.clientWidth || 900, hauteur = 340;
+  const m = { haut: 12, droite: 16, bas: 26, gauche: 46 };
+  const maxFreq = Math.max(1e-9, ...series.flatMap(s => [...s.points.values()].map(p => p.freq)));
+  const [t0, t1] = [temps[0], temps[temps.length - 1] + 1];
+  const x = t => m.gauche + (t - t0) / (t1 - t0) * (largeur - m.gauche - m.droite);
+  const y = v => hauteur - m.bas - v / (maxFreq * 1.06) * (hauteur - m.haut - m.bas);
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${largeur} ${hauteur}`);
+  const el = (nom, attrs, parent = svg) => {
+    const e = document.createElementNS(svgNS, nom);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    parent.appendChild(e); return e;
+  };
+
+  // grille horizontale + graduations y (nombres ronds)
+  const pas = pasArrondi(maxFreq / 4);
+  for (let v = 0; v <= maxFreq * 1.001; v += pas) {
+    el("line", { x1: m.gauche, x2: largeur - m.droite, y1: y(v), y2: y(v),
+                 stroke: v === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 });
+    if (v > 0) el("text", { x: m.gauche - 8, y: y(v) + 4, "text-anchor": "end",
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = formaterFreq(v);
+  }
+  // graduations x : années (espacées pour rester lisibles)
+  const annees = [...new Set(temps.map(t => new Date(t).getUTCFullYear()))];
+  const saut = Math.ceil(annees.length / Math.max(2, Math.floor(largeur / 90)));
+  for (const an of annees.filter((_, i) => i % saut === 0))
+    el("text", { x: x(Date.UTC(an, 0, 1)), y: hauteur - 8, "text-anchor": "middle",
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = an;
+
+  // courbes : 2px, jointures rondes ; trous (dates sans total) = trait interrompu,
+  // et un point seul entre deux trous devient un petit cercle (sinon invisible)
+  for (const s of series) {
+    const segments = [[]];
+    for (const t of temps) {
+      const p = s.points.get(t);
+      if (p) segments[segments.length - 1].push([x(t), y(p.freq)]);
+      else if (segments[segments.length - 1].length) segments.push([]);
+    }
+    for (const seg of segments) {
+      if (seg.length === 1)
+        el("circle", { cx: seg[0][0], cy: seg[0][1], r: 3, fill: s.couleur });
+      else if (seg.length > 1)
+        el("path", { d: "M" + seg.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join("L"),
+                     fill: "none", stroke: s.couleur, "stroke-width": 2,
+                     "stroke-linejoin": "round", "stroke-linecap": "round" });
+    }
+  }
+
+  // couche survol : hairline + points + infobulle
+  const curseur = el("g", { visibility: "hidden" });
+  el("line", { y1: m.haut, y2: hauteur - m.bas, stroke: "var(--axis)", "stroke-width": 1 },
+     curseur).classList.add("hairline");
+  for (const s of series)
+    el("circle", { r: 4.5, fill: s.couleur, stroke: "var(--surface)", "stroke-width": 2 }, curseur);
+
+  svg.addEventListener("pointermove", (ev) => {
+    const boite = svg.getBoundingClientRect();
+    const tCible = t0 + (ev.clientX - boite.left) / boite.width * (t1 - t0);
+    const t = temps.reduce((a, b) => Math.abs(b - tCible) < Math.abs(a - tCible) ? b : a);
+    curseur.setAttribute("visibility", "visible");
+    const ligne = curseur.querySelector("line");
+    ligne.setAttribute("x1", x(t)); ligne.setAttribute("x2", x(t));
+    infobulle.style.display = "block";
+    infobulle.replaceChildren();
+    const date = document.createElement("div");
+    date.className = "date"; date.textContent = formaterDate(t);
+    infobulle.appendChild(date);
+    curseur.querySelectorAll("circle").forEach((cercle, i) => {
+      const p = series[i].points.get(t);
+      cercle.setAttribute("visibility", p ? "visible" : "hidden");
+      if (p) { cercle.setAttribute("cx", x(t)); cercle.setAttribute("cy", y(p.freq)); }
+      const rangee = document.createElement("div");
+      rangee.className = "ligne";
+      const trait = document.createElement("span");
+      trait.className = "trait"; trait.style.borderColor = series[i].couleur;
+      const val = document.createElement("span");
+      val.className = "val";
+      val.textContent = p ? formaterFreq(p.freq) : "—";
+      const nom = document.createElement("span");
+      nom.className = "nom"; nom.textContent = series[i].nom;
+      rangee.append(trait, val, nom);
+      infobulle.appendChild(rangee);
+    });
+    const xPix = (x(t) / largeur) * boite.width;
+    infobulle.style.left = Math.min(xPix + 14, boite.width - infobulle.offsetWidth - 4) + "px";
+    infobulle.style.top = Math.min((ev.clientY - boite.top) + 14, boite.height - infobulle.offsetHeight - 4) + "px";
+  });
+  svg.addEventListener("pointerleave", () => {
+    curseur.setAttribute("visibility", "hidden");
+    infobulle.style.display = "none";
+  });
+
+  zone.replaceChildren(svg, infobulle);
+
+  // légende (seulement à partir de 2 séries : une seule, le titre suffit)
+  const legende = document.getElementById("legende");
+  legende.replaceChildren();
+  if (series.length >= 2)
+    for (const s of series) {
+      const cle = document.createElement("span");
+      cle.className = "cle";
+      const trait = document.createElement("span");
+      trait.className = "trait"; trait.style.borderColor = s.couleur;
+      const nom = document.createElement("span");
+      nom.textContent = s.nom;
+      cle.append(trait, nom);
+      legende.appendChild(cle);
+    }
+}
+
+function pasArrondi(brut) {  // 1, 2 ou 5 × puissance de 10
+  const p = Math.pow(10, Math.floor(Math.log10(brut)));
+  return [1, 2, 5, 10].map(k => k * p).find(v => v >= brut);
+}
+
+function remplirTableau() {
+  const tableau = document.getElementById("tableau");
+  tableau.replaceChildren();
+  const tr = document.createElement("tr");
+  for (const titre of ["Date", ...series.flatMap(s => [s.nom + " (n)", "pour 100 000"])]) {
+    const th = document.createElement("th");
+    th.textContent = titre; tr.appendChild(th);
+  }
+  tableau.appendChild(tr);
+  for (const t of temps) {
+    const rangee = document.createElement("tr");
+    const date = document.createElement("td");
+    date.textContent = formaterDate(t); rangee.appendChild(date);
+    for (const s of series) {
+      const p = s.points.get(t);
+      for (const v of [p ? String(p.n) : "—", p ? formaterFreq(p.freq) : "—"]) {
+        const td = document.createElement("td");
+        td.textContent = v; rangee.appendChild(td);
+      }
+    }
+    tableau.appendChild(rangee);
+  }
+  document.getElementById("bloc-tableau").hidden = false;
+}
+
+window.addEventListener("resize", () => { if (series.length) dessiner(); });
+</script>
+</body>
+</html>
