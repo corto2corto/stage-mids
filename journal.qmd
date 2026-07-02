@@ -462,3 +462,27 @@ Mise en place d'un site de suivi du scraping avec **Evidence.dev** (dossier `sit
 Hébergé sur **GitHub Pages** en mode *GitHub Actions* (build automatique à chaque push sur `main`, plus de branche `gh-pages`). Les données viennent de deux CSV versionnés dans `site/sources/suivi/` : `suivi_journal.csv` (copié depuis `data/`) et `avancement.csv` (généré par `exporter_avancement()` depuis `urls.db`). Un **cron quotidien** (`scripts/maj_csv_suivi.sh`, 4h) rafraîchit ces CSV et pousse sur `main` → le site se reconstruit seul.
 
 Site : <https://corto2corto.github.io/stage-mids/>
+
+## Bases de données n-grammes
+
+Une fois un corpus scrapé, on veut pouvoir suivre l'évolution de l'usage des mots dans le temps (livrable de la Phase 1, avant les modèles de rupture). Pour chaque journal, on construit donc une base de comptage n-grammes (uni/bi/trigrammes) par jour, à partir de son corpus d'articles.
+
+### Tokenisation
+
+Avant de compter, chaque article est découpé en phrases, pour qu'un bigramme ou un trigramme ne chevauche jamais deux phrases. On fait attention à ne pas couper les abréviations comme « M. » ou « U.S.A. » — un vrai point final après un mot d'une seule lettre majuscule reste un cas limite, accepté tel quel.
+
+### Structure
+
+Chaque journal a sa propre base : un comptage des uni/bi/trigrammes par jour, accompagné du total de mots du jour pour pouvoir calculer des fréquences relatives. Un filtre écarte les n-grammes trop rares (vus moins de 10 fois sur tout le corpus), pour garder des bases plus légères.
+
+### Résultat (2026-07-02)
+
+| Base | Taille | Couverture |
+|---|---|---|
+| Le Figaro | 11 Go | 2004-12-17 → 2024-03-01 |
+| Les Échos | 8,3 Go | 1991-01-02 → 2024-10-20 |
+| Le Monde | 30 Go | reconstruction en cours |
+
+### Étape suivante
+- Terminer la reconstruction de la base Le Monde
+- Normalisation : famille de mots via Spacy (lemmatisation/REN), garder les 50K unigrammes les plus intéressants 
