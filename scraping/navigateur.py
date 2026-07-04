@@ -42,6 +42,9 @@ def ouvrir_firefox():
     # Si l'installation des extensions échoue, on ferme le Firefox déjà lancé
     # pour ne pas laisser de processus orphelin.
     try:
+        # Au-delà, driver.get lève TimeoutException au lieu d'attendre le
+        # défaut de 300 s (une page lente bloquerait toute la vague).
+        driver.set_page_load_timeout(60)
         extensions_dir = RACINE / "extensions" / "firefox"
         for xpi in extensions_dir.glob("*.xpi"):
             driver.install_addon(str(xpi), temporary=True)
