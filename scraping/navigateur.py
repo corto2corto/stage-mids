@@ -12,9 +12,28 @@ import time
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.remote_connection import FirefoxRemoteConnection
 from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.remote.client_config import ClientConfig
 
 from scraping.config import (RACINE, GECKODRIVER_PATH, FIREFOX_BIN, MANAGED_DIR, ADMIN_SETTINGS, TMP_FIREFOX)
+
+# Selenium fixe en dur 120 s de délai HTTP vers geckodriver — trop court pour
+# OUVRIR 16 Firefox en parallèle quand le disque est chargé : tous dépassent le
+# délai (ReadTimeoutError) et le cycle tourne avec une poignée de navigateurs.
+# On ouvre donc avec un délai large, puis ouvrir_firefox() revient au délai
+# standard : un navigateur gelé en cours de run ne doit pas bloquer 10 min.
+DELAI_OUVERTURE = 600
+DELAI_SCRAPING = 120
+
+_init_firefox_connection = FirefoxRemoteConnection.__init__
+
+def _init_patient(self, remote_server_addr, keep_alive=True, ignore_proxy=False, client_config=None):
+    client_config = client_config or ClientConfig(
+        remote_server_addr=remote_server_addr, keep_alive=keep_alive, timeout=DELAI_OUVERTURE)
+    _init_firefox_connection(self, remote_server_addr, keep_alive, ignore_proxy, client_config)
+
+FirefoxRemoteConnection.__init__ = _init_patient
 
 
 def configurer_ublock():
@@ -55,6 +74,8 @@ def ouvrir_firefox():
     except Exception:
         driver.quit()
         raise
+    # Navigateur prêt : retour au délai standard pour les commandes de scraping.
+    driver.command_executor._client_config.timeout = DELAI_SCRAPING
     return driver
 
 
