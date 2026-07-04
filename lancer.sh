@@ -30,6 +30,7 @@ while true; do
     # Filet de sécurité : le pipeline s'arrête seul à 2h ; s'il gèle (appel
     # Selenium sans réponse), timeout le tue à 2h30 et le cycle repart.
     timeout -k 30 150m python -m scraping.pipeline
+    rc=$?   # à relever avant l'echo : le $(date) écraserait $?
 
-    echo "[$(date '+%F %T')] Pipeline terminé (code $?), nettoyage puis relance."
+    echo "[$(date '+%F %T')] Pipeline terminé (code $rc), nettoyage puis relance."
 done
