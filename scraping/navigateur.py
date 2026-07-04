@@ -37,6 +37,9 @@ def ouvrir_firefox():
     options.add_argument("--headless")
     options.binary_location = FIREFOX_BIN
     options.set_preference("permissions.default.image", 2)
+    # Pas de cache retour : Firefox garde sinon en RAM les dernières pages de
+    # l'onglet (y compris celle qu'on vient de remplacer par about:blank).
+    options.set_preference("browser.sessionhistory.max_total_viewers", 0)
     driver = webdriver.Firefox(options=options, service=Service(str(GECKODRIVER_PATH)))
 
     # Si l'installation des extensions échoue, on ferme le Firefox déjà lancé
@@ -59,7 +62,15 @@ def scraper(driver, url, attente=6):
     driver.delete_all_cookies()
     driver.get(url)
     time.sleep(attente)
-    return driver.page_source
+    html = driver.page_source
+    # Décharge la page une fois le HTML en main : sinon son JS (pubs, players
+    # vidéo) tourne en continu entre deux vagues et fait gonfler le processus
+    # (vu à 6,5 Go / 67 % CPU sur challenges.fr après 1h30 de cycle).
+    try:
+        driver.get("about:blank")
+    except Exception:
+        pass   # navigateur en vrac : l'échec se verra à la vague suivante
+    return html
 
 
 # Test : Scrape un batch et affiche la fin de chaque article
