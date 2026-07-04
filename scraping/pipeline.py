@@ -19,11 +19,21 @@ from scraping.suivi import snapshot
 
 
 def ouvrir_multi_firefox(batch):
-    """Ouvre un Firefox par média (en parallèle). Retourne {media: driver}."""
+    """Ouvre un Firefox par média (en parallèle). Retourne {media: driver}.
+
+    Un navigateur qui échoue à l'ouverture est signalé puis ignoré : ses URLs
+    restent à etat=0 et seront reprises au cycle suivant de lancer.sh."""
+    def ouvrir(media):
+        try:
+            return media, ouvrir_firefox()
+        except Exception as e:
+            print(f"  {media} : échec d'ouverture du navigateur ({type(e).__name__})")
+            return media, None
+
     medias = [m for m in batch if MEDIAS[m]["moteur"] == "firefox"]
     with ThreadPoolExecutor(max_workers=len(medias)) as ex:
-        drivers = list(ex.map(lambda _: ouvrir_firefox(), medias))
-    return dict(zip(medias, drivers))
+        resultats = dict(ex.map(ouvrir, medias))
+    return {media: driver for media, driver in resultats.items() if driver}
 
 
 def scraper_batch(batch, navigateurs):
@@ -95,6 +105,12 @@ def main():
 
     print(f"Ouverture d'un Firefox pour : {', '.join(sorted(batch))}")
     navigateurs = ouvrir_multi_firefox(batch)
+    if not navigateurs:
+        print("Aucun navigateur n'a pu démarrer — fin du run.")
+        conn.close()
+        return
+    # On ne garde que les médias dont le navigateur a démarré.
+    batch = {media: iu for media, iu in batch.items() if media in navigateurs}
 
     traitees = 0
     vague = 0
@@ -118,7 +134,8 @@ def main():
                 break
 
             snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
-            batch = new_batch()
+            batch = {media: iu for media, iu in new_batch().items()
+                     if media in navigateurs}
     finally:
         for driver in navigateurs.values():
             try:
