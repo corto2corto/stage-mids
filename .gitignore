@@ -80,3 +80,7 @@ extensions/chrome-linux-profile
 !site/package-lock.json
 # Le .gitignore interne de site/ (fourni par Evidence) ignore déjà
 # node_modules/, build/, .svelte-kit/, static/data/, etc.
+
+# Claude Code — fichiers locaux/session
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
