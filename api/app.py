@@ -12,7 +12,7 @@ import pandas as pd
 CORPUS = {
     "lesechos": "/data/elias/stage-mids/data/corpus/lesechos_ngram.db",
     "lefigaro": "/data/elias/stage-mids/data/corpus/lefigaro_ngram.db",
-    # "lemonde": en reconstruction, à réactiver quand le build est fini
+    "lemonde": "/data/elias/stage-mids/data/corpus/lemonde_ngram.db",
 }
 TABLE = {1: "unigram", 2: "bigram", 3: "trigram"}
 

@@ -131,7 +131,8 @@
       <select id="corpus">
         <option value="lesechos">Les Échos</option>
         <option value="lefigaro">Le Figaro</option>
-        <option value="tous">Les deux (comparer)</option>
+        <option value="lemonde">Le Monde</option>
+        <option value="tous">Tous (comparer)</option>
       </select>
     </div>
     <div>
@@ -144,11 +145,11 @@
     </div>
     <div>
       <label for="de">Du</label>
-      <input id="de" type="date" value="1991-01-01" min="1991-01-01" max="2024-12-31">
+      <input id="de" type="date" value="1944-12-19" min="1944-12-19" max="2025-12-31">
     </div>
     <div>
       <label for="a">Au</label>
-      <input id="a" type="date" value="2024-12-31" min="1991-01-01" max="2024-12-31">
+      <input id="a" type="date" value="2025-12-31" min="1944-12-19" max="2025-12-31">
     </div>
     <div>
       <label for="lissage">Lissage</label>
@@ -199,6 +200,7 @@
       <select id="top-corpus">
         <option value="lesechos">Les Échos</option>
         <option value="lefigaro">Le Figaro</option>
+        <option value="lemonde">Le Monde</option>
       </select>
     </div>
     <div>
@@ -211,9 +213,9 @@
     </div>
     <div>
       <label for="periode-annee">Laquelle</label>
-      <input id="periode-annee" type="number" value="2022" min="1991" max="2024" style="width:84px">
-      <input id="periode-mois" type="month" value="2022-03" min="1991-01" max="2024-12" hidden>
-      <input id="periode-jour" type="date" value="2022-03-14" min="1991-01-01" max="2024-12-31" hidden>
+      <input id="periode-annee" type="number" value="2022" min="1944" max="2025" style="width:84px">
+      <input id="periode-mois" type="month" value="2022-03" min="1944-12" max="2025-12" hidden>
+      <input id="periode-jour" type="date" value="2022-03-14" min="1944-12-19" max="2025-12-31" hidden>
     </div>
     <div>
       <label for="top-k">Combien</label>
@@ -253,6 +255,7 @@
       <select id="evo-corpus">
         <option value="lesechos">Les Échos</option>
         <option value="lefigaro">Le Figaro</option>
+        <option value="lemonde">Le Monde</option>
       </select>
     </div>
     <div>
@@ -265,15 +268,15 @@
     </div>
     <div>
       <label for="avant-annee">Avant</label>
-      <input id="avant-annee" type="number" value="2018" min="1991" max="2024" style="width:84px">
-      <input id="avant-mois" type="month" value="2018-01" min="1991-01" max="2024-12" hidden>
-      <input id="avant-jour" type="date" value="2018-01-15" min="1991-01-01" max="2024-12-31" hidden>
+      <input id="avant-annee" type="number" value="2018" min="1944" max="2025" style="width:84px">
+      <input id="avant-mois" type="month" value="2018-01" min="1944-12" max="2025-12" hidden>
+      <input id="avant-jour" type="date" value="2018-01-15" min="1944-12-19" max="2025-12-31" hidden>
     </div>
     <div>
       <label for="apres-annee">Après</label>
-      <input id="apres-annee" type="number" value="2023" min="1991" max="2024" style="width:84px">
-      <input id="apres-mois" type="month" value="2023-01" min="1991-01" max="2024-12" hidden>
-      <input id="apres-jour" type="date" value="2023-01-15" min="1991-01-01" max="2024-12-31" hidden>
+      <input id="apres-annee" type="number" value="2023" min="1944" max="2025" style="width:84px">
+      <input id="apres-mois" type="month" value="2023-01" min="1944-12" max="2025-12" hidden>
+      <input id="apres-jour" type="date" value="2023-01-15" min="1944-12-19" max="2025-12-31" hidden>
     </div>
     <div>
       <label for="evo-k">Combien</label>
@@ -299,7 +302,7 @@
 "use strict";
 const COULEURS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"]
   .map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim());
-const NOMS_CORPUS = { lesechos: "Les Échos", lefigaro: "Le Figaro" };
+const NOMS_CORPUS = { lesechos: "Les Échos", lefigaro: "Le Figaro", lemonde: "Le Monde" };
 const MOIS_COURTS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
 const formaterNombre = (v, chiffres = 3) =>
   v.toLocaleString("fr-FR", { maximumSignificantDigits: chiffres });
@@ -353,8 +356,8 @@ document.getElementById("formulaire").addEventListener("submit", async (e) => {
   const corpusChoisi = document.getElementById("corpus").value;
   const listeCorpus = corpusChoisi === "tous" ? Object.keys(NOMS_CORPUS) : [corpusChoisi];
   resolutionCourante = document.getElementById("resolution").value;
-  const de = document.getElementById("de").value || "1991-01-01";
-  const a = document.getElementById("a").value || "2024-12-31";
+  const de = document.getElementById("de").value || "1944-12-19";
+  const a = document.getElementById("a").value || "2025-12-31";
   const lissage = +document.getElementById("lissage").value;
   document.getElementById("titre").textContent = "Fréquence dans " +
     listeCorpus.map(c => NOMS_CORPUS[c]).join(" et ");
