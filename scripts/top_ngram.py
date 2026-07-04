@@ -9,8 +9,14 @@ import sqlite3
 import sys
 import time
 
+# Les tris des window functions génèrent des dizaines de Go de temporaires : les
+# forcer sur /data (5 To) et surtout PAS sur / (root, 20 Go, déborde -> "disk is full").
+# On couvre les deux chemins que SQLite peut emprunter : SQLITE_TMPDIR et TMPDIR.
+TMP = "/data/elias/stage-mids/data/sqlite_tmp"
 if os.path.isdir("/data/elias/stage-mids/data"):
-    os.environ["SQLITE_TMPDIR"] = "/data/elias/stage-mids/data"  # gros temp, pas /tmp
+    os.makedirs(TMP, exist_ok=True)
+    os.environ["SQLITE_TMPDIR"] = TMP
+    os.environ["TMPDIR"] = TMP
 
 corpus = sys.argv[1]
 dossier = sys.argv[2] if len(sys.argv) > 2 else "/data/elias/stage-mids/data/corpus"
@@ -42,6 +48,8 @@ conn = sqlite3.connect(f"file:{dossier}/{corpus}_top.db", uri=True)
 conn.executescript(f"""
     PRAGMA journal_mode = OFF;
     PRAGMA synchronous = OFF;
+    PRAGMA temp_store = 1;                       -- temp sur FICHIER (pas en RAM : trop gros)
+    PRAGMA temp_store_directory = '{TMP}';       -- ces fichiers vont sur /data, pas sur /
     PRAGMA cache_size = -4000000;   -- ~4 Go de cache en RAM
     ATTACH DATABASE 'file:{dossier}/{corpus}_ngram.db?mode=ro' AS ng;
     DROP TABLE IF EXISTS top;
