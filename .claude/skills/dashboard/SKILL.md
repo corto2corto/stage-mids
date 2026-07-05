@@ -11,7 +11,7 @@ Met à jour le dashboard de suivi et arme (ou ré-arme) sa boucle de rafraîchis
 
 - **Artifact dashboard** : `https://claude.ai/code/artifact/42437963-1ba0-47af-9c84-55fc80c2b424`
 - **HTML source** : `dashboard-stage-mids.html` dans le scratchpad de la session courante.
-- **Source de données** : `/data/elias/stage-mids/statut_serveur.txt` sur gallica (collecté par la session tmux `statut`, toutes les 20 min).
+- **Source de données** : `/data/elias/stage-mids/data/statut_serveur.txt` sur gallica (collecté par la session tmux `statut`, toutes les 20 min).
 - Le serveur est en **UTC** → toujours convertir en **heure de Paris** (+2 en été) pour l'affichage.
 
 ## Ligne éditoriale (demandée par Corto)
@@ -30,7 +30,7 @@ Le HTML n'est pas forcément dans le scratchpad de CETTE session (il a pu être 
 
 ## Étape 1 — Mise à jour immédiate
 
-1. Récupérer l'état frais : `ssh gallica "cat /data/elias/stage-mids/statut_serveur.txt"`.
+1. Récupérer l'état frais : `ssh gallica "cat /data/elias/stage-mids/data/statut_serveur.txt"`.
 2. Lire l'horodatage sur la ligne sous `=== date ===` (ne JAMAIS l'inventer), le convertir en heure de Paris.
 3. Éditer `dashboard-stage-mids.html` — n'éditer QUE les valeurs qui ont changé, ne pas réécrire tout le HTML :
    - ligne « Mise à jour : ... » (heure de Paris)
@@ -39,7 +39,7 @@ Le HTML n'est pas forcément dans le scratchpad de CETTE session (il a pu être 
    - cartes « Runs sur le serveur » (croiser `=== tmux ===` + `=== process python ===` + les panes capturés)
    - tableau « Bases de données » (tailles + dernières écritures depuis `=== bases ===`)
    - barre disque `/data` (depuis `=== disque /data ===`)
-   - section « Tâches en attente » : ne PAS y toucher lors des rafraîchissements — elle est gérée par le skill /task, source `taches.md` à la racine du dépôt. Si elle a disparu du HTML (écrasée par une vieille copie), la reconstruire depuis taches.md sur le modèle décrit dans le skill /task.
+   - section « Tâches en attente » : ne PAS y toucher lors des rafraîchissements — elle est gérée par le skill /task, source `.claude/taches.md`. Si elle a disparu du HTML (écrasée par une vieille copie), la reconstruire depuis taches.md sur le modèle décrit dans le skill /task.
 4. Redéployer : appeler l'outil `Artifact` avec `file_path` = le HTML, `favicon` "📊", `url` = l'artifact fixe ci-dessus.
 
 ## Étape 2 — Armer la boucle (gestion du conflit de crons)
@@ -48,7 +48,7 @@ Une seule boucle doit tourner à la fois : le dernier `/dashboard` lancé gagne.
 
 1. `CronList` pour lister les crons de session.
 2. **Supprimer tout cron de MAJ dashboard existant** (n'importe quel cron dont le prompt met à jour cet artifact — le mien d'un lancement précédent, ou d'une session antérieure encore vivante). Utiliser `CronDelete` sur chacun.
-3. Créer **un seul** cron neuf, `12,32,52 * * * *` (juste après les collectes serveur à :07/:27/:47), dont le prompt refait l'Étape 1 (collecte → édition ciblée → redéploiement via `url`). Rappeler dans le prompt : UTC→Paris, horodatage jamais inventé, ne pas tout réécrire, ne pas toucher à la section « Tâches en attente » (gérée par /task, source taches.md), et la ligne éditoriale (pas d'alerte pour échecs temporaires / médias souvent en échec / disque ; alerte seulement si pipeline vraiment à l'arrêt).
+3. Créer **un seul** cron neuf, `12,32,52 * * * *` (juste après les collectes serveur à :07/:27/:47), dont le prompt refait l'Étape 1 (collecte → édition ciblée → redéploiement via `url`). Rappeler dans le prompt : UTC→Paris, horodatage jamais inventé, ne pas tout réécrire, ne pas toucher à la section « Tâches en attente » (gérée par /task, source .claude/taches.md), et la ligne éditoriale (pas d'alerte pour échecs temporaires / médias souvent en échec / disque ; alerte seulement si pipeline vraiment à l'arrêt).
 
 Prévenir Corto : la boucle est **session-only** (meurt à la fermeture de Claude) et **expire après 7 jours**. Relancer `/dashboard` dans une nouvelle session pour la ré-armer — le skill nettoie alors l'ancien cron automatiquement.
 

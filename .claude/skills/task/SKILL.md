@@ -9,7 +9,7 @@ Capture une tâche discutée dans la session courante, pour la reprendre plus ta
 
 ## Références fixes
 
-- **Source de vérité** : `taches.md` à la racine du dépôt.
+- **Source de vérité** : `.claude/taches.md`.
 - **Artifact dashboard** : `https://claude.ai/code/artifact/42437963-1ba0-47af-9c84-55fc80c2b424` — HTML `dashboard-stage-mids.html` dans le scratchpad (le récupérer via l'Étape 0 du skill /dashboard s'il n'est pas dans le scratchpad courant).
 
 ## Étape 1 — Comprendre la tâche depuis la conversation

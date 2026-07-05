@@ -4,7 +4,7 @@
 #   tmux new-session -d -s statut 'bash /data/elias/stage-mids/scripts/statut_serveur.sh'
 
 RACINE=/data/elias/stage-mids
-SORTIE=$RACINE/statut_serveur.txt
+SORTIE=$RACINE/data/statut_serveur.txt
 
 while true; do
   {
