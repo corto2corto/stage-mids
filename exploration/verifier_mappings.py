@@ -33,7 +33,8 @@ MEDIAS = {
     "midilibre": r"https://www\.midilibre\.fr/.+",
     "lexpress": r"https://www\.lexpress\.fr/.+",
     "francesoir": r"https://www\.francesoir\.fr/[a-z0-9_-]+/[^/]+$",
-    "paris_normandie": r"https://www\.paris-normandie\.fr/id\d+/article/\d{4}-\d{2}-\d{2}/.+",
+    # le slug final manque sur de rares URLs du sitemap (le routage se fait par l'id)
+    "paris_normandie": r"https://www\.paris-normandie\.fr/id\d+/article/\d{4}-\d{2}-\d{2}(/.*)?$",
     "liberation": r"https://www\.liberation\.fr/.+",
     "marianne": r"https://www\.marianne\.net/[a-z-]+(?:/[a-z0-9-]+)?/[a-z0-9-]{25,}$",
     "leparisien": r"https://www\.leparisien\.fr/.+-\d{2}-\d{2}-\d{4}-[A-Z0-9]+\.php$",
