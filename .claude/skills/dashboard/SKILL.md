@@ -14,6 +14,12 @@ Met à jour le dashboard de suivi et arme (ou ré-arme) sa boucle de rafraîchis
 - **Source de données** : `/data/elias/stage-mids/statut_serveur.txt` sur gallica (collecté par la session tmux `statut`, toutes les 20 min).
 - Le serveur est en **UTC** → toujours convertir en **heure de Paris** (+2 en été) pour l'affichage.
 
+## Ligne éditoriale (demandée par Corto)
+
+- **Échecs de scraping** : ne PAS alerter dans « En ce moment » pour des vagues d'échecs temporaires, ni pour des médias qui échouent déjà fréquemment (ex. Le Monde). Alerter UNIQUEMENT si vraiment anormal : script complètement arrêté sans action de Corto (session tmux `scrapping` disparue, plus aucun process `scraping.pipeline`), ou `urls.db` qui ne s'écrit plus depuis longtemps.
+- **Disque /data** : jamais d'alerte (disque immense). Juste tenir la barre à jour.
+- **Ordre des sections** : « Avancement du mémoire » reste en haut, juste après « En ce moment » (Corto la consulte souvent).
+
 ## Étape 0 — S'assurer d'avoir le HTML source dans le scratchpad courant
 
 Le HTML n'est pas forcément dans le scratchpad de CETTE session (il a pu être créé par une session précédente).
@@ -28,11 +34,11 @@ Le HTML n'est pas forcément dans le scratchpad de CETTE session (il a pu être 
 2. Lire l'horodatage sur la ligne sous `=== date ===` (ne JAMAIS l'inventer), le convertir en heure de Paris.
 3. Éditer `dashboard-stage-mids.html` — n'éditer QUE les valeurs qui ont changé, ne pas réécrire tout le HTML :
    - ligne « Mise à jour : ... » (heure de Paris)
-   - bloc « En ce moment »
+   - bloc « En ce moment » (respecter la ligne éditoriale ci-dessus)
+   - section « Avancement du mémoire » si pertinent
    - cartes « Runs sur le serveur » (croiser `=== tmux ===` + `=== process python ===` + les panes capturés)
    - tableau « Bases de données » (tailles + dernières écritures depuis `=== bases ===`)
    - barre disque `/data` (depuis `=== disque /data ===`)
-   - section « Avancement du mémoire » si pertinent
 4. Redéployer : appeler l'outil `Artifact` avec `file_path` = le HTML, `favicon` "📊", `url` = l'artifact fixe ci-dessus.
 
 ## Étape 2 — Armer la boucle (gestion du conflit de crons)
@@ -41,7 +47,7 @@ Une seule boucle doit tourner à la fois : le dernier `/dashboard` lancé gagne.
 
 1. `CronList` pour lister les crons de session.
 2. **Supprimer tout cron de MAJ dashboard existant** (n'importe quel cron dont le prompt met à jour cet artifact — le mien d'un lancement précédent, ou d'une session antérieure encore vivante). Utiliser `CronDelete` sur chacun.
-3. Créer **un seul** cron neuf, `12,32,52 * * * *` (juste après les collectes serveur à :07/:27/:47), dont le prompt refait l'Étape 1 (collecte → édition ciblée → redéploiement via `url`). Rappeler dans le prompt : UTC→Paris, horodatage jamais inventé, ne pas tout réécrire.
+3. Créer **un seul** cron neuf, `12,32,52 * * * *` (juste après les collectes serveur à :07/:27/:47), dont le prompt refait l'Étape 1 (collecte → édition ciblée → redéploiement via `url`). Rappeler dans le prompt : UTC→Paris, horodatage jamais inventé, ne pas tout réécrire, et la ligne éditoriale (pas d'alerte pour échecs temporaires / médias souvent en échec / disque ; alerte seulement si pipeline vraiment à l'arrêt).
 
 Prévenir Corto : la boucle est **session-only** (meurt à la fermeture de Claude) et **expire après 7 jours**. Relancer `/dashboard` dans une nouvelle session pour la ré-armer — le skill nettoie alors l'ancien cron automatiquement.
 
