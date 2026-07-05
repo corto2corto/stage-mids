@@ -2,7 +2,7 @@
 # Boucle de scraping : relance le pipeline en continu (il s'auto-limite à 2h,
 # `timeout` l'abat à 2h30 si un appel Selenium gèle), en nettoyant avant chaque
 # cycle les Firefox/geckodriver orphelins et les profils temp.
-# À lancer dans la session tmux "scrapping" : bash lancer.sh
+# À lancer dans la session tmux "scrapping" : bash scripts/lancer.sh
 
 RACINE="/data/elias/stage-mids"
 TMP_DIR="$RACINE/extensions/firefox/tmp"
