@@ -3,6 +3,7 @@
 data/
 exploration/*.html
 exploration/*.csv
+exploration/figures/
 *.json
 *.jsonl
 *.parquet
