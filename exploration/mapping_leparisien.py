@@ -2,7 +2,9 @@
 d'archives par jour /archives/YYYY/JJ-MM-YYYY/ (verifiees lors de la reco :
 elles remontent au moins a 2005 ; on part de 2010 pour couvrir large avant le
 rachat LVMH de 2015). ~6 000 jours a 0.3 s -> environ 1h15 de crawl.
-Motif article : lien protocole-relatif //www.leparisien.fr/...-JJ-MM-AAAA-ID.php.
+Motif article : lien protocole-relatif //www.leparisien.fr/...-JJ-MM-AAAA-ID.php,
+ou ID est numerique dans les vieilles pages (2015 : -4864079.php) et un hash
+alphanumerique majuscule depuis (2026 : -FUNC2C6F6ZHEVNFWNCMK4CYB7I.php).
 
     python -m exploration.mapping_leparisien
 
@@ -20,7 +22,7 @@ from tqdm import tqdm
 DEBUT = date(2010, 1, 1)
 SORTIE = "exploration/leparisien_url.csv"
 ENTETES = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"}
-MOTIF_ARTICLE = re.compile(r'href="(?:https:)?//www\.leparisien\.fr(/[^"]*-\d{2}-\d{2}-\d{4}-\d+\.php)"')
+MOTIF_ARTICLE = re.compile(r'href="(?:https:)?//www\.leparisien\.fr(/[^"]*-\d{2}-\d{2}-\d{4}-[A-Z0-9]+\.php)"')
 
 jours = []
 d = DEBUT
