@@ -80,6 +80,31 @@ Dans l'ordre :
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## maj-quotidienne-ngram-top — Passer les bases ngram et top en MAJ quotidienne
+
+- Ajoutée : 2026-07-05
+- Branche : n-grammes
+
+**Contexte** : les bases `*_ngram.db` et `*_top.db` sont construites en one-shot depuis des CSV figés. Dans le projet final, chaque média reçoit de nouveaux articles chaque jour : il faut une MAJ rapide des deux bases sans reconstruction (le rebuild top prend des heures), avec l'API qui continue de servir pendant l'écriture.
+
+**Piste envisagée** (discutée le 05/07) : rester sur SQLite. MAJ quotidienne append-only des comptes du jour (sans filtre), tops exacts via tables cumulatives « mois courant » / « année courante » (index sur n), gel du top d'une période à sa clôture dans `top.db`. CSV = source de vérité. Filtre `> 10` non tranché : mesurer d'abord l'inflation en rebuidant Les Échos sans filtre.
+
+**Prompt** :
+
+```
+Les bases *_ngram.db et *_top.db sur gallica sont construites en one-shot depuis des CSV figés ; il faut les passer en MAJ quotidienne (les CSV vont recevoir chaque jour les nouveaux articles de chaque média), sans reconstruction complète et avec l'API qui continue de servir pendant l'écriture.
+
+Architecture discutée et retenue le 05/07/2026 (rester sur SQLite) :
+- Les CSV par média restent la source de vérité ; les bases ngram/top sont des vues dérivées reconstructibles.
+- MAJ quotidienne : tokeniser les nouveaux articles (mêmes choix que scripts/ngram_lemonde.py), insérer les comptes du jour dans unigram/bigram/trigram + totaux, en une transaction, SANS appliquer le filtre > 10. PRAGMA en WAL + synchronous=NORMAL (pas les PRAGMA OFF des scripts de build, réservés aux builds hors ligne). Tenir une trace des articles déjà traités pour ne jamais recompter.
+- Tops : le top d'une période close ne change plus. Maintenir des tables cumulatives « mois courant » et « année courante » par taille de ngram (ngram -> n cumulé, index sur n) mises à jour par upsert quotidien ; top 500 = lecture d'index, exact. À la clôture d'une période, geler son top dans top.db et vider la table cumulative. Le top du jour se calcule depuis les comptes du jour.
+- Filtre global > 10 (posé uniquement pour la taille) : non tranché. Première étape : construire lesechos_ngram sans filtre dans un fichier séparé, comparer les tailles, puis décider avec Corto (sans filtre / filtre trigrams seulement / filtre + rebuild mensuel qui rattrape).
+- Si rebuild périodique : construire dans un NOUVEAU fichier puis renommer par-dessus, pour que l'API ne serve jamais une base à moitié construite.
+
+Avant de coder, valider avec Corto le déroulé d'une journée type (ordre des opérations, rattrapage si le scraping d'un jour arrive en retard). Vérification finale : MAJ d'un jour de test en quelques minutes, requêtes API inchangées pendant l'écriture, tops des périodes ouvertes corrects.
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
 
 (aucune pour l'instant)

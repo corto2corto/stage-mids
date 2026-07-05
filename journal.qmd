@@ -485,4 +485,25 @@ Chaque journal a sa propre base : un comptage des uni/bi/trigrammes par jour, ac
 
 ### Étape suivante
 - Terminer la reconstruction de la base Le Monde
-- Normalisation : famille de mots via Spacy (lemmatisation/REN), garder les 50K unigrammes les plus intéressants 
+- Normalisation : famille de mots via Spacy (lemmatisation/REN), garder les 50K unigrammes les plus intéressants
+
+## Détection de spikes et histogrammes
+
+Pour repérer les moments où un mot apparaît anormalement souvent, on utilise
+`exploration/detecter_spike.py`. Le principe : toutes les fréquences passées du
+mot forment sa distribution « habituelle », et une fenêtre qui dépasse le
+quantile haut (99 % par défaut) est considérée comme un extrême. Sur le
+serveur, depuis la racine du projet :
+
+```bash
+python -m exploration.detecter_spike lemonde inflation
+python -m exploration.detecter_spike lemonde inflation 0.995 2,3,4
+```
+
+Les arguments, dans l'ordre : le corpus (`lemonde`, `lefigaro`, `lesechos`),
+le mot, puis en option le quantile et les tailles de fenêtres en jours. Le
+script liste les fenêtres au-dessus du seuil et enregistre une figure par
+échelle dans `exploration/figures/` : à gauche, la fréquence du mot au fil du
+temps avec les spikes en rouge ; à droite, l'histogramme de ces fréquences —
+la densité empirique du mot — avec le seuil en pointillé qui sépare le régime
+habituel des extrêmes.
