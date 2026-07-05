@@ -36,7 +36,7 @@ MEDIAS = {
     "paris_normandie": r"https://www\.paris-normandie\.fr/id\d+/article/\d{4}-\d{2}-\d{2}/.+",
     "liberation": r"https://www\.liberation\.fr/.+",
     "marianne": r"https://www\.marianne\.net/[a-z-]+(?:/[a-z0-9-]+)?/[a-z0-9-]{25,}$",
-    "leparisien": r"https://www\.leparisien\.fr/.+-\d{2}-\d{2}-\d{4}-\d+\.php$",
+    "leparisien": r"https://www\.leparisien\.fr/.+-\d{2}-\d{2}-\d{4}-[A-Z0-9]+\.php$",
 }
 UA_NAVIGATEUR = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"}
 resultats = []
@@ -76,11 +76,15 @@ for media, motif in MEDIAS.items():
     else:
         resultats.append((nom, True, f"{len(urls)} URLs conformes"))
 
-# --- cas limite : Marianne au-dela de la profondeur reelle -> 0 article ---
-r = requests.get("https://www.marianne.net/politique", params={"p": 2000}, headers=UA_NAVIGATEUR, timeout=30)
+# --- cas limite : Marianne au-dela de la profondeur reelle -> page vide OU
+# repetition de la page 1 (les deux declenchent l'arret "0 nouvelle URL" du
+# script ; comportement observe : p=500 vide, p=2000 re-sert la page 1) ---
 motif = re.compile(r'href="(https://www\.marianne\.net/politique(?:/[a-z0-9-]+)?/[a-z0-9-]{25,})"')
-resultats.append(("limite marianne p=2000", r.ok and not motif.findall(r.text),
-                  f"HTTP {r.status_code}, {len(motif.findall(r.text))} article(s)"))
+r1 = requests.get("https://www.marianne.net/politique", params={"p": 1}, headers=UA_NAVIGATEUR, timeout=30)
+rh = requests.get("https://www.marianne.net/politique", params={"p": 99999}, headers=UA_NAVIGATEUR, timeout=30)
+p1, ph = set(motif.findall(r1.text)), set(motif.findall(rh.text))
+resultats.append(("limite marianne p hors bornes", rh.ok and (not ph or ph <= p1),
+                  f"HTTP {rh.status_code}, {len(ph)} article(s), inclus dans p=1 : {ph <= p1}"))
 
 # --- cas limite : France-Soir page hors bornes -> reponse geree, 0 article ---
 r = requests.get("https://www.francesoir.fr/sitemap.xml", params={"page": 9999},
