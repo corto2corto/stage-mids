@@ -39,6 +39,7 @@ Le HTML n'est pas forcément dans le scratchpad de CETTE session (il a pu être 
    - cartes « Runs sur le serveur » (croiser `=== tmux ===` + `=== process python ===` + les panes capturés)
    - tableau « Bases de données » (tailles + dernières écritures depuis `=== bases ===`)
    - barre disque `/data` (depuis `=== disque /data ===`)
+   - section « Tâches en attente » : ne PAS y toucher lors des rafraîchissements — elle est gérée par le skill /task, source `taches.md` à la racine du dépôt. Si elle a disparu du HTML (écrasée par une vieille copie), la reconstruire depuis taches.md sur le modèle décrit dans le skill /task.
 4. Redéployer : appeler l'outil `Artifact` avec `file_path` = le HTML, `favicon` "📊", `url` = l'artifact fixe ci-dessus.
 
 ## Étape 2 — Armer la boucle (gestion du conflit de crons)
@@ -47,7 +48,7 @@ Une seule boucle doit tourner à la fois : le dernier `/dashboard` lancé gagne.
 
 1. `CronList` pour lister les crons de session.
 2. **Supprimer tout cron de MAJ dashboard existant** (n'importe quel cron dont le prompt met à jour cet artifact — le mien d'un lancement précédent, ou d'une session antérieure encore vivante). Utiliser `CronDelete` sur chacun.
-3. Créer **un seul** cron neuf, `12,32,52 * * * *` (juste après les collectes serveur à :07/:27/:47), dont le prompt refait l'Étape 1 (collecte → édition ciblée → redéploiement via `url`). Rappeler dans le prompt : UTC→Paris, horodatage jamais inventé, ne pas tout réécrire, et la ligne éditoriale (pas d'alerte pour échecs temporaires / médias souvent en échec / disque ; alerte seulement si pipeline vraiment à l'arrêt).
+3. Créer **un seul** cron neuf, `12,32,52 * * * *` (juste après les collectes serveur à :07/:27/:47), dont le prompt refait l'Étape 1 (collecte → édition ciblée → redéploiement via `url`). Rappeler dans le prompt : UTC→Paris, horodatage jamais inventé, ne pas tout réécrire, ne pas toucher à la section « Tâches en attente » (gérée par /task, source taches.md), et la ligne éditoriale (pas d'alerte pour échecs temporaires / médias souvent en échec / disque ; alerte seulement si pipeline vraiment à l'arrêt).
 
 Prévenir Corto : la boucle est **session-only** (meurt à la fermeture de Claude) et **expire après 7 jours**. Relancer `/dashboard` dans une nouvelle session pour la ré-armer — le skill nettoie alors l'ancien cron automatiquement.
 
