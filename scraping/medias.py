@@ -12,9 +12,12 @@ Champs par média :
 ATTENTE_DEFAUT = 6
 
 MEDIAS = {
-    "le_capital":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.articleBody"}},
+    # Sonde anciens médias 06/07/2026 (sonde_anciens.log) : le_capital, challenges,
+    # l_opinion et la_depeche sortent complets en basic -> plus besoin de Firefox.
+    "le_capital":            {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_figaro":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
-    "le_monde":              {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": ".article__content"}},
+    # le_monde : bypass en échec permanent -> compte abonné (identifiants.json à créer).
+    "le_monde":              {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": ".article__content"}},
     "telerama":              {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "article.article__page-content"}},
     "valeurs_actuelles":     {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.post__content"}},
     "les_echos":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.post-paywall"}},
@@ -22,10 +25,11 @@ MEDIAS = {
     "le_nouvel_observateur": {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "p.node__paragraphe"}},
     "nice_matin":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "article"}},
     "atlantico":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.rich-content__text"}},
-    "la_depeche":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.article-full__body-content"}},
-    "l_opinion":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.RichTextArticleBody"}},
+    "la_depeche":            {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-full__body-content"}},
+    "l_opinion":             {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.RichTextArticleBody"}},
     "sud_ouest":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.full-content"}},
-    "challenges":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    "challenges":            {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    # valeurs_actuelles et le_telegramme : candidats basic, corps json-ld à confirmer sur du payant.
     "le_telegramme":         {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_journal_du_dimanche": {"moteur": "basic", "meta": {"strategie": "balises", "corps": "section.content-rte div.rte p, article.live-element-content div.rte p", "titre": "h1.main-title", "auteur": "a.author", "date": "time"}},
 
