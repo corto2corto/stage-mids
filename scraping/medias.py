@@ -32,8 +32,8 @@ MEDIAS = {
     # valeurs_actuelles et le_telegramme : candidats basic, corps json-ld à confirmer sur du payant.
     "le_telegramme":         {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_journal_du_dimanche": {"moteur": "basic", "meta": {"strategie": "balises", "corps": "section.content-rte div.rte p, article.live-element-content div.rte p", "titre": "h1.main-title", "auteur": "a.author", "date": "time"}},
-    # mediapart : compte abonné (moteur log). Corps à confirmer au 1er test connecté.
-    "mediapart":             {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    # mediapart : compte abonné (moteur log). Corps validé sur article connecté (06/07).
+    "mediapart":             {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": "div.news__body__center__article"}},
 
     # Nouveaux médias (sonde + analyse HTML du 06/07/2026) — moteur basic confirmé.
     "gala":         {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
