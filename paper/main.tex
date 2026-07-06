@@ -36,7 +36,7 @@ The problem with $f_t$ is that it's not an integer; I would prefer keeping the i
 
 \section{Spike detection}
 
-\subsection{Step 1: fitting a model}
+\subsection{Step 1: fitting a negative binomial model}
 
 The negative binomial distribution with parameters $p \in (0,1), r >0$ is defined as 
 $$\mathbb{P}(X = k) = \frac{\Gamma(k + r)}{\Gamma(k + 1) \Gamma(r)} p^k (1-p)^r. $$
@@ -49,11 +49,38 @@ $$\mathbb{P}(X = k) = \frac{\Gamma(k + r)}{\Gamma(k + 1) \Gamma(r)} \left(\frac{
 
 \begin{itemize}
     \item GPT tells me that fitting a negbin with this parametrization can be done using \texttt{statsmodels.discrete.discrete model.NegativeBinomial}, with $\phi=r^{-1}$.
-    \item When $r \to 0$, the distribution converges to a Poisson distribution with parameter $m$, so this model is really versatile, absorbing Poisson, geometric and Pascal distributions. 
+    \item Tails are exponentiel ie $p_n \approx e^{-c n}$ for some $c$. Tails become ligher when $r$ increases
+    \item When $r \to \infty$, the distribution converges to a Poisson distribution with parameter $m$, so this model is really versatile, absorbing Poisson, geometric and Pascal distributions. 
+    \item Since $X^w_t$ might heavily depend on the number of words $N_t$, it is natural to scale the model linearly with $N_t$, i.e. parametrizing $X_t \sim \mathrm{NB}(\mu N_t, r)$. It is apparently possible to fit this model for observations $(X_t, N_t)$ using the \texttt{exposure} parameter of \texttt{statsmodels.discrete.discrete model.NegativeBinomial}. In this case $\mu$ will be the mean frequency of the word $w$. 
+    \item Once the model is fitted and the optimal $\mu_*, r_*$ are found, it's important to plot the density of $\mathrm{NB}(\mu_* \times 100000, r_*)$ on top of the histogram of the data (the right plot sur les graphes d'Elias) to see if it fits or no
 \end{itemize}
 
-Since $X^w_t$ might heavily depend on the number of words $N_t$, it is natural to scale the model linearly with $N_t$, i.e. parametrizing $X_t \sim \mathrm{NB}(\mu N_t, r)$. It is apparently possible to fit this model for observations $(X_t, N_t)$ using the \texttt{exposure} parameter of \texttt{statsmodels.discrete.discrete model.NegativeBinomial}. In this case $\mu$ will be the mean frequency of the word $w$. 
 
 
+
+\bigskip 
+
+Diagnostics for the quality of the fitting? I don't know. Maybe check the mean and variance and skewness and kurtosis ?
+
+\subsection{Step 2: detecting spikes}
+
+One we fit a model, say $\mu_*,r_*$, we can detect outliers in the data. Note $P_t$ the probability density of $\mathrm{NB}(\mu_* N_t,r_*)$. We set 
+$$p_t = P_t([X_t, +\infty]), $$
+which is the $p$-value of $X_t$ under the fitted model. We declare $X_t$ an outlier if $p$ is too small, say $p_t < 0.0001$. 
+
+Remarks. 
+\begin{itemize}
+\item $\log_{10}(p_t)$ is called the "surprise" of the observation $X_t$. The higher, the more surprising.
+\item we can use multiple-rounds: fit a first NB2 model, then remove all the "blatant outliers" (the ones with a super high suprise), then refit a model on the remaining data, then remove the outliers again, etc. 
+\item Diag: plot the histogram of $p_t$, should roughly be uniform except for a few outliers too close to 0?
+\end{itemize}
+
+\subsection{Step 3: clusters of abnormal activity}
+
+\subsection{Step 4: time series ?}
+
+If the above doesnt work very well we could add an autoregressive model on the parameters. @Elias could be nice to plot the autocorrelation function of $X_t$ or rather $f_t$; I strongly expect that there will be some interesting autocorrelations in $f_t$.
+
+Typically we would fit something like $m_t = N_t \times e^{R_t}$ with $R_t$ an AR(1) process?
 
 \end{document}
