@@ -2,6 +2,8 @@
 # On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
 data/
 exploration/*.html
+exploration/*.csv
+exploration/figures/
 *.json
 *.jsonl
 *.parquet
@@ -60,6 +62,7 @@ config.local.*
 # --- Logs ---
 logs/
 *.log
+lancer.lock
 
 # --- Sortie de modèles ---
 models/
@@ -79,3 +82,7 @@ extensions/chrome-linux-profile
 !site/package-lock.json
 # Le .gitignore interne de site/ (fourni par Evidence) ignore déjà
 # node_modules/, build/, .svelte-kit/, static/data/, etc.
+
+# Claude Code — fichiers locaux/session
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
