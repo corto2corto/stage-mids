@@ -79,9 +79,11 @@ class TestDispatchMoteurs(unittest.TestCase):
             m.assert_called_once_with("driver", "http://u", 12, garder_cookies=False)
 
     def test_scraper_basic(self):
-        with patch("scraping.basic.scraper", return_value="<html>") as m:
+        with patch("scraping.basic.scraper", return_value="<html>") as m, \
+             patch("scraping.moteurs.time.sleep") as sleep:
             self.assertEqual(moteurs.scraper("m_basic", "session", "http://u"), "<html>")
             m.assert_called_once_with("session", "http://u")
+            sleep.assert_called_once()   # délai de politesse appliqué
 
     def test_fermer_basic_close_et_firefox_quit(self):
         session, driver = MagicMock(), MagicMock()

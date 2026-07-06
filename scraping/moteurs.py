@@ -5,9 +5,11 @@
 - "basic"   : simple requête HTTP, sans navigateur (basic.py)
 """
 
+import time
+
 from scraping import basic, navigateur
 from scraping.connexion import ouvrir_firefox_connecte
-from scraping.medias import ATTENTE_DEFAUT, MEDIAS
+from scraping.medias import ATTENTE_BASIC, ATTENTE_DEFAUT, MEDIAS
 
 
 def ouvrir_session(media):
@@ -22,10 +24,13 @@ def ouvrir_session(media):
 
 def scraper(media, session, url):
     """Récupère le HTML d'une URL avec la session déjà ouverte du média."""
-    moteur = MEDIAS[media]["moteur"]
+    regles = MEDIAS[media]
+    moteur = regles["moteur"]
     if moteur == "basic":
-        return basic.scraper(session, url)
-    attente = MEDIAS[media].get("attente", ATTENTE_DEFAUT)
+        html = basic.scraper(session, url)
+        time.sleep(regles.get("attente", ATTENTE_BASIC))   # politesse : ne pas marteler le site
+        return html
+    attente = regles.get("attente", ATTENTE_DEFAUT)
     return navigateur.scraper(session, url, attente, garder_cookies=(moteur == "log"))
 
 
