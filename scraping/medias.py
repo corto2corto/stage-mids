@@ -13,7 +13,7 @@ Champs par média :
 """
 
 ATTENTE_DEFAUT = 6   # firefox/log : temps de chargement de la page
-ATTENTE_BASIC = 1    # basic : la requête est instantanée, on temporise par politesse
+ATTENTE_BASIC = 3    # basic : la requête est instantanée, on temporise par politesse
 
 MEDIAS = {
     # Sonde anciens médias 06/07/2026 (sonde_anciens.log) : le_capital, challenges,
@@ -21,7 +21,7 @@ MEDIAS = {
     "le_capital":            {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_figaro":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
     # le_monde : bypass en échec permanent -> compte abonné (moteur log, connexion.py).
-    "le_monde":              {"moteur": "log", "attente": 1, "meta": {"strategie": "json_ld", "corps": ".article__content"}},
+    "le_monde":              {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": ".article__content"}},
     "telerama":              {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "article.article__page-content"}},
     "valeurs_actuelles":     {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.post__content"}},
     "les_echos":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.post-paywall"}},
@@ -37,7 +37,7 @@ MEDIAS = {
     "le_telegramme":         {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_journal_du_dimanche": {"moteur": "basic", "meta": {"strategie": "balises", "corps": "section.content-rte div.rte p, article.live-element-content div.rte p", "titre": "h1.main-title", "auteur": "a.author", "date": "time"}},
     # mediapart : compte abonné (moteur log). Corps validé sur article connecté (06/07).
-    "mediapart":             {"moteur": "log", "attente": 1, "meta": {"strategie": "json_ld", "corps": "div.news__body__center__article"}},
+    "mediapart":             {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": "div.news__body__center__article"}},
 
     # Nouveaux médias (sonde + analyse HTML du 06/07/2026) — moteur basic confirmé.
     "gala":         {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
