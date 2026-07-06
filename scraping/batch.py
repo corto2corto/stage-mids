@@ -8,7 +8,7 @@ import sqlite3
 from scraping.stockage import DATA_DIR
 
 def new_batch():
-    with sqlite3.connect(DATA_DIR/"urls.db") as conn:
+    with sqlite3.connect(DATA_DIR/"urls.db", timeout=30) as conn:
         rows = conn.execute(
             "SELECT media, id, url FROM urls WHERE etat=0 "
             "GROUP BY media"
