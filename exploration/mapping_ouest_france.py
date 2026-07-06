@@ -24,7 +24,17 @@ MOTIF_LOC = re.compile(r"<loc>(https://www\.ouest-france\.fr/[^<]+)</loc>")
 
 driver = ouvrir_firefox()
 try:
-    html = scraper(driver, INDEX, attente=3)
+    # les reponses DataDome sont parfois tres lentes : delai de page large et
+    # 3 tentatives sur l'index (un echec ici condamnerait tout le mapping)
+    driver.set_page_load_timeout(120)
+    html = ""
+    for tentative in range(3):
+        try:
+            html = scraper(driver, INDEX, attente=3)
+            if MOTIF_SOUS_SITEMAP.search(html):
+                break
+        except Exception as e:
+            print(f"index tentative {tentative + 1} : echec ({type(e).__name__})")
     sous_sitemaps = sorted(
         set("https://www.ouest-france.fr/" + s for s in MOTIF_SOUS_SITEMAP.findall(html)),
         key=lambda u: int(re.search(r"-(\d+)\.xml", u).group(1)),
