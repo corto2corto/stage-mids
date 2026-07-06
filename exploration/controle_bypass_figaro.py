@@ -23,11 +23,14 @@ driver = ouvrir_firefox()
 try:
     for url in URLS:
         mots = {}
-        for source, html in (("ff", scraper(driver, url)), ("basic", basic.scraper(session, url))):
-            soup = BeautifulSoup(html, "html.parser")
-            corps = soup.select_one("div.fig-content-body")
-            mots[source] = len(corps.get_text(" ").split()) if corps else 0
-        verdict = "BYPASS ACTIF" if mots["ff"] > 1.5 * mots["basic"] else "pas de gain"
-        print(f"ff={mots['ff']:5} basic={mots['basic']:5} -> {verdict}  {url[:80]}", flush=True)
+        for source in ("ff", "basic"):
+            try:
+                html = scraper(driver, url) if source == "ff" else basic.scraper(session, url)
+                corps = BeautifulSoup(html, "html.parser").select_one("div.fig-content-body")
+                mots[source] = len(corps.get_text(" ").split()) if corps else 0
+            except Exception as e:
+                mots[source] = f"ECHEC {type(e).__name__}"
+        gain = isinstance(mots["ff"], int) and isinstance(mots["basic"], int) and mots["ff"] > 1.5 * mots["basic"]
+        print(f"ff={mots['ff']} basic={mots['basic']} -> {'BYPASS ACTIF' if gain else 'pas de gain'}  {url[:80]}", flush=True)
 finally:
     driver.quit()
