@@ -17,17 +17,17 @@ import time
 from selenium.webdriver.common.by import By
 
 from scraping.config import IDENTIFIANTS
-from scraping.medias import ATTENTE_DEFAUT, MEDIAS
 from scraping.navigateur import ouvrir_firefox
 
 # Page de connexion de chaque média : URL + sélecteurs CSS des champs.
-# Sélecteurs relevés sans compte : à vérifier au premier test réel.
+# le_monde : bouton de validation sous plusieurs formes selon la page servie
+# (input.button sur l'ancien script, button[type=submit] sur la page secure).
 CONNEXIONS = {
     "le_monde": {
         "url": "https://secure.lemonde.fr/sfuser/connexion",
         "email": "input#email",
         "mot_de_passe": "input#password",
-        "valider": "button[type='submit']",
+        "valider": "button[type='submit'], input.button, input[type='submit']",
     },
     "mediapart": {
         "url": "https://www.mediapart.fr/login",
@@ -37,21 +37,22 @@ CONNEXIONS = {
     },
 }
 
+ATTENTE_LOGIN = 5   # secondes de chargement laissées à chaque étape de connexion
+
 
 def ouvrir_firefox_connecte(media):
     """Ouvre un Firefox et le connecte au compte du média. Retourne le driver."""
     identifiants = json.loads(IDENTIFIANTS.read_text("utf-8"))[media]
     connexion = CONNEXIONS[media]
-    attente = MEDIAS[media].get("attente", ATTENTE_DEFAUT)
 
     driver = ouvrir_firefox()
     try:
         driver.get(connexion["url"])
-        time.sleep(attente)
+        time.sleep(ATTENTE_LOGIN)
         driver.find_element(By.CSS_SELECTOR, connexion["email"]).send_keys(identifiants["email"])
         driver.find_element(By.CSS_SELECTOR, connexion["mot_de_passe"]).send_keys(identifiants["mot_de_passe"])
         driver.find_element(By.CSS_SELECTOR, connexion["valider"]).click()
-        time.sleep(attente)
+        time.sleep(ATTENTE_LOGIN)
     except Exception:
         driver.quit()
         raise
