@@ -31,9 +31,9 @@ CONNEXIONS = {
     },
     "mediapart": {
         "url": "https://www.mediapart.fr/login",
-        "email": "input[name='name']",
-        "mot_de_passe": "input[name='password']",
-        "valider": "button[type='submit']",
+        "email": "input#username",
+        "mot_de_passe": "input#password",
+        "valider": "button#submitButton",
     },
 }
 
