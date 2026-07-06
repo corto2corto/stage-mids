@@ -16,6 +16,7 @@ Un seul Firefox ouvert a la fois (RAM), referme apres chaque media.
 A lancer sur le serveur :  python -m exploration.tester_firefox_bypass
 """
 import csv
+import os
 import time
 from pathlib import Path
 from statistics import median
@@ -27,8 +28,9 @@ from scraping.extraction import noeud_json_ld
 from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
 from scraping.paywall import est_bloque
 
-A_TESTER = ["lepoint", "lexpress", "marianne", "liberation", "paris_normandie",
-            "latribune", "midilibre"]
+# BYPASS_MEDIAS=latribune,midilibre (env) : relance ciblée sur certains médias.
+A_TESTER = os.environ.get("BYPASS_MEDIAS", "lepoint,lexpress,marianne,liberation,"
+                          "paris_normandie,latribune,midilibre").split(",")
 N_PAR_MEDIA = 15
 SORTIE = Path("exploration/html_v2")
 SORTIE.mkdir(exist_ok=True)
