@@ -38,4 +38,15 @@ MEDIAS = {
     "la_croix":     {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-content"}},
     "laprovence":   {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "francesoir":   {"moteur": "basic", "meta": {"strategie": "balises", "corps": "div.field--name-body", "titre": "h1", "auteur": "a[rel=author]", "date": "div.field--name-field-date.me-3"}},
+
+    # Batch du 06/07/2026, 2e partie (corps validés sur les html_v2 du test bypass).
+    # Paywalls non contournables : seuls les articles gratuits sortent complets,
+    # les payants sont tronqués ou vides -> à filtrer via la colonne free.
+    "marianne":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    "midilibre":       {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-full__body-content"}},
+    "paris_normandie": {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    "latribune":       {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    "liberation":      {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div[class*=TextElement__Container]"}},
+    # Écartés : lexpress (9/10 payant, aucun corps json-ld, pas de sélecteur validable),
+    # lepoint (URLs Wayback mortes en masse, corps rendu en JS invisible en basic).
 }
