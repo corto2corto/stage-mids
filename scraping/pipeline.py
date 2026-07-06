@@ -100,10 +100,12 @@ def boucle_media(media, session, debut):
             if not suivant:
                 break
             id, url = suivant
+            t = time.time()
             etat = traiter_url(conn, media, session, id, url)
             traitees += 1
             with VERROU_PRINT:
-                print(f"  {media:<24} id={id}  etat={etat} ({'succès' if etat == 2 else 'échec'})")
+                print(f"  {media:<24} id={id}  etat={etat} "
+                      f"({'succès' if etat == 2 else 'échec'} en {time.time()-t:.1f}s)")
     except Exception:
         # Sans ça, l'exception resterait cachée dans le future jusqu'à la fin
         # du run : on la montre tout de suite, les autres médias continuent et
