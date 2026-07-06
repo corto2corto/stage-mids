@@ -219,6 +219,19 @@ class TestExtraction(unittest.TestCase):
         self.assertEqual(infos["titre"], "")
         self.assertEqual(infos["contenu"], "")
 
+    def test_date_balises_texte_sans_datetime(self):
+        # francesoir : la date est un div texte, sans attribut datetime
+        html = "<h1>T</h1><div class='field--name-field-date me-3'>Publié le 14 mars 2017</div>"
+        meta = {"titre": "h1", "auteur": "a[rel=author]", "date": "div.field--name-field-date.me-3"}
+        infos = extraction.meta_balises(BeautifulSoup(html, "html.parser"), meta)
+        self.assertEqual(infos["date"], "Publié le 14 mars 2017")
+
+    def test_date_balises_datetime_prioritaire(self):
+        html = "<time datetime='2026-07-06'>6 juillet</time>"
+        meta = {"titre": "h1", "auteur": "a", "date": "time"}
+        infos = extraction.meta_balises(BeautifulSoup(html, "html.parser"), meta)
+        self.assertEqual(infos["date"], "2026-07-06")
+
 
 class TestPaywall(unittest.TestCase):
     def test_contenu_vide_est_bloque(self):
