@@ -4,7 +4,8 @@ Point d'entrée : main(). Lancé via `python -m scraping.pipeline`.
 Les médias sont répartis en un groupe par moteur (basic, log, firefox), chacun
 tournant sa boucle de vagues dans un thread : basic enchaîne en ~1 s, log au
 rythme du chargement Firefox connecté, firefox au rythme du bypass. Sans cette
-séparation, chaque vague durerait le temps du média le plus lent.
+séparation, chaque vague durerait le temps du média le plus lent. Un média qui
+freine son groupe peut être isolé via le champ "groupe" de medias.py.
 """
 
 import csv
@@ -40,6 +41,11 @@ def ouvrir_sessions(batch):
 
     with ThreadPoolExecutor(max_workers=len(batch)) as ex:
         resultats = dict(ex.map(ouvrir, batch))
+    # Seconde chance, un par un : le lancement simultané de tous les Firefox
+    # fait parfois dépasser le timeout des pages de login (moteur log) ; une
+    # fois la ruée passée, la même ouverture réussit en général.
+    for media in [m for m, s in resultats.items() if s is None]:
+        resultats[media] = ouvrir(media)[1]
     return {media: session for media, session in resultats.items() if session}
 
 
@@ -137,10 +143,12 @@ def main():
         print("Aucune session n'a pu démarrer — fin du run.")
         return
 
-    # Un groupe par moteur, chacun sa boucle de vagues à son rythme.
+    # Un groupe par moteur (surchargeable par média via "groupe" dans medias.py,
+    # pour isoler un média lent), chacun sa boucle de vagues à son rythme.
     groupes = {}
     for media, session in sessions.items():
-        groupes.setdefault(MEDIAS[media]["moteur"], {})[media] = session
+        cle = MEDIAS[media].get("groupe", MEDIAS[media]["moteur"])
+        groupes.setdefault(cle, {})[media] = session
 
     try:
         with ThreadPoolExecutor(max_workers=len(groupes)) as ex:

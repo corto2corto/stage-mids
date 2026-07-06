@@ -7,6 +7,8 @@ Champs par média :
 - attente : secondes de pause après chaque URL. Pour firefox/log c'est le temps
             laissé à la page pour charger (ATTENTE_DEFAUT si absent) ; pour basic
             c'est un simple délai de politesse envers le site (ATTENTE_BASIC).
+- groupe  : groupe de vagues dans le pipeline (défaut : le moteur). À surcharger
+            pour isoler un média lent qui freinerait tout son groupe.
 - meta    : stratégie d'extraction des métadonnées et du corps (cf extraction.py).
 """
 
@@ -52,7 +54,9 @@ MEDIAS = {
     # les payants sont tronqués ou vides -> à filtrer via la colonne free.
     "marianne":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "midilibre":       {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-full__body-content"}},
-    "paris_normandie": {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    # paris_normandie : ~3 s par requête (les autres basic répondent en <0,3 s),
+    # isolé pour ne pas rythmer les vagues de tout le groupe basic.
+    "paris_normandie": {"moteur": "basic", "groupe": "isole", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "latribune":       {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "liberation":      {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div[class*=TextElement__Container]"}},
     # Écartés : lexpress (9/10 payant, aucun corps json-ld, pas de sélecteur validable),
