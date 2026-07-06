@@ -1,0 +1,59 @@
+% Build: latexmk -pdf main.tex
+
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french,english]{babel}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{microtype}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{mathptmx}
+
+\geometry{margin=2.5cm}
+
+\input{macros}
+
+\title{Stage MIDS}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Notations}
+
+\begin{itemize}
+    \item $X^w_t$ = total number of occurrences of the word $w$ at time $t$
+    \item $N_t$ = total number of words in the corpus at time $t$
+    \item $f_t = \frac{X^w_t}{N_t}$ = frequency of the word $w$ at time $t$
+\end{itemize}
+
+
+
+The problem with $f_t$ is that it's not an integer; I would prefer keeping the integer structure of $X_t$, but we still need to use some kind of scaling with respect to $N_t$. For that, I propose to scale the mean of any probabilistic model with respect to $N_t$. 
+
+\section{Spike detection}
+
+\subsection{Step 1: fitting a model}
+
+The negative binomial distribution with parameters $p \in (0,1), r >0$ is defined as 
+$$\mathbb{P}(X = k) = \frac{\Gamma(k + r)}{\Gamma(k + 1) \Gamma(r)} p^k (1-p)^r. $$
+The mean and variance are given by
+$$
+\mathbb{E}[X] = \frac{r(1-p)}{p} \quad \text{and} \quad \text{Var}[X] = \frac{r(1-p)}{p^2}.
+$$
+A common parametrization is to set $m=r(1-p)/p$, so that $\mathbb{E}[X] = m$ and $\mathrm{Var}(X) = m + m^2/r$. That's the parametrization we will use, i.e. 
+$$\mathbb{P}(X = k) = \frac{\Gamma(k + r)}{\Gamma(k + 1) \Gamma(r)} \left(\frac{r}{m+r}\right)^k \left(\frac{m}{m+r}\right)^r.$$
+
+\begin{itemize}
+    \item GPT tells me that fitting a negbin with this parametrization can be done using \texttt{statsmodels.discrete.discrete model.NegativeBinomial}, with $\phi=r^{-1}$.
+    \item When $r \to 0$, the distribution converges to a Poisson distribution with parameter $m$, so this model is really versatile, absorbing Poisson, geometric and Pascal distributions. 
+\end{itemize}
+
+Since $X^w_t$ might heavily depend on the number of words $N_t$, it is natural to scale the model linearly with $N_t$, i.e. parametrizing $X_t \sim \mathrm{NB}(\mu N_t, r)$. It is apparently possible to fit this model for observations $(X_t, N_t)$ using the \texttt{exposure} parameter of \texttt{statsmodels.discrete.discrete model.NegativeBinomial}. In this case $\mu$ will be the mean frequency of the word $w$. 
+
+
+
+\end{document}
