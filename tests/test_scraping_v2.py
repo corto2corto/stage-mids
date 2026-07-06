@@ -148,7 +148,8 @@ class TestMoteurLog(unittest.TestCase):
         driver.get.assert_called_once_with(connexion.CONNEXIONS["le_monde"]["url"])
         saisies = [appel.args for appel in driver.find_element.return_value.send_keys.call_args_list]
         self.assertEqual(saisies, [("e@x.fr",), ("mdp",)])
-        driver.find_element.return_value.click.assert_called_once()
+        # Validation par clic JS (traverse un bandeau cookies) sur le champ trouvé.
+        driver.execute_script.assert_called_once_with("arguments[0].click();", driver.find_element.return_value)
         driver.quit.assert_not_called()
 
     def test_echec_de_saisie_ferme_le_firefox(self):
