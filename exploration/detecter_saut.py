@@ -1,19 +1,21 @@
-"""Détection de « spikes » : fenêtres de k jours où un mot est anormalement
-fréquent par rapport à son historique.
+"""Détection de « sauts » : variations anormales de la fréquence d'un mot d'une
+fenêtre à la suivante, vers le haut comme vers le bas.
 
-Méthode : la distribution des fréquences passées du mot (tous les jours de la
-base) sert de densité de probabilité empirique ; tout ce qui dépasse son
-quantile haut (ex. 99 %) est considéré comme un phénomène extrême. Le même
-calcul est refait pour chaque taille de fenêtre (1, 2, 3... jours), chacune
-avec sa propre distribution et donc son propre seuil.
+Méthode : au lieu de la fréquence X(t) (cf. detecter_spike), on regarde le
+différentiel D(t) = X(t) - X(t-k), soit l'écart entre la fenêtre de k jours qui
+finit en t et la fenêtre précédente (disjointe). Pour k = 1, c'est exactement
+X(t) - X(t-1). D peut être négatif : la distribution empirique de D donne donc
+deux seuils — le quantile haut (ex. 99,9 %) pour les hausses brutales, le
+quantile bas symétrique (0,1 %) pour les chutes brutales. Une chute anormale
+peut s'interpréter comme une invisibilisation du sujet.
 
 Sortie : le texte ci-dessous, plus un PNG par taille de fenêtre dans
-exploration/figures/ — série temporelle de la fréquence à gauche, histogramme
-de sa distribution à droite (la densité empirique), seuil en pointillé.
+exploration/figures/ — série temporelle du différentiel à gauche, histogramme
+de sa distribution à droite, les deux seuils en pointillé.
 
 Lancement (serveur) — 1 à 3 mots (guillemets si plusieurs) :
-    python -m exploration.detecter_spike lemonde inflation
-    python -m exploration.detecter_spike lemonde "république française" 0.995 1,2,3,7
+    python -m exploration.detecter_saut lemonde inflation
+    python -m exploration.detecter_saut lemonde "république française" 0.995 1,2,3,7
 """
 
 import re
@@ -26,7 +28,7 @@ matplotlib.use("Agg")  # rendu vers fichier, pas d'écran sur le serveur
 import matplotlib.pyplot as plt
 import pandas as pd
 
-BLEU, ROUGE = "#2a78d6", "#d03b3b"
+BLEU, ROUGE, VIOLET = "#2a78d6", "#d03b3b", "#7a4fd0"
 ENCRE, GRIS, GRILLE, FOND = "#52514e", "#898781", "#e1e0d9", "#fcfcfb"
 
 corpus = sys.argv[1]
@@ -68,31 +70,41 @@ slug = re.sub(r"\W", "_", mot)
 for k in fenetres:
     roule = df.rolling(k).sum()  # fenêtre = les k jours qui finissent à la date indexée
     f = (roule["n"] / roule["total"] * 1e5).dropna()  # fréquence pour 100 000 mots
-    seuil = f.quantile(quantile)
-    spikes = f[f > seuil].sort_values(ascending=False)
-    print(f"\n--- fenêtre {k} jour(s) : seuil = {seuil:.2f} / 100 000 "
-          f"(quantile {quantile:.1%}) — {len(spikes)} fenêtres au-dessus ---")
-    for date, valeur in spikes.head(15).items():
-        debut = date - pd.Timedelta(days=k - 1)
-        periode = f"{date:%Y-%m-%d}" if k == 1 else f"{debut:%Y-%m-%d} → {date:%Y-%m-%d}"
-        print(f"  {periode}   {valeur:7.2f} / 100 000   ({int(roule.loc[date, 'n'])} occ.)")
+    d = f.diff(k).dropna()  # fenêtre courante moins la fenêtre précédente (disjointe)
+    seuil_haut, seuil_bas = d.quantile(quantile), d.quantile(1 - quantile)
+    hausses = d[d > seuil_haut].sort_values(ascending=False)
+    baisses = d[d < seuil_bas].sort_values()
+    print(f"\n--- fenêtre {k} jour(s) : seuils = {seuil_bas:+.2f} / {seuil_haut:+.2f} "
+          f"pour 100 000 (quantiles {1 - quantile:.1%} et {quantile:.1%}) ---")
+    print(f"  {len(hausses)} sauts vers le haut :")
+    for date, valeur in hausses.head(15).items():
+        print(f"    {date:%Y-%m-%d}   {valeur:+7.2f} / 100 000")
+    print(f"  {len(baisses)} sauts vers le bas :")
+    for date, valeur in baisses.head(15).items():
+        print(f"    {date:%Y-%m-%d}   {valeur:+7.2f} / 100 000")
 
-    # figure : série temporelle + histogramme de la distribution, seuil sur les deux
+    # figure : série temporelle du différentiel + histogramme, les deux seuils
     fig, (ax_t, ax_h) = plt.subplots(1, 2, figsize=(12, 4), width_ratios=[3, 1],
                                      sharey=True, layout="constrained")
     fig.set_facecolor(FOND)
-    fig.suptitle(f"« {mot} » — {corpus}, fenêtre de {k} jour(s)", color="#0b0b0b")
-    ax_t.plot(f.index, f, color=BLEU, linewidth=1.5)
-    if len(spikes):
-        ax_t.scatter(spikes.index, spikes, color=ROUGE, s=18, zorder=3,
-                     label=f"{len(spikes)} fenêtres > seuil")
-    ax_t.axhline(seuil, color=GRIS, linestyle="--", linewidth=1,
-                 label=f"seuil = {seuil:.2f} (quantile {quantile:.1%})")
+    fig.suptitle(f"« {mot} » — {corpus}, différentiel sur fenêtres de {k} jour(s)",
+                 color="#0b0b0b")
+    ax_t.plot(d.index, d, color=BLEU, linewidth=1.5)
+    if len(hausses):
+        ax_t.scatter(hausses.index, hausses, color=ROUGE, s=18, zorder=3,
+                     label=f"{len(hausses)} sauts > {seuil_haut:+.2f}")
+    if len(baisses):
+        ax_t.scatter(baisses.index, baisses, color=VIOLET, s=18, zorder=3,
+                     label=f"{len(baisses)} sauts < {seuil_bas:+.2f}")
+    ax_t.axhline(seuil_haut, color=GRIS, linestyle="--", linewidth=1)
+    ax_t.axhline(seuil_bas, color=GRIS, linestyle="--", linewidth=1)
+    ax_t.axhline(0, color=GRILLE, linewidth=1)
     ax_t.legend(frameon=False, labelcolor=ENCRE)
-    ax_t.set_ylabel("fréquence / 100 000 mots", color=ENCRE)
-    ax_h.hist(f, bins=60, orientation="horizontal", color=BLEU,
+    ax_t.set_ylabel("Δ fréquence / 100 000 mots", color=ENCRE)
+    ax_h.hist(d, bins=60, orientation="horizontal", color=BLEU,
               edgecolor=FOND, linewidth=0.5)
-    ax_h.axhline(seuil, color=GRIS, linestyle="--", linewidth=1)
+    ax_h.axhline(seuil_haut, color=GRIS, linestyle="--", linewidth=1)
+    ax_h.axhline(seuil_bas, color=GRIS, linestyle="--", linewidth=1)
     ax_h.set_xscale("log")
     ax_h.set_xlabel("nombre de fenêtres (log)", color=ENCRE)
     for ax in (ax_t, ax_h):
@@ -102,7 +114,7 @@ for k in fenetres:
         for cote in ax.spines.values():
             cote.set_color(GRILLE)
         ax.spines[["top", "right"]].set_visible(False)
-    chemin = dossier / f"spike_{corpus}_{slug}_{k}j.png"
+    chemin = dossier / f"saut_{corpus}_{slug}_{k}j.png"
     fig.savefig(chemin, dpi=150)
     plt.close(fig)
     print(f"  figure : {chemin}")

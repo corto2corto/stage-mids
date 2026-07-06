@@ -441,6 +441,25 @@ Nouveaux médias potentiels :
 - Courrier Picard (à voir)
 - L'Union (2023)
 
+### Batch de 15 nouveaux médias (06/07/2026)
+
+Le mapping des 15 nouveaux médias est terminé : on a la liste complète des URLs
+d'articles pour **Ouest-France, Midi Libre, Le Parisien, Libération, Le Point,
+BFMTV, La Provence, La Croix, L'Express, Gala, Voici, Paris-Normandie,
+La Tribune, France-Soir et Marianne** — environ 16,3 millions d'URLs au total.
+Selon les sites, les URLs viennent des sitemaps, de la pagination des rubriques
+ou des archives Wayback (La Provence, Le Point, La Tribune, Libération).
+
+Sur ces 15, on sait déjà récupérer les articles de **8 médias**, validés sur du
+HTML réel et couverts par des tests : Gala, Voici, BFMTV, Ouest-France,
+Le Parisien, La Croix, La Provence et France-Soir. Tous passent par le moteur
+basic (simple requête HTTP, sans navigateur), donc rapides à scraper.
+
+Reste à configurer les 7 autres : Marianne, L'Express, Libération,
+Paris-Normandie, Le Point, La Tribune et Midi Libre. Point notable : pour
+La Tribune et Midi Libre, le bypass paywall ne débloque rien de plus que la
+requête simple — leurs articles premium resteront tronqués.
+
 Vérifier que les archives du monde
 
 Suite :
