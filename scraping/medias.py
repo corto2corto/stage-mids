@@ -4,12 +4,14 @@ Champs par média :
 - moteur  : "firefox" (Selenium + bypass paywall), "log" (Firefox connecté à un
             compte abonné, cf connexion.py) ou "basic" (simple requête HTTP,
             sans navigateur, cf basic.py).
-- attente : secondes laissées à la page pour charger (moteurs Firefox
-            uniquement). ATTENTE_DEFAUT si absent.
+- attente : secondes de pause après chaque URL. Pour firefox/log c'est le temps
+            laissé à la page pour charger (ATTENTE_DEFAUT si absent) ; pour basic
+            c'est un simple délai de politesse envers le site (ATTENTE_BASIC).
 - meta    : stratégie d'extraction des métadonnées et du corps (cf extraction.py).
 """
 
-ATTENTE_DEFAUT = 6
+ATTENTE_DEFAUT = 6   # firefox/log : temps de chargement de la page
+ATTENTE_BASIC = 2    # basic : la requête est instantanée, on temporise par politesse
 
 MEDIAS = {
     # Sonde anciens médias 06/07/2026 (sonde_anciens.log) : le_capital, challenges,
