@@ -14,7 +14,7 @@ set -u
 cd "$(dirname "$0")/.."
 source .venv/bin/activate
 
-for media in latribune ouest_france lepoint liberation_archives laprovence; do
+for media in latribune ouest_france lepoint liberation_archives laprovence laprovence_archives; do
     echo "=== $(date '+%F %T') debut $media ===" | tee -a exploration/mappings_phase2.log
     python -m "exploration.mapping_$media" >> exploration/mappings_phase2.log 2>&1
     echo "=== $(date '+%F %T') fin $media (code $?) ===" | tee -a exploration/mappings_phase2.log
