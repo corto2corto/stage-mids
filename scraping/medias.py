@@ -13,7 +13,7 @@ Champs par média :
 - meta    : stratégie d'extraction des métadonnées et du corps (cf extraction.py).
 """
 
-ATTENTE_DEFAUT = 6   # firefox/log : temps de chargement de la page
+ATTENTE_DEFAUT = 4   # firefox/log : rendu JS après DOM (A/B 4s vs 6s : 0 bloqué BPC à 4s)
 ATTENTE_BASIC = 1    # basic : la requête est instantanée, on temporise par politesse
 
 MEDIAS = {
