@@ -41,7 +41,12 @@ try:
         except Exception as e:
             print(f"{sm} : echec ({type(e).__name__}), ignore")
             continue
-        urls.update(u for u in MOTIF_LOC.findall(html) if not u.endswith(".xml"))
+        # strip query/fragment (ex. liseuse "leditiondusoir" : reader.html?t=...#!...)
+        urls.update(
+            propre for u in MOTIF_LOC.findall(html)
+            for propre in [u.split("?")[0].split("#")[0]]
+            if not propre.endswith(".xml") and "/leditiondusoir/" not in propre
+        )
         if i % 20 == 0:  # checkpoint
             with open(SORTIE, "w", newline="", encoding="utf-8") as f:
                 w = csv.writer(f)

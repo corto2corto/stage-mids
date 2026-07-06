@@ -5,7 +5,8 @@ depuis la racine du depot :
 
     python -m exploration.verifier_mappings_phase2
 
-Cas nominaux : smoke-run reel de chaque script (MAPPING_LIMITE=2) puis
+Cas nominaux : smoke-run reel de chaque script (MAPPING_LIMITE=4, sondes
+reparties sur l'index pour les scripts CDX) puis
 controle du CSV : en-tete "url", non vide, pas de doublons, URLs conformes
 au motif du media, aucune query string residuelle, tout en https. Les CSV
 echantillons seront ecrases par les runs complets (celui de liberation
@@ -37,7 +38,7 @@ UA_NAVIGATEUR = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/
 resultats = []
 
 # --- cas nominaux : smoke-run de chaque script + controle du CSV ---
-env = {**os.environ, "MAPPING_LIMITE": "2"}
+env = {**os.environ, "MAPPING_LIMITE": "4"}
 for media, motif in MEDIAS.items():
     nom = f"smoke {media}"
     try:
