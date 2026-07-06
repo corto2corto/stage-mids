@@ -37,6 +37,7 @@ print(f"{len(categories)} rubriques a paginer")
 urls = set()
 for categorie in categories:
     pages_sans_nouveaute = 0
+    echecs_consecutifs = 0
     print(f"\n=== {categorie} ===")
     for page in tqdm(range(1, max_pages + 1)):
         cible = f"https://www.laprovence.com{categorie}" + (f"/page-{page}" if page > 1 else "")
@@ -45,7 +46,15 @@ for categorie in categories:
             r.raise_for_status()
         except requests.RequestException as e:
             print(f"{cible} : echec ({e}), ignoree")
+            echecs_consecutifs += 1
+            if echecs_consecutifs >= 3:
+                # le sitemap_categories liste aussi des rubriques disparues
+                # (404 systematique) : inutile d'epuiser le garde-fou dessus
+                print(f"{categorie} : abandon apres 3 echecs consecutifs (rubrique morte ?)")
+                break
+            time.sleep(0.4)
             continue
+        echecs_consecutifs = 0
         avant = len(urls)
         urls.update("https://www.laprovence.com" + m for m in MOTIF_ARTICLE.findall(r.text))
         if len(urls) == avant:
