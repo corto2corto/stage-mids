@@ -11,7 +11,10 @@ from scraping.medias import MEDIAS
 def noeud_json_ld(soup):
     """Renvoie le noeud Article du JSON-LD de la page (ou {})."""
     for script in soup.find_all("script", type="application/ld+json"):
-        data = json.loads(script.get_text())
+        try:
+            data = json.loads(script.get_text())
+        except json.JSONDecodeError:
+            continue   # bloc ld+json invalide (vu sur certains sites) : on passe au suivant
         # Certains sites emballent les données dans une liste sous "@graph".
         noeuds = data.get("@graph", [data]) if isinstance(data, dict) else data
         for noeud in noeuds:
