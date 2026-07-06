@@ -4,6 +4,8 @@ Extraction des métadonnées et du corps d'un article à partir de son HTML.
 
 import json
 import re
+from html import unescape
+
 from bs4 import BeautifulSoup
 
 from scraping.medias import MEDIAS
@@ -91,7 +93,9 @@ def extraire(media, html):
 
     infos = meta_json_ld(soup) if meta["strategie"] == "json_ld" else meta_balises(soup, meta)
     if meta["corps"] == "json_ld":
-        corps = noeud_json_ld(soup).get("articleBody", "")
+        corps = str(noeud_json_ld(soup).get("articleBody", ""))
+        if "&lt;" in corps or "<" in corps:   # certains sites (laprovence) y laissent du HTML échappé
+            corps = BeautifulSoup(unescape(corps), "html.parser").get_text(" ")
         infos["contenu"] = re.sub(r"\s+", " ", corps).strip()
     else:
         infos["contenu"] = extraire_corps(media, meta["corps"], soup)
