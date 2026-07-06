@@ -54,6 +54,7 @@ for media in A_TESTER:
     print(f"\n=== {media} ({len(echantillon)} URLs, RAM dispo {int(dispo)//1024**2} Go) ===", flush=True)
 
     driver = ouvrir_firefox()
+    driver.set_page_load_timeout(10)   # test seulement : pas d'attente 60 s sur les pages lentes
     gains_payant = []   # ratio texte <p> firefox / basic sur les articles payants
     try:
         for num, url in enumerate(echantillon, 1):
