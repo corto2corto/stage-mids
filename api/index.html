@@ -28,37 +28,47 @@
     padding: 24px; max-width: 1060px; margin: 0 auto;
   }
   h1 { font-size: 22px; font-weight: 650; }
-  .sous-titre { color: var(--ink-2); margin: 2px 0 20px; }
+  .sous-titre { color: var(--ink-2); margin: 2px 0 16px; }
 
-  form {
-    display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
-    margin-bottom: 16px;
+  .onglets { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--grid); }
+  .onglets button {
+    background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
+    color: var(--ink-2); padding: 6px 14px 8px; font-weight: 500;
   }
+  .onglets button.actif { color: var(--ink); border-bottom-color: var(--s1); font-weight: 600; }
+  .onglets button:hover { color: var(--ink); }
+
+  form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 12px; }
   label { display: block; font-size: 12.5px; color: var(--ink-2); margin-bottom: 3px; }
+  .case { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink-2);
+          margin: 0 0 12px; }
+  .case input { accent-color: var(--s1); width: 15px; height: 15px; }
   input, select, button {
     font: inherit; color: var(--ink); background: var(--surface);
     border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
   }
-  #mot { width: 320px; }
-  .annee-input { width: 84px; }
-  button {
-    font-weight: 600; cursor: pointer; padding: 7px 18px;
+  #mot { width: 260px; }
+  button { cursor: pointer; }
+  button[type=submit] {
+    font-weight: 600; padding: 7px 18px;
     background: var(--s1); color: #fff; border-color: transparent;
   }
-  button:hover { filter: brightness(1.08); }
+  button[type=submit]:hover { filter: brightness(1.08); }
+  .bouton-csv { font-size: 12.5px; color: var(--ink-2); padding: 3px 10px; }
 
   .carte {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 18px 18px 10px;
+    border-radius: 12px; padding: 18px 18px 12px;
   }
+  .entete-carte { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .carte h2 { font-size: 15px; font-weight: 600; }
   .unite { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
   #legende { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 4px; font-size: 13.5px; color: var(--ink-2); }
   #legende .cle { display: inline-flex; align-items: center; gap: 7px; }
-  #legende .trait { width: 16px; height: 0; border-top: 3px solid; border-radius: 2px; }
+  .trait { width: 16px; height: 0; border-top: 3px solid; border-radius: 2px; }
 
   #zone { position: relative; }
-  #zone.chargement svg { opacity: 0.45; }
+  .chargement { opacity: 0.45; }
   svg { display: block; width: 100%; }
   .message { color: var(--ink-2); padding: 36px 8px; text-align: center; }
   .erreur { color: #d03b3b; }
@@ -71,9 +81,23 @@
   }
   #infobulle .date { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
   #infobulle .ligne { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
-  #infobulle .trait { width: 12px; border-top: 3px solid; border-radius: 2px; flex: none; }
+  #infobulle .trait { width: 12px; flex: none; }
   #infobulle .val { font-weight: 650; font-variant-numeric: tabular-nums; }
   #infobulle .nom { color: var(--ink-2); }
+
+  .rangee-top { display: grid; grid-template-columns: minmax(100px, 200px) 1fr; gap: 12px;
+                align-items: center; padding: 2.5px 0; }
+  .rangee-top .gram { text-align: right; color: var(--ink-2); font-size: 13.5px;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barre-ligne { display: flex; align-items: center; gap: 8px; }
+  .barre { height: 17px; background: var(--s1); border-radius: 0 4px 4px 0; min-width: 2px; flex: none; }
+  .barre.negative { background: var(--s6); }
+  .barre-ligne:hover .barre { filter: brightness(1.12); }
+  .rangee-top .val { font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 32px; }
+  @media (max-width: 760px) { .colonnes { grid-template-columns: 1fr; } }
+  .colonnes h3 { font-size: 13.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
 
   details { margin-top: 14px; }
   summary { cursor: pointer; color: var(--ink-2); font-size: 13.5px; }
@@ -87,128 +111,344 @@
 <body>
 
 <h1>Ngram presse</h1>
-<p class="sous-titre">Fréquence d'un mot ou d'une expression (1 à 3 mots) dans les archives, à la manière de Gallicagram.</p>
+<p class="sous-titre">Explorer les archives des journaux, à la manière de Gallicagram.</p>
 
-<form id="formulaire">
-  <div>
-    <label for="mot">Mots (séparés par des virgules)</label>
-    <input id="mot" value="inflation" placeholder="inflation, pouvoir d'achat" autocomplete="off">
-  </div>
-  <div>
-    <label for="corpus">Journal</label>
-    <select id="corpus">
-      <option value="lesechos">Les Échos</option>
-      <option value="lefigaro">Le Figaro</option>
-    </select>
-  </div>
-  <div>
-    <label for="resolution">Résolution</label>
-    <select id="resolution">
-      <option value="annee">Année</option>
-      <option value="mois" selected>Mois</option>
-      <option value="jour">Jour</option>
-    </select>
-  </div>
-  <div>
-    <label for="de">De</label>
-    <input id="de" class="annee-input" type="number" value="1991">
-  </div>
-  <div>
-    <label for="a">À</label>
-    <input id="a" class="annee-input" type="number" value="2024">
-  </div>
-  <button type="submit">Tracer</button>
-</form>
+<nav class="onglets">
+  <button type="button" data-vue="courbes" class="actif">Courbes</button>
+  <button type="button" data-vue="top">Top n-grammes</button>
+  <button type="button" data-vue="evolution">Avant / après</button>
+</nav>
 
-<div class="carte">
-  <h2 id="titre">Fréquence dans Les Échos</h2>
-  <div class="unite">occurrences pour 100 000 mots publiés</div>
-  <div id="legende"></div>
-  <div id="zone">
-    <div class="message">Tape un mot puis « Tracer ».</div>
-    <div id="infobulle"></div>
-  </div>
-  <details id="bloc-tableau" hidden>
-    <summary>Voir les données</summary>
-    <div style="overflow-x:auto"><table id="tableau"></table></div>
-  </details>
-</div>
+<!-- ═══════════ COURBES ═══════════ -->
+<section id="vue-courbes">
+  <form id="formulaire">
+    <div>
+      <label for="mot">Mots (séparés par des virgules)</label>
+      <input id="mot" value="inflation" placeholder="inflation, pouvoir d'achat" autocomplete="off">
+    </div>
+    <div>
+      <label for="corpus">Journal</label>
+      <select id="corpus">
+        <option value="lesechos">Les Échos</option>
+        <option value="lefigaro">Le Figaro</option>
+        <option value="lemonde">Le Monde</option>
+        <option value="tous">Tous (comparer)</option>
+      </select>
+    </div>
+    <div>
+      <label for="resolution">Résolution</label>
+      <select id="resolution">
+        <option value="annee">Année</option>
+        <option value="mois" selected>Mois</option>
+        <option value="jour">Jour</option>
+      </select>
+    </div>
+    <div>
+      <label for="de">Du</label>
+      <input id="de" type="date" value="1944-12-19" min="1944-12-19" max="2025-12-31">
+    </div>
+    <div>
+      <label for="a">Au</label>
+      <input id="a" type="date" value="2025-12-31" min="1944-12-19" max="2025-12-31">
+    </div>
+    <div>
+      <label for="lissage">Lissage</label>
+      <select id="lissage">
+        <option value="1">Aucun</option>
+        <option value="3">± 1 période</option>
+        <option value="7">± 3 périodes</option>
+        <option value="13">± 6 périodes</option>
+      </select>
+    </div>
+    <button type="submit">Tracer</button>
+  </form>
 
-<p class="note">Fréquence = occurrences ÷ nombre total de mots publiés sur la période, ×100 000.
-Un mot absent de la base donne une courbe à zéro.</p>
+  <div class="carte">
+    <div class="entete-carte">
+      <h2 id="titre">Fréquence dans Les Échos</h2>
+      <button type="button" class="bouton-csv" id="csv-courbes" hidden>Télécharger CSV</button>
+    </div>
+    <div class="unite">occurrences pour 100 000 mots publiés</div>
+    <div id="legende"></div>
+    <div id="zone">
+      <div class="message">Tape un mot puis « Tracer ».</div>
+      <div id="infobulle"></div>
+    </div>
+    <details id="bloc-tableau" hidden>
+      <summary>Voir les données</summary>
+      <div style="overflow-x:auto"><table id="tableau"></table></div>
+    </details>
+  </div>
+  <p class="note">Fréquence = occurrences ÷ nombre total de mots publiés sur la période, ×100 000 —
+  donc comparable entre journaux et entre périodes. Un mot absent de la base donne une courbe à zéro.
+  L'adresse de la page se met à jour à chaque tracé&nbsp;: copie-la pour partager le graphique.</p>
+</section>
+
+<!-- ═══════════ TOP ═══════════ -->
+<section id="vue-top" hidden>
+  <form id="formulaire-top">
+    <div>
+      <label for="top-n">Type</label>
+      <select id="top-n">
+        <option value="1">Mots simples</option>
+        <option value="2">Expressions de 2 mots</option>
+        <option value="3">Expressions de 3 mots</option>
+      </select>
+    </div>
+    <div>
+      <label for="top-corpus">Journal</label>
+      <select id="top-corpus">
+        <option value="lesechos">Les Échos</option>
+        <option value="lefigaro">Le Figaro</option>
+        <option value="lemonde">Le Monde</option>
+      </select>
+    </div>
+    <div>
+      <label for="top-resolution">Période</label>
+      <select id="top-resolution">
+        <option value="annee" selected>Année</option>
+        <option value="mois">Mois</option>
+        <option value="jour">Jour</option>
+      </select>
+    </div>
+    <div>
+      <label for="periode-annee">Laquelle</label>
+      <input id="periode-annee" type="number" value="2022" min="1944" max="2025" style="width:84px">
+      <input id="periode-mois" type="month" value="2022-03" min="1944-12" max="2025-12" hidden>
+      <input id="periode-jour" type="date" value="2022-03-14" min="1944-12-19" max="2025-12-31" hidden>
+    </div>
+    <div>
+      <label for="top-k">Combien</label>
+      <select id="top-k">
+        <option>10</option><option>25</option><option>50</option><option>100</option>
+      </select>
+    </div>
+    <button type="submit">Voir</button>
+  </form>
+  <label class="case"><input id="top-stop" type="checkbox" checked>
+    Masquer les mots outils (le, de, est, qu'il…) et les nombres</label>
+
+  <div class="carte">
+    <div class="entete-carte">
+      <h2 id="titre-top">Les plus fréquents</h2>
+      <button type="button" class="bouton-csv" id="csv-top" hidden>Télécharger CSV</button>
+    </div>
+    <div class="unite">nombre d'occurrences sur la période</div>
+    <div id="zone-top"><div class="message">Choisis une période puis « Voir ».</div></div>
+  </div>
+  <p class="note">Classement précalculé (top 500 par période) sur l'ensemble du vocabulaire du journal.</p>
+</section>
+
+<!-- ═══════════ AVANT / APRÈS ═══════════ -->
+<section id="vue-evolution" hidden>
+  <form id="formulaire-evolution">
+    <div>
+      <label for="evo-n">Type</label>
+      <select id="evo-n">
+        <option value="1">Mots simples</option>
+        <option value="2">Expressions de 2 mots</option>
+        <option value="3">Expressions de 3 mots</option>
+      </select>
+    </div>
+    <div>
+      <label for="evo-corpus">Journal</label>
+      <select id="evo-corpus">
+        <option value="lesechos">Les Échos</option>
+        <option value="lefigaro">Le Figaro</option>
+        <option value="lemonde">Le Monde</option>
+      </select>
+    </div>
+    <div>
+      <label for="evo-resolution">Comparer deux</label>
+      <select id="evo-resolution">
+        <option value="annee" selected>Années</option>
+        <option value="mois">Mois</option>
+        <option value="jour">Jours</option>
+      </select>
+    </div>
+    <div>
+      <label for="avant-annee">Période 1</label>
+      <input id="avant-annee" type="number" value="2018" min="1944" max="2025" style="width:84px">
+      <input id="avant-mois" type="month" value="2018-01" min="1944-12" max="2025-12" hidden>
+      <input id="avant-jour" type="date" value="2018-01-15" min="1944-12-19" max="2025-12-31" hidden>
+    </div>
+    <div>
+      <label for="apres-annee">Période 2</label>
+      <input id="apres-annee" type="number" value="2023" min="1944" max="2025" style="width:84px">
+      <input id="apres-mois" type="month" value="2023-01" min="1944-12" max="2025-12" hidden>
+      <input id="apres-jour" type="date" value="2023-01-15" min="1944-12-19" max="2025-12-31" hidden>
+    </div>
+    <div>
+      <label for="evo-k">Combien</label>
+      <select id="evo-k">
+        <option>10</option><option>25</option><option>50</option>
+      </select>
+    </div>
+    <button type="submit">Comparer</button>
+  </form>
+  <label class="case"><input id="evo-stop" type="checkbox" checked>
+    Masquer les mots outils (le, de, est, qu'il…) et les nombres</label>
+
+  <div class="carte">
+    <h2 id="titre-evolution">Ce qui monte, ce qui descend</h2>
+    <div class="unite">variation de fréquence (occurrences pour 100 000 mots), triée par ampleur</div>
+    <div id="zone-evolution"><div class="message">Choisis deux périodes puis « Comparer ».</div></div>
+  </div>
+  <p class="note">Basé sur les tops précalculés : un n-gramme absent du top 500 d'une période y compte
+  pour zéro. Idéal pour repérer les sujets qui émergent ou disparaissent autour d'un rachat.</p>
+</section>
 
 <script>
 "use strict";
 const COULEURS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"]
   .map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim());
-const NOMS_CORPUS = { lesechos: "Les Échos", lefigaro: "Le Figaro" };
+const NOMS_CORPUS = { lesechos: "Les Échos", lefigaro: "Le Figaro", lemonde: "Le Monde" };
 const MOIS_COURTS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+const formaterNombre = (v, chiffres = 3) =>
+  v.toLocaleString("fr-FR", { maximumSignificantDigits: chiffres });
+
+function afficherErreur(conteneur, message) {
+  conteneur.replaceChildren();
+  const div = document.createElement("div");
+  div.className = "message erreur";
+  div.textContent = "Erreur : " + message;
+  conteneur.appendChild(div);
+}
+
+function telecharger(nomFichier, contenu) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([contenu], { type: "text/csv" }));
+  a.download = nomFichier;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ---------- onglets ----------
+document.querySelectorAll(".onglets button").forEach(bouton =>
+  bouton.addEventListener("click", () => {
+    document.querySelectorAll(".onglets button").forEach(b =>
+      b.classList.toggle("actif", b === bouton));
+    for (const vue of ["courbes", "top", "evolution"])
+      document.getElementById("vue-" + vue).hidden = bouton.dataset.vue !== vue;
+  }));
+
+// bascule année/mois/jour d'un trio de champs période
+function brancherChampsPeriode(idSelect, champs) {
+  document.getElementById(idSelect).addEventListener("change", (e) => {
+    for (const [resolution, champ] of Object.entries(champs))
+      champ.hidden = resolution !== e.target.value;
+  });
+}
+const trio = prefixe => Object.fromEntries(["annee", "mois", "jour"].map(r =>
+  [r, document.getElementById(`${prefixe}-${r}`)]));
+
+// ---------- vue courbes ----------
 const zone = document.getElementById("zone");
 const infobulle = document.getElementById("infobulle");
-let series = [];      // [{nom, couleur, points: Map(temps -> {freq, n})}]
-let temps = [];       // liste triée des dates (ms) communes au graphique
+let series = [];      // [{nom, couleur, points: Map(t -> {freq, lisse, n})}]
+let temps = [];       // dates (ms) présentes, triées
 let resolutionCourante = "mois";
 
 document.getElementById("formulaire").addEventListener("submit", async (e) => {
   e.preventDefault();
   const mot = document.getElementById("mot").value.trim();
   if (!mot) return;
-  const corpus = document.getElementById("corpus").value;
+  const corpusChoisi = document.getElementById("corpus").value;
+  const listeCorpus = corpusChoisi === "tous" ? Object.keys(NOMS_CORPUS) : [corpusChoisi];
   resolutionCourante = document.getElementById("resolution").value;
-  const params = new URLSearchParams({
-    mot, corpus, resolution: resolutionCourante,
-    from: document.getElementById("de").value, to: document.getElementById("a").value,
-  });
-  document.getElementById("titre").textContent = "Fréquence dans " + NOMS_CORPUS[corpus];
+  const de = document.getElementById("de").value || "1944-12-19";
+  const a = document.getElementById("a").value || "2025-12-31";
+  const lissage = +document.getElementById("lissage").value;
+  document.getElementById("titre").textContent = "Fréquence dans " +
+    listeCorpus.map(c => NOMS_CORPUS[c]).join(" et ");
   zone.classList.add("chargement");
   try {
-    const reponse = await fetch("/query?" + params);
-    const texte = await reponse.text();
-    if (!reponse.ok) throw new Error(texte);
-    preparer(texte);
+    const reponses = await Promise.all(listeCorpus.map(corpus => fetch("/query?" +
+      new URLSearchParams({ mot, corpus, resolution: resolutionCourante, from: de, to: a }))));
+    const textes = await Promise.all(reponses.map(r => r.text()));
+    const raté = reponses.findIndex(r => !r.ok);
+    if (raté >= 0) throw new Error(textes[raté]);
+    preparer(listeCorpus.map((corpus, i) => ({ corpus, csv: textes[i] })), lissage);
     dessiner();
     remplirTableau();
+    document.getElementById("csv-courbes").hidden = false;
+    const partage = new URLSearchParams({ mot, corpus: corpusChoisi,
+      resolution: resolutionCourante, de, a });
+    if (lissage > 1) partage.set("lissage", lissage);
+    history.replaceState(null, "", "?" + partage);
   } catch (err) {
-    zone.innerHTML = '<div class="message erreur"></div>';
-    zone.querySelector(".message").textContent = "Erreur : " + err.message;
+    afficherErreur(zone, err.message);
     zone.appendChild(infobulle);
   }
   zone.classList.remove("chargement");
 });
 
-function preparer(csv) {
-  const lignes = csv.trim().split("\n");
-  const entetes = lignes[0].split(",");
-  const idx = Object.fromEntries(entetes.map((nom, i) => [nom, i]));
+function preparer(blocs, lissage) {
   const parSerie = new Map();
   const lesTemps = new Set();
-  for (const ligne of lignes.slice(1)) {
-    const c = ligne.split(",");
-    const gram = c[idx.gram];
-    const t = Date.UTC(+c[idx.annee], (idx.mois !== undefined ? +c[idx.mois] : 1) - 1,
-                       idx.jour !== undefined ? +c[idx.jour] : 1);
-    const n = +c[idx.n], total = +c[idx.total];
-    if (!parSerie.has(gram)) parSerie.set(gram, new Map());
-    if (total > 0) parSerie.get(gram).set(t, { freq: n / total * 1e5, n });
-    lesTemps.add(t);
+  for (const { corpus, csv } of blocs) {
+    const lignes = csv.trim().split("\n");
+    const idx = Object.fromEntries(lignes[0].split(",").map((nom, i) => [nom, i]));
+    for (const ligne of lignes.slice(1)) {
+      const c = ligne.split(",");
+      const nom = c[idx.gram] + (blocs.length > 1 ? " — " + NOMS_CORPUS[corpus] : "");
+      const t = Date.UTC(+c[idx.annee], (idx.mois !== undefined ? +c[idx.mois] : 1) - 1,
+                         idx.jour !== undefined ? +c[idx.jour] : 1);
+      const n = +c[idx.n], total = +c[idx.total];
+      if (!parSerie.has(nom)) parSerie.set(nom, new Map());
+      if (total > 0) parSerie.get(nom).set(t, { freq: n / total * 1e5, n });
+      lesTemps.add(t);
+    }
   }
   temps = [...lesTemps].sort((a, b) => a - b);
   series = [...parSerie.entries()].map(([nom, points], i) =>
     ({ nom, couleur: COULEURS[i % 8], points }));
+
+  // lissage : moyenne mobile centrée sur les points existants de chaque série
+  const demi = Math.floor(lissage / 2);
+  for (const s of series) {
+    const ts = temps.filter(t => s.points.has(t));
+    ts.forEach((t, i) => {
+      const fenetre = ts.slice(Math.max(0, i - demi), i + demi + 1)
+                        .map(u => s.points.get(u).freq);
+      s.points.get(t).lisse = fenetre.reduce((somme, v) => somme + v, 0) / fenetre.length;
+    });
+  }
 }
 
-function formaterDate(t) {
+function formaterDate(t, resolution = resolutionCourante) {
   const d = new Date(t);
-  if (resolutionCourante === "annee") return String(d.getUTCFullYear());
-  if (resolutionCourante === "mois") return MOIS_COURTS[d.getUTCMonth()] + " " + d.getUTCFullYear();
+  if (resolution === "annee") return String(d.getUTCFullYear());
+  if (resolution === "mois") return MOIS_COURTS[d.getUTCMonth()] + " " + d.getUTCFullYear();
   return d.getUTCDate() + " " + MOIS_COURTS[d.getUTCMonth()] + " " + d.getUTCFullYear();
 }
-const formaterFreq = (v) => v.toLocaleString("fr-FR", { maximumSignificantDigits: 3 });
+
+function graduationsX(t0, t1) {
+  // par mois si la fenêtre est courte, par année sinon
+  const d0 = new Date(t0), d1 = new Date(t1);
+  const nbMois = (d1.getUTCFullYear() - d0.getUTCFullYear()) * 12
+               + d1.getUTCMonth() - d0.getUTCMonth();
+  const ticks = [];
+  if (nbMois <= 30) {
+    for (let an = d0.getUTCFullYear(); an <= d1.getUTCFullYear(); an++)
+      for (let mois = 0; mois < 12; mois++) {
+        const t = Date.UTC(an, mois, 1);
+        if (t >= t0 && t <= t1)
+          ticks.push({ t, libelle: MOIS_COURTS[mois] + " " + String(an).slice(2) });
+      }
+  } else {
+    for (let an = d0.getUTCFullYear(); an <= d1.getUTCFullYear(); an++) {
+      const t = Date.UTC(an, 0, 1);
+      if (t >= t0 && t <= t1) ticks.push({ t, libelle: String(an) });
+    }
+  }
+  return ticks;
+}
 
 function dessiner() {
   const largeur = zone.clientWidth || 900, hauteur = 340;
-  const m = { haut: 12, droite: 16, bas: 26, gauche: 46 };
-  const maxFreq = Math.max(1e-9, ...series.flatMap(s => [...s.points.values()].map(p => p.freq)));
+  const m = { haut: 14, droite: 16, bas: 26, gauche: 46 };
+  const maxFreq = Math.max(1e-9, ...series.flatMap(s => [...s.points.values()].map(p => p.lisse)));
   const [t0, t1] = [temps[0], temps[temps.length - 1] + 1];
   const x = t => m.gauche + (t - t0) / (t1 - t0) * (largeur - m.gauche - m.droite);
   const y = v => hauteur - m.bas - v / (maxFreq * 1.06) * (hauteur - m.haut - m.bas);
@@ -228,14 +468,14 @@ function dessiner() {
     el("line", { x1: m.gauche, x2: largeur - m.droite, y1: y(v), y2: y(v),
                  stroke: v === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 });
     if (v > 0) el("text", { x: m.gauche - 8, y: y(v) + 4, "text-anchor": "end",
-      fill: "var(--muted)", "font-size": 11.5 }).textContent = formaterFreq(v);
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = formaterNombre(v);
   }
-  // graduations x : années (espacées pour rester lisibles)
-  const annees = [...new Set(temps.map(t => new Date(t).getUTCFullYear()))];
-  const saut = Math.ceil(annees.length / Math.max(2, Math.floor(largeur / 90)));
-  for (const an of annees.filter((_, i) => i % saut === 0))
-    el("text", { x: x(Date.UTC(an, 0, 1)), y: hauteur - 8, "text-anchor": "middle",
-      fill: "var(--muted)", "font-size": 11.5 }).textContent = an;
+  // graduations x, espacées pour rester lisibles
+  const ticks = graduationsX(t0, t1);
+  const saut = Math.ceil(ticks.length / Math.max(2, Math.floor(largeur / 90)));
+  for (const tick of ticks.filter((_, i) => i % saut === 0))
+    el("text", { x: x(tick.t), y: hauteur - 8, "text-anchor": "middle",
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = tick.libelle;
 
   // courbes : 2px, jointures rondes ; trous (dates sans total) = trait interrompu,
   // et un point seul entre deux trous devient un petit cercle (sinon invisible)
@@ -243,7 +483,7 @@ function dessiner() {
     const segments = [[]];
     for (const t of temps) {
       const p = s.points.get(t);
-      if (p) segments[segments.length - 1].push([x(t), y(p.freq)]);
+      if (p) segments[segments.length - 1].push([x(t), y(p.lisse)]);
       else if (segments[segments.length - 1].length) segments.push([]);
     }
     for (const seg of segments) {
@@ -258,8 +498,7 @@ function dessiner() {
 
   // couche survol : hairline + points + infobulle
   const curseur = el("g", { visibility: "hidden" });
-  el("line", { y1: m.haut, y2: hauteur - m.bas, stroke: "var(--axis)", "stroke-width": 1 },
-     curseur).classList.add("hairline");
+  el("line", { y1: m.haut, y2: hauteur - m.bas, stroke: "var(--axis)", "stroke-width": 1 }, curseur);
   for (const s of series)
     el("circle", { r: 4.5, fill: s.couleur, stroke: "var(--surface)", "stroke-width": 2 }, curseur);
 
@@ -278,14 +517,14 @@ function dessiner() {
     curseur.querySelectorAll("circle").forEach((cercle, i) => {
       const p = series[i].points.get(t);
       cercle.setAttribute("visibility", p ? "visible" : "hidden");
-      if (p) { cercle.setAttribute("cx", x(t)); cercle.setAttribute("cy", y(p.freq)); }
+      if (p) { cercle.setAttribute("cx", x(t)); cercle.setAttribute("cy", y(p.lisse)); }
       const rangee = document.createElement("div");
       rangee.className = "ligne";
       const trait = document.createElement("span");
-      trait.className = "trait"; trait.style.borderColor = series[i].couleur;
+      trait.className = "trait"; trait.style.borderTop = "3px solid " + series[i].couleur;
       const val = document.createElement("span");
       val.className = "val";
-      val.textContent = p ? formaterFreq(p.freq) : "—";
+      val.textContent = p ? formaterNombre(p.lisse) : "—";
       const nom = document.createElement("span");
       nom.className = "nom"; nom.textContent = series[i].nom;
       rangee.append(trait, val, nom);
@@ -310,7 +549,7 @@ function dessiner() {
       const cle = document.createElement("span");
       cle.className = "cle";
       const trait = document.createElement("span");
-      trait.className = "trait"; trait.style.borderColor = s.couleur;
+      trait.className = "trait"; trait.style.borderTop = "3px solid " + s.couleur;
       const nom = document.createElement("span");
       nom.textContent = s.nom;
       cle.append(trait, nom);
@@ -338,7 +577,7 @@ function remplirTableau() {
     date.textContent = formaterDate(t); rangee.appendChild(date);
     for (const s of series) {
       const p = s.points.get(t);
-      for (const v of [p ? String(p.n) : "—", p ? formaterFreq(p.freq) : "—"]) {
+      for (const v of [p ? String(p.n) : "—", p ? formaterNombre(p.freq) : "—"]) {
         const td = document.createElement("td");
         td.textContent = v; rangee.appendChild(td);
       }
@@ -348,7 +587,186 @@ function remplirTableau() {
   document.getElementById("bloc-tableau").hidden = false;
 }
 
+function dateISO(t) {
+  const d = new Date(t);
+  if (resolutionCourante === "annee") return String(d.getUTCFullYear());
+  const mois = String(d.getUTCMonth() + 1).padStart(2, "0");
+  if (resolutionCourante === "mois") return `${d.getUTCFullYear()}-${mois}`;
+  return `${d.getUTCFullYear()}-${mois}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+document.getElementById("csv-courbes").addEventListener("click", () => {
+  const lignes = [["date", ...series.flatMap(s => [`${s.nom} (n)`, `${s.nom} (pour 100 000)`])]];
+  for (const t of temps)
+    lignes.push([dateISO(t), ...series.flatMap(s => {
+      const p = s.points.get(t);
+      return p ? [p.n, p.freq.toFixed(4)] : ["", ""];
+    })]);
+  telecharger("ngram_courbes.csv", lignes.map(l => l.join(",")).join("\n"));
+});
+
 window.addEventListener("resize", () => { if (series.length) dessiner(); });
+
+// ---------- vue top ----------
+const zoneTop = document.getElementById("zone-top");
+const champsPeriode = trio("periode");
+brancherChampsPeriode("top-resolution", champsPeriode);
+let donneesTop = [];
+
+document.getElementById("formulaire-top").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const corpus = document.getElementById("top-corpus").value;
+  const resolution = document.getElementById("top-resolution").value;
+  const periode = champsPeriode[resolution].value;
+  if (!periode) return;
+  const n = document.getElementById("top-n").value;
+  const k = document.getElementById("top-k").value;
+  const params = new URLSearchParams({
+    corpus, n, resolution, periode, k,
+    sans_stop: document.getElementById("top-stop").checked ? "1" : "0",
+  });
+  const nomType = { 1: "mots", 2: "expressions de 2 mots", 3: "expressions de 3 mots" }[n];
+  document.getElementById("titre-top").textContent =
+    `Les ${k} ${nomType} les plus fréquents — ${libellePeriode(periode, resolution)}, ${NOMS_CORPUS[corpus]}`;
+  zoneTop.classList.add("chargement");
+  try {
+    const reponse = await fetch("/top?" + params);
+    const texte = await reponse.text();
+    if (!reponse.ok) throw new Error(texte);
+    donneesTop = parserGramN(texte).map(d => ({ ...d, n: +d.n }));
+    dessinerTop();
+    document.getElementById("csv-top").hidden = false;
+  } catch (err) {
+    afficherErreur(zoneTop, err.message);
+  }
+  zoneTop.classList.remove("chargement");
+});
+
+function libellePeriode(periode, resolution) {
+  const t = Date.UTC(+periode.slice(0, 4),
+                     resolution === "annee" ? 0 : +periode.slice(5, 7) - 1,
+                     resolution === "jour" ? +periode.slice(8, 10) : 1);
+  return formaterDate(t, resolution);
+}
+
+function parserGramN(csv) {  // lignes "gram,valeur[,...]" -> [{gram, ...champs numériques}]
+  const lignes = csv.trim().split("\n");
+  const entetes = lignes[0].split(",");
+  return lignes.slice(1).filter(l => l).map(l => {
+    const c = l.split(",");
+    return Object.fromEntries(entetes.map((nom, i) => [nom, c[i]]));
+  });
+}
+
+function rangeeBarre(conteneur, nom, largeurPct, negative, valeur, titre) {
+  const rangee = document.createElement("div");
+  rangee.className = "rangee-top";
+  const gram = document.createElement("span");
+  gram.className = "gram"; gram.textContent = nom; gram.title = titre || nom;
+  const ligne = document.createElement("div");
+  ligne.className = "barre-ligne";
+  if (titre) ligne.title = titre;
+  const barre = document.createElement("div");
+  barre.className = "barre" + (negative ? " negative" : "");
+  barre.style.width = largeurPct + "%";
+  const val = document.createElement("span");
+  val.className = "val"; val.textContent = valeur;
+  ligne.append(barre, val);
+  rangee.append(gram, ligne);
+  conteneur.appendChild(rangee);
+}
+
+function dessinerTop() {
+  zoneTop.replaceChildren();
+  if (!donneesTop.length) {
+    const div = document.createElement("div");
+    div.className = "message";
+    div.textContent = "Aucune donnée pour cette période.";
+    zoneTop.appendChild(div);
+    return;
+  }
+  const max = Math.max(...donneesTop.map(d => d.n));
+  for (const d of donneesTop)
+    rangeeBarre(zoneTop, d.gram, d.n / max * 80, false, d.n.toLocaleString("fr-FR"));
+}
+
+document.getElementById("csv-top").addEventListener("click", () => {
+  telecharger("ngram_top.csv",
+    ["gram,n", ...donneesTop.map(d => `${d.gram},${d.n}`)].join("\n"));
+});
+
+// ---------- vue avant / après ----------
+const zoneEvolution = document.getElementById("zone-evolution");
+const champsAvant = trio("avant"), champsApres = trio("apres");
+brancherChampsPeriode("evo-resolution", champsAvant);
+brancherChampsPeriode("evo-resolution", champsApres);
+
+document.getElementById("formulaire-evolution").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const corpus = document.getElementById("evo-corpus").value;
+  const resolution = document.getElementById("evo-resolution").value;
+  const avant = champsAvant[resolution].value, apres = champsApres[resolution].value;
+  if (!avant || !apres) return;
+  const params = new URLSearchParams({
+    corpus, resolution, avant, apres,
+    n: document.getElementById("evo-n").value,
+    k: document.getElementById("evo-k").value,
+    sans_stop: document.getElementById("evo-stop").checked ? "1" : "0",
+  });
+  document.getElementById("titre-evolution").textContent =
+    `De ${libellePeriode(avant, resolution)} à ${libellePeriode(apres, resolution)} — ${NOMS_CORPUS[corpus]}`;
+  zoneEvolution.classList.add("chargement");
+  try {
+    const reponse = await fetch("/evolution?" + params);
+    const texte = await reponse.text();
+    if (!reponse.ok) throw new Error(texte);
+    dessinerEvolution(parserGramN(texte));
+  } catch (err) {
+    afficherErreur(zoneEvolution, err.message);
+  }
+  zoneEvolution.classList.remove("chargement");
+});
+
+function dessinerEvolution(donnees) {
+  zoneEvolution.replaceChildren();
+  if (!donnees.length) {
+    const div = document.createElement("div");
+    div.className = "message";
+    div.textContent = "Aucune donnée pour ces périodes.";
+    zoneEvolution.appendChild(div);
+    return;
+  }
+  const max = Math.max(...donnees.map(d => Math.abs(+d.delta)));
+  const colonnes = document.createElement("div");
+  colonnes.className = "colonnes";
+  for (const [sens, titre] of [["hausse", "En hausse"], ["baisse", "En baisse"]]) {
+    const colonne = document.createElement("div");
+    const h3 = document.createElement("h3");
+    h3.textContent = titre;
+    colonne.appendChild(h3);
+    const rangees = donnees.filter(d => d.sens === sens);
+    if (!rangees.length) {
+      const div = document.createElement("div");
+      div.className = "message"; div.textContent = "Rien de notable.";
+      colonne.appendChild(div);
+    }
+    for (const d of rangees)
+      rangeeBarre(colonne, d.gram, Math.abs(+d.delta) / max * 72, sens === "baisse",
+        (sens === "hausse" ? "+" : "−") + formaterNombre(Math.abs(+d.delta)),
+        `${formaterNombre(+d.avant)} → ${formaterNombre(+d.apres)} pour 100 000`);
+    colonnes.appendChild(colonne);
+  }
+  zoneEvolution.appendChild(colonnes);
+}
+
+// ---------- lien partagé : pré-remplir et tracer ----------
+const paramsURL = new URLSearchParams(location.search);
+if (paramsURL.get("mot")) {
+  document.getElementById("mot").value = paramsURL.get("mot");
+  for (const param of ["corpus", "resolution", "de", "a", "lissage"])
+    if (paramsURL.get(param)) document.getElementById(param).value = paramsURL.get(param);
+  document.getElementById("formulaire").requestSubmit();
+}
 </script>
 </body>
 </html>

@@ -10,55 +10,38 @@ Les rachats de journaux français modifient-ils la couverture thématique des ar
 
 ```
 stage-mids/
-├── scraping/              # le code du scraping (package importable)
-│   ├── navigateur.py      # Firefox headless + bypass paywall + uBlock
-│   ├── batch.py           # constitution d'un batch d'URLs depuis la BDD
-│   ├── extraction.py      # extraction des métadonnées + corps d'un article
-│   ├── paywall.py         # détection des articles tronqués (est_bloque)
-│   ├── stockage.py        # écriture des CSV + mise à jour de l'état en base
-│   └── pipeline.py        # orchestration (ouvre, scrape, extrait, écrit)
-│
-├── scripts/              # préparation, à lancer une fois dans l'ordre
-│   ├── 1_telecharger_donnees.py   # télécharge les URLs depuis Hugging Face
-│   ├── 2_creer_bdd.py             # crée la base sqlite urls.db
-│   ├── 3_creer_csv.py             # crée les CSV de sortie (un par média)
-│   └── 4_marquer_doublons.py      # marque les articles déjà scrappés ailleurs
-│
-├── exploration/          # prototypes et tests (référence, hors prod)
-├── notebooks/            # notebooks d'analyse
-└── extensions/           # extensions Firefox (.xpi) — présentes sur le serveur
+├── scraping/       # le code du scraping (Firefox headless + bypass paywall)
+├── scripts/        # scripts serveur : init de la base (1 à 4), bases ngram, suivi, lancer.sh
+├── api/            # API Flask type Gallicagram (courbes ngram) + front
+├── site/           # dashboard de suivi Evidence, publié sur GitHub Pages
+├── exploration/    # prototypes, diagnostics, détail des métadonnées par média
+├── notebooks/      # notebooks d'analyse
+└── extensions/     # extensions Firefox (.xpi) — présentes sur le serveur
 ```
 
-Les données (CSV, base `urls.db`) et les extensions vivent sur le serveur,
-sous `/data/elias/stage-mids/`. Les chemins serveur sont définis dans
-[scraping/stockage.py](scraping/stockage.py) (`DATA_DIR`) et
-[scraping/navigateur.py](scraping/navigateur.py) (`RACINE`).
+Les données (CSV, bases SQLite) vivent sur le serveur, sous `/data/elias/stage-mids/data/`.
 
 ## Installation
 
 ```bash
-# Cloner le dépôt
-git clone <url-du-dépôt>
+git clone https://github.com/corto2corto/stage-mids
 cd stage-mids
-
-# Créer l'environnement et installer les dépendances (uv)
 uv venv
 uv pip install -r requirements.txt
 ```
 
 ## Utilisation
 
-Préparation de la base (une seule fois, dans l'ordre) :
+Préparation de la base (une seule fois, dans l'ordre) : `python scripts/1_telecharger_donnees.py` puis `2_creer_bdd.py`, `3_creer_csv.py`, `4_marquer_doublons.py`.
+
+Scraping en continu (sur le serveur, dans la session tmux `scrapping`) :
 
 ```bash
-python scripts/1_telecharger_donnees.py
-python scripts/2_creer_bdd.py
-python scripts/3_creer_csv.py
-python scripts/4_marquer_doublons.py
+bash scripts/lancer.sh
 ```
 
-Lancer le scraping :
+API ngram (sur le serveur, puis tunnel ssh vers localhost:8501) :
 
 ```bash
-python -m scraping.pipeline
+python -m api.app
 ```

@@ -17,9 +17,20 @@ from scraping.suivi import snapshot
 
 
 def ouvrir_sessions(batch):
-    """Ouvre une session par média (en parallèle) selon son moteur. Retourne {media: session}."""
+    """Ouvre une session par média (en parallèle) selon son moteur. Retourne {media: session}.
+
+    Une session qui échoue à l'ouverture est signalée puis ignorée : ses URLs
+    restent à etat=0 et seront reprises au cycle suivant de lancer.sh."""
+    def ouvrir(media):
+        try:
+            return media, ouvrir_session(media)
+        except Exception as e:
+            print(f"  {media} : échec d'ouverture de la session ({type(e).__name__})")
+            return media, None
+
     with ThreadPoolExecutor(max_workers=len(batch)) as ex:
-        return dict(zip(batch, ex.map(ouvrir_session, batch)))
+        resultats = dict(ex.map(ouvrir, batch))
+    return {media: session for media, session in resultats.items() if session}
 
 
 def scraper_batch(batch, sessions):
@@ -83,6 +94,12 @@ def main():
 
     print(f"Ouverture des sessions pour : {', '.join(sorted(batch))}")
     sessions = ouvrir_sessions(batch)
+    if not sessions:
+        print("Aucune session n'a pu démarrer — fin du run.")
+        conn.close()
+        return
+    # On ne garde que les médias dont la session a démarré.
+    batch = {media: iu for media, iu in batch.items() if media in sessions}
 
     traitees = 0
     vague = 0
@@ -92,10 +109,16 @@ def main():
             print(f"\n=== Vague {vague}  ({traitees} URLs traitées) ===")
             traitees += traiter_vague(conn, batch, sessions)
             snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
-            batch = new_batch()
+            # On ne garde que les médias dont la session a démarré : sinon un
+            # média sans session reviendrait sans cesse et la boucle ne finirait pas.
+            batch = {media: iu for media, iu in new_batch().items()
+                     if media in sessions}
     finally:
         for media, session in sessions.items():
-            fermer_session(media, session)
+            try:
+                fermer_session(media, session)
+            except Exception:
+                pass   # session déjà morte : lancer.sh nettoiera le processus
         shutil.rmtree(TMP_FIREFOX, ignore_errors=True)   # profils temp de la session
         conn.close()
 
