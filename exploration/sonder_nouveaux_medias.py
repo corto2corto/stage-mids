@@ -13,8 +13,10 @@ Les csv ne sont jamais charges entierement (certains font ~1 Go) : une passe
 pour compter les lignes, une pour cueillir les positions voulues.
 
 A lancer sur le serveur :  python -m exploration.sonder_nouveaux_medias
+SONDE_DIR=data/urls SONDE_TOUS=1 : sonder les anciens medias (deja dans MEDIAS).
 """
 import csv
+import os
 import time
 from collections import Counter
 from pathlib import Path
@@ -29,9 +31,9 @@ from scraping.paywall import est_bloque
 N_PAR_MEDIA = 10
 
 session = ouvrir_session()
-for chemin in sorted(Path("exploration").glob("*_url.csv")):
+for chemin in sorted(Path(os.environ.get("SONDE_DIR", "exploration")).glob("*_url.csv")):
     media = chemin.stem.removesuffix("_url")
-    if media in MEDIAS:
+    if media in MEDIAS and not os.environ.get("SONDE_TOUS"):
         continue
 
     # Passe 1 : compter les lignes sans rien garder en memoire.
