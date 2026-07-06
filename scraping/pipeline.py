@@ -47,7 +47,7 @@ def ouvrir_sessions(batch):
     # Les sessions log d'abord, une par une au calme : le login échoue pendant
     # la ruée des Firefox, et chaque échec consomme une tentative sur le
     # compte abonné.
-    logs = [media for media in batch if MEDIAS[media]["moteur"] == "log"]
+    logs = [media for media in batch if MEDIAS.get(media, {}).get("moteur") == "log"]
     t = time.time()
     for media in logs:
         resultats[media] = ouvrir(media)[1]
@@ -55,7 +55,7 @@ def ouvrir_sessions(batch):
         ouverts = sum(1 for media in logs if resultats[media])
         print(f"[chrono] sessions log : {time.time()-t:.1f}s ({ouverts}/{len(logs)} ouvertes)")
 
-    autres = [media for media in batch if MEDIAS[media]["moteur"] != "log"]
+    autres = [media for media in batch if media not in resultats]
     t = time.time()
     if autres:
         with ThreadPoolExecutor(max_workers=len(autres)) as ex:
