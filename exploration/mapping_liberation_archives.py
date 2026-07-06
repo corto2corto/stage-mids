@@ -12,7 +12,7 @@ est a relancer.
 
     python -m exploration.mapping_liberation_archives
 
-MAPPING_LIMITE=N (env) : ne parcourt que N pages d'index medianes (smoke test).
+MAPPING_LIMITE=N (env) : ne parcourt que 3xN pages d'index reparties (smoke test).
 """
 import csv
 import os
@@ -43,7 +43,8 @@ nb_pages = int(r.text.strip())
 pages = list(range(nb_pages))
 limite = int(os.environ.get("MAPPING_LIMITE", "0"))
 if limite:
-    pages = pages[::max(1, nb_pages // limite)][:limite]  # pages reparties sur l'index
+    # 3x limite sondes reparties : l'index est clairseme apres filtres (zones creuses)
+    pages = pages[::max(1, nb_pages // (3 * limite))][:3 * limite]
 print(f"{nb_pages} pages d'index CDX a parcourir")
 
 for i, page in enumerate(tqdm(pages), 1):
