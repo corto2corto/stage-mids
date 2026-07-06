@@ -4,6 +4,7 @@ Sans réseau ni Firefox : les moteurs sont remplacés par des doublures (mock).
 Lancer :  python -m unittest tests.test_scraping_v2 -v
 """
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -180,17 +181,27 @@ class TestPipeline(unittest.TestCase):
         with patch("scraping.pipeline.ouvrir_session", side_effect=RuntimeError):
             self.assertEqual(pipeline.ouvrir_sessions(batch), {})
 
-    def test_scraper_batch_echec_isole(self):
-        batch = {"a": (1, "http://a"), "b": (2, "http://b")}
-        sessions = {"a": "s_a", "b": "s_b"}
-        def scraper(media, session, url):
-            if media == "b":
-                raise RuntimeError("timeout")
-            return "<html>"
-        with patch("scraping.pipeline.scraper", side_effect=scraper):
-            resultats = pipeline.scraper_batch(batch, sessions)
-        self.assertEqual(resultats["a"], (1, "http://a", "<html>"))
-        self.assertEqual(resultats["b"], (2, "http://b", None))
+    def _conn_memoire(self):
+        conn = sqlite3.connect(":memory:")
+        conn.execute("CREATE TABLE urls (id INTEGER PRIMARY KEY, media TEXT, "
+                     "url TEXT, etat INTEGER DEFAULT 0)")
+        conn.execute("INSERT INTO urls (id, media, url) VALUES (1, 'a', 'http://a')")
+        return conn
+
+    def test_traiter_url_echec_scrape(self):
+        conn = self._conn_memoire()
+        with patch("scraping.pipeline.scraper", side_effect=RuntimeError("timeout")):
+            etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a")
+        self.assertEqual(etat, 1)
+        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 1)
+
+    def test_traiter_url_succes(self):
+        conn = self._conn_memoire()
+        with patch("scraping.pipeline.scraper", return_value="<html>"), \
+             patch("scraping.pipeline.ecriture_csv", return_value=2):
+            etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a")
+        self.assertEqual(etat, 2)
+        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 2)
 
 
 class TestExtraction(unittest.TestCase):

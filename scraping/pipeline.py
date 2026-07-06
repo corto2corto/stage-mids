@@ -1,11 +1,11 @@
-"""Orchestration du scraping : ouvre les navigateurs, scrape un batch, écrit.
+"""Orchestration du scraping : ouvre les navigateurs, scrape, écrit.
 Point d'entrée : main(). Lancé via `python -m scraping.pipeline`.
 
-Les médias sont répartis en un groupe par moteur (basic, log, firefox), chacun
-tournant sa boucle de vagues dans un thread : basic enchaîne en ~1 s, log au
-rythme du chargement Firefox connecté, firefox au rythme du bypass. Sans cette
-séparation, chaque vague durerait le temps du média le plus lent. Un média qui
-freine son groupe peut être isolé via le champ "groupe" de medias.py.
+Chaque média a sa boucle dans son propre thread : scraper une URL, écrire,
+respecter son attente, recommencer. Aucune synchronisation entre médias :
+un site lent (ou un chargement Firefox qui traîne) ne ralentit que lui-même.
+C'est ce qui donne le débit — l'ancienne organisation en vagues attendait le
+média le plus lent avant de relancer tout le monde.
 """
 
 import csv
@@ -16,7 +16,7 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 
-from scraping.batch import new_batch
+from scraping.batch import new_batch, prochaine_url
 from scraping.config import TMP_FIREFOX
 from scraping.medias import MEDIAS
 from scraping.moteurs import fermer_session, ouvrir_session, scraper
@@ -24,11 +24,11 @@ from scraping.navigateur import configurer_ublock
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
 from scraping.suivi import snapshot
 
-# snapshot() écrit dans suivi_journal.csv : un seul groupe à la fois.
-VERROU_SUIVI = threading.Lock()
-# Les threads des groupes écrivent tous dans le même log : sans verrou, les
+# Les threads des médias écrivent tous dans le même log : sans verrou, les
 # lignes s'entremêlent et deviennent inexploitables pour la surveillance.
 VERROU_PRINT = threading.Lock()
+
+DUREE_MAX = 2 * 3600   # un run s'arrête seul au bout de 2 h, lancer.sh relance
 
 
 def ouvrir_sessions(batch):
@@ -67,36 +67,61 @@ def ouvrir_sessions(batch):
     return {media: session for media, session in resultats.items() if session}
 
 
-def scraper_batch(batch, sessions):
-    """Scrape toutes les URLs du batch en parallèle. Retourne {media: (id, url, html)}."""
-    def scraper_url(media):
-        id, url = batch[media]
-        try:
-            html = scraper(media, sessions[media], url)
-        except Exception:
-            html = None
-        return media, (id, url, html)
-
-    with ThreadPoolExecutor(max_workers=len(sessions)) as ex:
-        return dict(ex.map(scraper_url, sessions))
-
-
-def traiter_vague(conn, batch, sessions):
-    actifs = {media: sessions[media] for media in batch if media in sessions}
-    resultats = scraper_batch(batch, actifs)
-
-    for media, (id, url, html) in resultats.items():
-        try:
-            etat = ecriture_csv(media, id, url, html) if html else 1
-        except Exception:
-            etat = 1
-        with VERROU_PRINT:
-            print(f"  {media:<24} id={id}  etat={etat} ({'succès' if etat == 2 else 'échec'})")
-        maj_bdd(conn, id, etat)
-
+def traiter_url(conn, media, session, id, url):
+    """Scrape une URL, écrit le résultat, met à jour l'état. Retourne l'état (1 ou 2)."""
+    try:
+        html = scraper(media, session, url)
+    except Exception:
+        html = None
+    try:
+        etat = ecriture_csv(media, id, url, html) if html else 1
+    except Exception:
+        etat = 1
+    maj_bdd(conn, id, etat)
     conn.commit()
-    return len(resultats)
+    return etat
 
+
+def boucle_media(media, session, debut):
+    """Boucle d'un média : une URL à la fois, à son rythme, jusqu'à épuisement.
+
+    Connexion propre au thread. Le mode WAL évite que les écritures croisées
+    des ~30 threads ne se bloquent (en mode journal classique, SQLite renvoie
+    « database is locked » sans respecter le timeout quand deux transactions
+    s'entrecroisent) ; synchronous=NORMAL suffit en WAL et allège les commits."""
+    conn = sqlite3.connect(DATA_DIR/"urls.db", timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")   # persistant sur le fichier, idempotent
+    conn.execute("PRAGMA synchronous=NORMAL")
+    traitees = 0
+    t0 = time.time()
+    try:
+        while time.time() - debut < DUREE_MAX:
+            suivant = prochaine_url(conn, media)
+            if not suivant:
+                break
+            id, url = suivant
+            etat = traiter_url(conn, media, session, id, url)
+            traitees += 1
+            with VERROU_PRINT:
+                print(f"  {media:<24} id={id}  etat={etat} ({'succès' if etat == 2 else 'échec'})")
+    except Exception:
+        # Sans ça, l'exception resterait cachée dans le future jusqu'à la fin
+        # du run : on la montre tout de suite, les autres médias continuent et
+        # les URLs restantes seront reprises au cycle suivant de lancer.sh.
+        with VERROU_PRINT:
+            print(f"\n[{media}] boucle interrompue par une erreur :")
+            traceback.print_exc()
+    finally:
+        try:
+            fermer_session(media, session)
+        except Exception:
+            pass   # session déjà morte : lancer.sh nettoiera le processus
+        conn.close()
+    duree = time.time() - t0
+    with VERROU_PRINT:
+        print(f"[bilan] {media} : {traitees} URLs en {duree/60:.1f} min "
+              f"({traitees*60/duree:.1f} URLs/min)")
+    return traitees
 
 
 def charger_nouvelles_urls(conn):
@@ -111,47 +136,6 @@ def charger_nouvelles_urls(conn):
         if nouvelles:
             print(f"{media} : {len(nouvelles)} nouvelles URLs chargées")
     conn.commit()
-
-
-def boucle_vagues(nom, sessions, debut):
-    """Boucle de vagues d'un groupe de médias, à son propre rythme.
-
-    Chaque groupe a sa connexion : les threads ne touchent jamais les mêmes
-    lignes (une URL n'a qu'un média). Le mode WAL évite qu'écritures et
-    lectures simultanées des groupes se bloquent entre elles (en mode journal
-    classique, SQLite renvoie « database is locked » sans respecter le
-    timeout quand deux transactions s'entrecroisent)."""
-    conn = sqlite3.connect(DATA_DIR/"urls.db", timeout=30)
-    conn.execute("PRAGMA journal_mode=WAL")   # persistant sur le fichier, idempotent
-    traitees = 0
-    vague = 0
-    # On ne garde que les médias du groupe dont la session a démarré : sinon un
-    # média sans session reviendrait sans cesse et la boucle ne finirait pas.
-    batch = {media: iu for media, iu in new_batch().items() if media in sessions}
-    try:
-        while batch and time.time() - debut < (2*3600):
-            vague += 1
-            with VERROU_PRINT:
-                print(f"\n=== [{nom}] Vague {vague}  ({traitees} URLs traitées) ===")
-            traitees += traiter_vague(conn, batch, sessions)
-            with VERROU_SUIVI:
-                snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
-            batch = {media: iu for media, iu in new_batch().items()
-                     if media in sessions}
-    except Exception:
-        # Sans ça, l'exception resterait cachée dans le future jusqu'à la fin
-        # du run : on la montre tout de suite, les autres groupes continuent
-        # et les URLs restantes seront reprises au cycle suivant de lancer.sh.
-        print(f"\n[{nom}] boucle interrompue par une erreur :")
-        traceback.print_exc()
-    finally:
-        for media, session in sessions.items():
-            try:
-                fermer_session(media, session)
-            except Exception:
-                pass   # session déjà morte : lancer.sh nettoiera le processus
-        conn.close()
-    return traitees
 
 
 def main():
@@ -172,19 +156,24 @@ def main():
         print("Aucune session n'a pu démarrer — fin du run.")
         return
 
-    # Un groupe par moteur (surchargeable par média via "groupe" dans medias.py,
-    # pour isoler un média lent), chacun sa boucle de vagues à son rythme.
-    groupes = {}
-    for media, session in sessions.items():
-        cle = MEDIAS[media].get("groupe", MEDIAS[media]["moteur"])
-        groupes.setdefault(cle, {})[media] = session
+    # Le suivi tourne à part, hors du chemin critique des médias.
+    arret = threading.Event()
+    def suivi_periodique():
+        while not arret.wait(60):
+            try:
+                snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
+            except Exception:
+                pass   # le suivi ne doit jamais gêner le scraping
+    threading.Thread(target=suivi_periodique, daemon=True).start()
 
+    print(f"[chrono] scraping lancé, un thread par média ({len(sessions)})")
     try:
-        with ThreadPoolExecutor(max_workers=len(groupes)) as ex:
-            futurs = [ex.submit(boucle_vagues, nom, grp, debut)
-                      for nom, grp in groupes.items()]
+        with ThreadPoolExecutor(max_workers=len(sessions)) as ex:
+            futurs = [ex.submit(boucle_media, media, session, debut)
+                      for media, session in sessions.items()]
             traitees = sum(f.result() for f in futurs)
     finally:
+        arret.set()
         shutil.rmtree(TMP_FIREFOX, ignore_errors=True)   # profils temp de la session
 
     print(f"\n{traitees} URLs traitées en {time.time() - debut:.1f}s.")

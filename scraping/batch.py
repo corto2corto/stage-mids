@@ -15,5 +15,12 @@ def new_batch():
         ).fetchall()
     return {media: (id, url) for media, id, url in rows}
 
+
+def prochaine_url(conn, media):
+    """Prochaine URL à traiter (etat=0) pour un média : (id, url), ou None."""
+    return conn.execute(
+        "SELECT id, url FROM urls WHERE media=? AND etat=0 LIMIT 1", (media,)
+    ).fetchone()
+
 if __name__ == "__main__":
     print(new_batch())

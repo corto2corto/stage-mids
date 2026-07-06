@@ -24,8 +24,10 @@ while True:
                   if "database is locked" in l or "OperationalError" in l)
     total_ok = sum(ok for _, ok, _ in lignes)
     total_ko = sum(ko for _, _, ko in lignes)
+    debit = total_ok + total_ko - precedent.get("_total", 0)
+    precedent["_total"] = total_ok + total_ko
     print(f"\n[{time.strftime('%H:%M:%S')}] {total_ok} succès, {total_ko} échecs, "
-          f"blocages BDD : {bloques}")
+          f"débit global : {debit} URLs/min, blocages BDD : {bloques}")
 
     for media, ok, ko in lignes:
         delta = ok + ko - precedent.get(media, 0)
