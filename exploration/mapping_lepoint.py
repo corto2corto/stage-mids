@@ -31,7 +31,7 @@ nb_pages = int(r.text.strip())
 pages = list(range(nb_pages))
 limite = int(os.environ.get("MAPPING_LIMITE", "0"))
 if limite:
-    pages = pages[nb_pages // 2:nb_pages // 2 + limite]  # pages medianes, rarement vides
+    pages = pages[::max(1, nb_pages // limite)][:limite]  # pages reparties sur l'index
 print(f"{nb_pages} pages d'index CDX a parcourir")
 
 urls = set()
@@ -45,10 +45,12 @@ for i, page in enumerate(tqdm(pages), 1):
                              headers=ENTETES, timeout=180)
             r.raise_for_status()
             texte = r.text
-            break
+            if texte.strip() or tentative == 2:
+                break  # page reellement vide apres 3 essais : zone creuse de l'index
+            print(f"page {page} tentative {tentative + 1} : reponse vide, on reessaie")
         except requests.RequestException as e:
             print(f"page {page} tentative {tentative + 1} : echec ({e})")
-            time.sleep(10 * (tentative + 1))  # l'API CDX throttle par moments
+        time.sleep(10 * (tentative + 1))  # l'API CDX throttle par moments
     for brute in texte.splitlines():
         u = brute.split("?")[0].split("#")[0].replace("http://", "https://").replace(":80/", "/")
         if MOTIF_ARTICLE.match(u):
