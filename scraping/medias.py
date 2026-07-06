@@ -7,11 +7,14 @@ Champs par média :
 - attente : secondes de pause après chaque URL. Pour firefox/log c'est le temps
             laissé à la page pour charger (ATTENTE_DEFAUT si absent) ; pour basic
             c'est un simple délai de politesse envers le site (ATTENTE_BASIC).
+- timeout : secondes max de chargement d'une page (moteur firefox). À poser sur
+            les médias dont certaines pages ne répondent jamais (anti-bot) :
+            au-delà, on abandonne l'URL (etat=1) et on passe à la suivante.
 - meta    : stratégie d'extraction des métadonnées et du corps (cf extraction.py).
 """
 
 ATTENTE_DEFAUT = 6   # firefox/log : temps de chargement de la page
-ATTENTE_BASIC = 3    # basic : la requête est instantanée, on temporise par politesse
+ATTENTE_BASIC = 1    # basic : la requête est instantanée, on temporise par politesse
 
 MEDIAS = {
     # Sonde anciens médias 06/07/2026 (sonde_anciens.log) : le_capital, challenges,

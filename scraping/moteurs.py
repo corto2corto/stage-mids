@@ -19,7 +19,10 @@ def ouvrir_session(media):
         return basic.ouvrir_session()
     if moteur == "log":
         return ouvrir_firefox_connecte(media)
-    return navigateur.ouvrir_firefox()
+    driver = navigateur.ouvrir_firefox()
+    if "timeout" in MEDIAS[media]:
+        driver.set_page_load_timeout(MEDIAS[media]["timeout"])
+    return driver
 
 
 def scraper(media, session, url):
