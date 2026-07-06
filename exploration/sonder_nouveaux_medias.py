@@ -1,8 +1,9 @@
-"""Sonde les 11 nouveaux medias pour choisir leur moteur de scraping et leur
+"""Sonde les nouveaux medias (tout exploration/<media>_url.csv dont le media
+n'est pas encore dans MEDIAS) pour choisir leur moteur de scraping et leur
 strategie d'extraction (futures entrees de scraping/medias.py). Pour chaque
-media, prend 3 URLs reparties dans exploration/<media>_url.csv (produits par
-les scripts de mapping), recupere le HTML via le moteur "basic" (curl_cffi,
-sans navigateur) et regarde :
+media, prend 3 URLs reparties dans son csv (produit par les scripts de
+mapping), recupere le HTML via le moteur "basic" (curl_cffi, sans navigateur)
+et regarde :
 - statut HTTP (le site accepte-t-il une requete sans Selenium ?),
 - JSON-LD Article : present ? isAccessibleForFree ? taille d'articleBody
   (article complet dans le HTML servi = cas JDD, moteur basic suffisant),
@@ -13,24 +14,24 @@ A lancer sur le serveur :  python -m exploration.sonder_nouveaux_medias
 import csv
 import time
 from collections import Counter
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
 from scraping.basic import ouvrir_session, scraper
 from scraping.extraction import noeud_json_ld
+from scraping.medias import MEDIAS
 from scraping.paywall import est_bloque
 
-A_SONDER = ["gala", "voici", "la_croix", "bfmtv", "midilibre", "lexpress",
-            "francesoir", "paris_normandie", "liberation", "marianne", "leparisien"]
-
 session = ouvrir_session()
-for media in A_SONDER:
-    chemin = f"exploration/{media}_url.csv"
-    try:
-        with open(chemin, newline="", encoding="utf-8") as f:
-            urls = [ligne["url"] for ligne in csv.DictReader(f)]
-    except FileNotFoundError:
-        print(f"\n=== {media} : {chemin} absent (mapping pas encore lance ?), ignore ===")
+for chemin in sorted(Path("exploration").glob("*_url.csv")):
+    media = chemin.stem.removesuffix("_url")
+    if media in MEDIAS:
+        continue
+    with open(chemin, newline="", encoding="utf-8") as f:
+        urls = [ligne["url"] for ligne in csv.DictReader(f)]
+    if not urls:
+        print(f"\n=== {media} : csv vide, ignore ===")
         continue
 
     echantillon = urls[:: max(1, len(urls) // 3)][:3]
