@@ -11,7 +11,7 @@ Champs par média :
 """
 
 ATTENTE_DEFAUT = 6   # firefox/log : temps de chargement de la page
-ATTENTE_BASIC = 2    # basic : la requête est instantanée, on temporise par politesse
+ATTENTE_BASIC = 1    # basic : la requête est instantanée, on temporise par politesse
 
 MEDIAS = {
     # Sonde anciens médias 06/07/2026 (sonde_anciens.log) : le_capital, challenges,
