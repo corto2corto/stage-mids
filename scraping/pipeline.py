@@ -1,19 +1,29 @@
 """Orchestration du scraping : ouvre les navigateurs, scrape un batch, écrit.
 Point d'entrée : main(). Lancé via `python -m scraping.pipeline`.
+
+Les médias sont répartis en un groupe par moteur (basic, log, firefox), chacun
+tournant sa boucle de vagues dans un thread : basic enchaîne en ~1 s, log au
+rythme du chargement Firefox connecté, firefox au rythme du bypass. Sans cette
+séparation, chaque vague durerait le temps du média le plus lent.
 """
 
 import csv
 import shutil
 import sqlite3
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 from scraping.batch import new_batch
 from scraping.config import TMP_FIREFOX
+from scraping.medias import MEDIAS
 from scraping.moteurs import fermer_session, ouvrir_session, scraper
 from scraping.navigateur import configurer_ublock
 from scraping.stockage import DATA_DIR, ecriture_csv, maj_bdd
 from scraping.suivi import snapshot
+
+# snapshot() écrit dans suivi_journal.csv : un seul groupe à la fois.
+VERROU_SUIVI = threading.Lock()
 
 
 def ouvrir_sessions(batch):
@@ -78,39 +88,25 @@ def charger_nouvelles_urls(conn):
     conn.commit()
 
 
-def main():
-    debut = time.time()
-    configurer_ublock()
-    conn = sqlite3.connect(DATA_DIR/"urls.db")
-    # charger_nouvelles_urls(conn)  # désactivé : pas de nouveaux CSV pour l'instant
+def boucle_vagues(nom, sessions, debut):
+    """Boucle de vagues d'un groupe de médias, à son propre rythme.
 
-    # Le premier batch fixe l'ensemble des médias à traiter, donc les sessions
-    # à ouvrir (aucun média ne peut en gagner en cours de route).
-    batch = new_batch()
-    if not batch:
-        print("Aucune URL à etat=0 — rien à faire.")
-        conn.close()
-        return
-
-    print(f"Ouverture des sessions pour : {', '.join(sorted(batch))}")
-    sessions = ouvrir_sessions(batch)
-    if not sessions:
-        print("Aucune session n'a pu démarrer — fin du run.")
-        conn.close()
-        return
-    # On ne garde que les médias dont la session a démarré.
-    batch = {media: iu for media, iu in batch.items() if media in sessions}
-
+    Chaque groupe a sa connexion : les deux threads ne touchent jamais les
+    mêmes lignes (une URL n'a qu'un média), et le timeout laisse SQLite
+    attendre si l'autre groupe écrit au même moment."""
+    conn = sqlite3.connect(DATA_DIR/"urls.db", timeout=30)
     traitees = 0
     vague = 0
+    # On ne garde que les médias du groupe dont la session a démarré : sinon un
+    # média sans session reviendrait sans cesse et la boucle ne finirait pas.
+    batch = {media: iu for media, iu in new_batch().items() if media in sessions}
     try:
         while batch and time.time() - debut < (2*3600):
             vague += 1
-            print(f"\n=== Vague {vague}  ({traitees} URLs traitées) ===")
+            print(f"\n=== [{nom}] Vague {vague}  ({traitees} URLs traitées) ===")
             traitees += traiter_vague(conn, batch, sessions)
-            snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
-            # On ne garde que les médias dont la session a démarré : sinon un
-            # média sans session reviendrait sans cesse et la boucle ne finirait pas.
+            with VERROU_SUIVI:
+                snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
             batch = {media: iu for media, iu in new_batch().items()
                      if media in sessions}
     finally:
@@ -119,8 +115,40 @@ def main():
                 fermer_session(media, session)
             except Exception:
                 pass   # session déjà morte : lancer.sh nettoiera le processus
-        shutil.rmtree(TMP_FIREFOX, ignore_errors=True)   # profils temp de la session
         conn.close()
+    return traitees
+
+
+def main():
+    debut = time.time()
+    configurer_ublock()
+    # charger_nouvelles_urls(conn)  # désactivé : pas de nouveaux CSV pour l'instant
+
+    # Le premier batch fixe l'ensemble des médias à traiter, donc les sessions
+    # à ouvrir (aucun média ne peut en gagner en cours de route).
+    batch = new_batch()
+    if not batch:
+        print("Aucune URL à etat=0 — rien à faire.")
+        return
+
+    print(f"Ouverture des sessions pour : {', '.join(sorted(batch))}")
+    sessions = ouvrir_sessions(batch)
+    if not sessions:
+        print("Aucune session n'a pu démarrer — fin du run.")
+        return
+
+    # Un groupe par moteur, chacun sa boucle de vagues à son rythme.
+    groupes = {}
+    for media, session in sessions.items():
+        groupes.setdefault(MEDIAS[media]["moteur"], {})[media] = session
+
+    try:
+        with ThreadPoolExecutor(max_workers=len(groupes)) as ex:
+            futurs = [ex.submit(boucle_vagues, nom, grp, debut)
+                      for nom, grp in groupes.items()]
+            traitees = sum(f.result() for f in futurs)
+    finally:
+        shutil.rmtree(TMP_FIREFOX, ignore_errors=True)   # profils temp de la session
 
     print(f"\n{traitees} URLs traitées en {time.time() - debut:.1f}s.")
 
