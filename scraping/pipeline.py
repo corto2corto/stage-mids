@@ -26,6 +26,9 @@ from scraping.suivi import snapshot
 
 # snapshot() écrit dans suivi_journal.csv : un seul groupe à la fois.
 VERROU_SUIVI = threading.Lock()
+# Les threads des groupes écrivent tous dans le même log : sans verrou, les
+# lignes s'entremêlent et deviennent inexploitables pour la surveillance.
+VERROU_PRINT = threading.Lock()
 
 
 def ouvrir_sessions(batch):
@@ -40,13 +43,27 @@ def ouvrir_sessions(batch):
             print(f"  {media} : échec d'ouverture de la session ({type(e).__name__})")
             return media, None
 
-    with ThreadPoolExecutor(max_workers=len(batch)) as ex:
-        resultats = dict(ex.map(ouvrir, batch))
-    # Seconde chance, un par un : le lancement simultané de tous les Firefox
-    # fait parfois dépasser le timeout des pages de login (moteur log) ; une
-    # fois la ruée passée, la même ouverture réussit en général.
+    resultats = {}
+    # Les sessions log d'abord, une par une au calme : le login échoue pendant
+    # la ruée des Firefox, et chaque échec consomme une tentative sur le
+    # compte abonné.
+    logs = [media for media in batch if MEDIAS[media]["moteur"] == "log"]
+    t = time.time()
+    for media in logs:
+        resultats[media] = ouvrir(media)[1]
+    if logs:
+        ouverts = sum(1 for media in logs if resultats[media])
+        print(f"[chrono] sessions log : {time.time()-t:.1f}s ({ouverts}/{len(logs)} ouvertes)")
+
+    autres = [media for media in batch if MEDIAS[media]["moteur"] != "log"]
+    t = time.time()
+    if autres:
+        with ThreadPoolExecutor(max_workers=len(autres)) as ex:
+            resultats.update(ex.map(ouvrir, autres))
+    # Seconde chance, un par un, une fois la ruée passée.
     for media in [m for m, s in resultats.items() if s is None]:
         resultats[media] = ouvrir(media)[1]
+    print(f"[chrono] sessions firefox+basic : {time.time()-t:.1f}s")
     return {media: session for media, session in resultats.items() if session}
 
 
@@ -73,7 +90,8 @@ def traiter_vague(conn, batch, sessions):
             etat = ecriture_csv(media, id, url, html) if html else 1
         except Exception:
             etat = 1
-        print(f"  {media:<24} id={id}  etat={etat} ({'succès' if etat == 2 else 'échec'})")
+        with VERROU_PRINT:
+            print(f"  {media:<24} id={id}  etat={etat} ({'succès' if etat == 2 else 'échec'})")
         maj_bdd(conn, id, etat)
 
     conn.commit()
@@ -113,7 +131,8 @@ def boucle_vagues(nom, sessions, debut):
     try:
         while batch and time.time() - debut < (2*3600):
             vague += 1
-            print(f"\n=== [{nom}] Vague {vague}  ({traitees} URLs traitées) ===")
+            with VERROU_PRINT:
+                print(f"\n=== [{nom}] Vague {vague}  ({traitees} URLs traitées) ===")
             traitees += traiter_vague(conn, batch, sessions)
             with VERROU_SUIVI:
                 snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
