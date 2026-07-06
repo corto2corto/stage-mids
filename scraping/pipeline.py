@@ -13,6 +13,7 @@ import shutil
 import sqlite3
 import threading
 import time
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 
 from scraping.batch import new_batch
@@ -97,10 +98,13 @@ def charger_nouvelles_urls(conn):
 def boucle_vagues(nom, sessions, debut):
     """Boucle de vagues d'un groupe de médias, à son propre rythme.
 
-    Chaque groupe a sa connexion : les deux threads ne touchent jamais les
-    mêmes lignes (une URL n'a qu'un média), et le timeout laisse SQLite
-    attendre si l'autre groupe écrit au même moment."""
+    Chaque groupe a sa connexion : les threads ne touchent jamais les mêmes
+    lignes (une URL n'a qu'un média). Le mode WAL évite qu'écritures et
+    lectures simultanées des groupes se bloquent entre elles (en mode journal
+    classique, SQLite renvoie « database is locked » sans respecter le
+    timeout quand deux transactions s'entrecroisent)."""
     conn = sqlite3.connect(DATA_DIR/"urls.db", timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")   # persistant sur le fichier, idempotent
     traitees = 0
     vague = 0
     # On ne garde que les médias du groupe dont la session a démarré : sinon un
@@ -115,6 +119,12 @@ def boucle_vagues(nom, sessions, debut):
                 snapshot(min_nouveaux=1000)   # instantané + alerte tous les 1000 articles
             batch = {media: iu for media, iu in new_batch().items()
                      if media in sessions}
+    except Exception:
+        # Sans ça, l'exception resterait cachée dans le future jusqu'à la fin
+        # du run : on la montre tout de suite, les autres groupes continuent
+        # et les URLs restantes seront reprises au cycle suivant de lancer.sh.
+        print(f"\n[{nom}] boucle interrompue par une erreur :")
+        traceback.print_exc()
     finally:
         for media, session in sessions.items():
             try:
