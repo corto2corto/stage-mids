@@ -2,22 +2,20 @@
 
 Pour les médias gratuits ou dont l'article complet est déjà dans le HTML servi
 (ex : le JDD). Beaucoup plus rapide et léger en RAM que Selenium.
+
+On passe par curl_cffi plutôt que requests : certains CDN (Akamai chez
+paris-normandie, cf mapping_paris_normandie.py) bloquent l'empreinte TLS de
+python-requests (403 systématique). curl_cffi imite un vrai Chrome (TLS +
+en-têtes cohérents) et passe.
 """
 
-import requests
-
-# En-têtes d'un vrai Firefox pour ne pas être identifié comme un robot.
-ENTETES = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.5,en;q=0.3",
-}
+from curl_cffi import requests
 
 
 def ouvrir_session():
     """Session HTTP réutilisable (cookies et connexion conservés entre les URLs)."""
-    session = requests.Session()
-    session.headers.update(ENTETES)
+    session = requests.Session(impersonate="chrome")
+    session.headers["Accept-Language"] = "fr-FR,fr;q=0.8,en-US;q=0.5,en;q=0.3"
     return session
 
 
