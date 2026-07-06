@@ -54,6 +54,10 @@ def ouvrir_firefox():
 
     options = Options()
     options.add_argument("--headless")
+    # « Prêt » au DOM construit (DOMContentLoaded) au lieu du chargement complet :
+    # une pub ou un traqueur qui pend faisait timeouter des pages saines en masse
+    # (telerama 42 % de timeouts). L'attente après driver.get laisse le JS finir.
+    options.page_load_strategy = "eager"
     options.binary_location = FIREFOX_BIN
     options.set_preference("permissions.default.image", 2)
     # Pas de cache retour : Firefox garde sinon en RAM les dernières pages de
