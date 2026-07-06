@@ -57,7 +57,8 @@ def meta_balises(soup, meta):
     return {
         "titre":   titre.get_text(strip=True) if titre else "",
         "auteur":  auteur.get_text(strip=True) if auteur else "",
-        "date":    date.get("datetime", "") if date else "",
+        # datetime propre si la balise en a un, sinon le texte brut (ex : francesoir)
+        "date":    (date.get("datetime") or date.get_text(strip=True)) if date else "",
         "section": "",
         "free":    "",
     }

@@ -28,4 +28,14 @@ MEDIAS = {
     "challenges":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_telegramme":         {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_journal_du_dimanche": {"moteur": "basic", "meta": {"strategie": "balises", "corps": "section.content-rte div.rte p, article.live-element-content div.rte p", "titre": "h1.main-title", "auteur": "a.author", "date": "time"}},
+
+    # Nouveaux médias (sonde + analyse HTML du 06/07/2026) — moteur basic confirmé.
+    "gala":         {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
+    "voici":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    "bfmtv":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.content_body_wrapper"}},
+    "ouest_france": {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.su-article"}},
+    "leparisien":   {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "section.content"}},
+    "la_croix":     {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-content"}},
+    "laprovence":   {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    "francesoir":   {"moteur": "basic", "meta": {"strategie": "balises", "corps": "div.field--name-body", "titre": "h1", "auteur": "a[rel=author]", "date": "div.field--name-field-date.me-3"}},
 }
