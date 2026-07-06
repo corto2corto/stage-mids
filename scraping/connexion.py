@@ -51,7 +51,10 @@ def ouvrir_firefox_connecte(media):
         time.sleep(ATTENTE_LOGIN)
         driver.find_element(By.CSS_SELECTOR, connexion["email"]).send_keys(identifiants["email"])
         driver.find_element(By.CSS_SELECTOR, connexion["mot_de_passe"]).send_keys(identifiants["mot_de_passe"])
-        driver.find_element(By.CSS_SELECTOR, connexion["valider"]).click()
+        # Clic JS (et non .click()) : traverse un éventuel bandeau cookies qui
+        # recouvre le bouton (Mediapart), source d'ElementClickInterceptedException.
+        valider = driver.find_element(By.CSS_SELECTOR, connexion["valider"])
+        driver.execute_script("arguments[0].click();", valider)
         time.sleep(ATTENTE_LOGIN)
     except Exception:
         driver.quit()
