@@ -27,9 +27,9 @@ while true; do
     sleep 5
     find "$TMP_DIR" -mindepth 1 -delete 2>/dev/null
 
-    # Filet de sécurité : le pipeline s'arrête seul à 2h ; s'il gèle (appel
+    # Filet de sécurité : le pipeline s'arrête seul à 4h ; s'il gèle (appel
     # Selenium sans réponse), timeout le tue à 2h30 et le cycle repart.
-    timeout -k 30 150m python -m scraping.pipeline
+    timeout -k 30 270m python -m scraping.pipeline
     rc=$?   # à relever avant l'echo : le $(date) écraserait $?
 
     echo "[$(date '+%F %T')] Pipeline terminé (code $rc), nettoyage puis relance."

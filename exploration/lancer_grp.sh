@@ -27,8 +27,8 @@ export STAGE_DATA_DIR="$D"
 export PYTHONUNBUFFERED=1
 
 echo "[$(date '+%F %T')] Session unique : départ." >> "$D/grp.log"
-# Le pipeline s'arrête seul à 2 h ; timeout l'abat à 2 h 30 s'il gèle.
-timeout -k 30 150m .venv/bin/python -m scraping.pipeline >> "$D/grp.log" 2>&1
+# Le pipeline s'arrête seul à 4 h ; timeout l'abat à 4 h 30 s'il gèle.
+timeout -k 30 270m .venv/bin/python -m scraping.pipeline >> "$D/grp.log" 2>&1
 echo "[$(date '+%F %T')] Session terminée (code $?)." >> "$D/grp.log"
 
 pkill -9 -f "$TMP_DIR"
