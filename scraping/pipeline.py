@@ -28,7 +28,9 @@ from scraping.suivi import snapshot
 # lignes s'entremêlent et deviennent inexploitables pour la surveillance.
 VERROU_PRINT = threading.Lock()
 
-DUREE_MAX = 2 * 3600   # un run s'arrête seul au bout de 2 h, lancer.sh relance
+# Un run s'arrête seul au bout de 4 h, lancer.sh relance. (2 h à l'origine par
+# crainte de dérive RAM ; RSS mesurée en plateau stable sur 2 h le 07/07/2026.)
+DUREE_MAX = 4 * 3600
 
 
 def ouvrir_sessions(batch):
