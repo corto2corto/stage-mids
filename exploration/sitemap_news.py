@@ -49,7 +49,10 @@ NEWS = {
     # l'empreinte Chrome de curl_cffi passe (sondé le 07/07, comme le moteur basic).
     "nice_matin": {"url": "https://www.nicematin.com/googlenews.xml", "via_cffi": True},
     "le_journal_du_dimanche": {"url": "https://www.lejdd.fr/sitemap/news.xml", "via_cffi": True},
-    "sud_ouest": {"url": "https://www.sudouest.fr/sitemap-news.xml", "via_cffi": True},
+    # sud_ouest : DESACTIVE le 07/07 au soir — une zone disque sous
+    # data/urls/sud_ouest_url.csv est illisible (lectures figees en etat D a
+    # l'octet ~189,5 M). Regenerer le fichier depuis la base avant de reactiver.
+    # "sud_ouest": {"url": "https://www.sudouest.fr/sitemap-news.xml", "via_cffi": True},
 
     # --- nouveaux médias (CSV dans exploration/) ---
     # mediapart : la news du robots (« editor choice », 33 URLs) n'est pas

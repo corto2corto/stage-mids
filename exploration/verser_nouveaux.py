@@ -30,12 +30,19 @@ from scraping.stockage import DATA_DIR
 
 SOURCES = [Path("data/urls"), Path("exploration")]
 
+# sud_ouest : zone disque illisible sous son CSV (07/07, lectures figées en
+# état D) — à réintégrer une fois le fichier régénéré depuis la base.
+EXCLUS = {"sud_ouest"}
+
 conn = sqlite3.connect(DATA_DIR / "urls.db", timeout=60)
 medias = sys.argv[1:] or sorted(MEDIAS)
 total = 0
 doublons_total = 0
 sauvegarde_faite = False
 for media in medias:
+    if media in EXCLUS:
+        print(f"{media:<24} exclu (CSV illisible, cf. EXCLUS) : ignoré", flush=True)
+        continue
     if MEDIAS[media].get("pause"):
         print(f"{media:<24} en pause : ignoré", flush=True)
         continue
