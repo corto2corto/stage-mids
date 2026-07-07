@@ -123,17 +123,22 @@ basic, pas de `Crawl-delay` déclaré).
    ci-dessous — avant filtrage gratuit/payant qui se fait au scraping, pas au
    mapping). Relançable par année via la constante `ANNEES` en cas
    d'interruption — le CSV est complété par ajout, pas écrasé.
-4. Copier/déplacer `exploration/leprogres_url.csv` vers `DATA_DIR` (par
-   défaut `/data/elias/stage-mids/data/`, ou le `STAGE_DATA_DIR` de test si
-   on valide d'abord sur base isolée) — c'est ce dossier que
-   `scraping/pipeline.py` scrute (`DATA_DIR.glob("*_url.csv")`).
-5. Charger en base : `charger_nouvelles_urls(conn)` dans
-   `scraping/pipeline.py` est actuellement **désactivé** (ligne commentée
-   dans `main()` : `# charger_nouvelles_urls(conn)  # désactivé : pas de
-   nouveaux CSV pour l'instant`) — il faudra soit la réactiver le temps du
-   chargement, soit l'appeler manuellement une fois, puis la recommenter
-   si elle doit rester désactivée par défaut.
-6. Ajouter l'entrée `"leprogres"` ci-dessus dans `scraping/medias.py`.
+4. Ajouter l'entrée `"leprogres"` ci-dessus dans `scraping/medias.py` —
+   **avant** le chargement : le script de chargement parcourt le registre
+   MEDIAS et ignore les médias qui n'y figurent pas.
+5. Charger en base via `python -m exploration.charger_nouveaux_medias`
+   (PAS `charger_nouvelles_urls` de pipeline.py) : garde-fous intégrés —
+   média déjà présent en base ignoré, **déduplication des URLs à
+   l'intérieur du CSV**, une transaction par média. Le CSV doit être dans
+   un des dossiers `SOURCES` du script
+   (`/data/elias/stage-mids-v2/exploration` convient). La sauvegarde de
+   `urls.db` est automatique (VACUUM INTO intégré au script avant la
+   première écriture).
+6. Marquer les doublons du corpus historique :
+   `.venv/bin/python scripts/4_marquer_doublons.py` — passe en etat=3 les
+   URLs etat=0 déjà couvertes par regicid/press_metadata (jamais
+   re-scrapées). Idempotent, à relancer après chaque chargement de
+   nouveau média.
 7. Relancer le pipeline pour que `leprogres` entre dans le prochain
    `new_batch()` — note : `lancer.sh` est actuellement à l'arrêt depuis le
    06/07 (tests v2 en cours, cf `project_lancer_en_pause`), donc ce point
