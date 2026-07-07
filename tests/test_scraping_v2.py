@@ -250,7 +250,7 @@ class TestPipeline(unittest.TestCase):
         conn.execute("UPDATE urls SET etat=2 WHERE id=1")
         # plus de neuf : les échecs ont une seconde chance
         self.assertEqual(prochaine_url(conn, "a"), (2, "http://echec", 1))
-        conn.execute("UPDATE urls SET etat=3 WHERE id=2")
+        conn.execute("UPDATE urls SET etat=4 WHERE id=2")
         # échec confirmé : plus jamais repris
         self.assertIsNone(prochaine_url(conn, "a"))
 
@@ -258,8 +258,8 @@ class TestPipeline(unittest.TestCase):
         conn = self._conn_memoire()
         with patch("scraping.pipeline.scraper", side_effect=RuntimeError("boum")):
             etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a", etat_prec=1)
-        self.assertEqual(etat, 3)
-        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 3)
+        self.assertEqual(etat, 4)
+        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 4)
 
     def test_traiter_url_succes(self):
         conn = self._conn_memoire()
