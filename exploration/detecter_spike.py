@@ -7,9 +7,10 @@ quantile haut (ex. 99 %) est considéré comme un phénomène extrême. Le même
 calcul est refait pour chaque taille de fenêtre (1, 2, 3... jours), chacune
 avec sa propre distribution et donc son propre seuil.
 
-Sortie : le texte ci-dessous, plus un PNG par taille de fenêtre dans
-exploration/figures/ — série temporelle de la fréquence à gauche, histogramme
-de sa distribution à droite (la densité empirique), seuil en pointillé.
+Sortie : le texte ci-dessous pour chaque taille de fenêtre, plus un PNG pour
+les seules fenêtres de 1 et 7 jours dans exploration/figures/ — série
+temporelle de la fréquence à gauche, histogramme de sa distribution à droite
+(la densité empirique), seuil en pointillé.
 
 Lancement (serveur) — 1 à 3 mots (guillemets si plusieurs) :
     python -m exploration.detecter_spike lemonde inflation
@@ -23,6 +24,7 @@ from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")  # rendu vers fichier, pas d'écran sur le serveur
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -77,24 +79,38 @@ for k in fenetres:
         periode = f"{date:%Y-%m-%d}" if k == 1 else f"{debut:%Y-%m-%d} → {date:%Y-%m-%d}"
         print(f"  {periode}   {valeur:7.2f} / 100 000   ({int(roule.loc[date, 'n'])} occ.)")
 
+    if k not in (1, 7):  # figure pour le jour et la semaine seulement
+        continue
+
     # figure : série temporelle + histogramme de la distribution, seuil sur les deux
-    fig, (ax_t, ax_h) = plt.subplots(1, 2, figsize=(12, 4), width_ratios=[3, 1],
+    fig, (ax_t, ax_h) = plt.subplots(1, 2, figsize=(12, 4.2), width_ratios=[3.5, 1],
                                      sharey=True, layout="constrained")
     fig.set_facecolor(FOND)
-    fig.suptitle(f"« {mot} » — {corpus}, fenêtre de {k} jour(s)", color="#0b0b0b")
-    ax_t.plot(f.index, f, color=BLEU, linewidth=1.5)
-    if len(spikes):
-        ax_t.scatter(spikes.index, spikes, color=ROUGE, s=18, zorder=3,
-                     label=f"{len(spikes)} fenêtres > seuil")
+    fig.suptitle(f"« {mot} » — {corpus}, fenêtre de {k} jour(s)",
+                 x=0.02, ha="left", color="#0b0b0b", fontweight="bold")
+    ax_t.fill_between(f.index, f, color=BLEU, alpha=0.08, linewidth=0)
+    ax_t.plot(f.index, f, color=BLEU, linewidth=1.2,
+              solid_capstyle="round", solid_joinstyle="round")
     ax_t.axhline(seuil, color=GRIS, linestyle="--", linewidth=1,
                  label=f"seuil = {seuil:.2f} (quantile {quantile:.1%})")
-    ax_t.legend(frameon=False, labelcolor=ENCRE)
-    ax_t.set_ylabel("fréquence / 100 000 mots", color=ENCRE)
+    if len(spikes):
+        ax_t.scatter(spikes.index, spikes, color=ROUGE, s=26, zorder=3,
+                     edgecolors=FOND, linewidths=1.2,
+                     label=f"{len(spikes)} fenêtres > seuil")
+        pic = spikes.index[0]  # étiquette sur le plus fort spike seulement
+        ax_t.annotate(f"{pic:%d %b %Y}", (pic, spikes.iloc[0]),
+                      xytext=(6, 3), textcoords="offset points",
+                      color=ENCRE, fontsize=8)
+    ax_t.legend(frameon=False, labelcolor=ENCRE, fontsize=8)
+    ax_t.set_ylabel("fréquence / 100 000 mots", color=ENCRE, fontsize=9)
+    ax_t.xaxis.set_major_formatter(
+        mdates.ConciseDateFormatter(ax_t.xaxis.get_major_locator()))
+    ax_t.margins(x=0.01)
     ax_h.hist(f, bins=60, orientation="horizontal", color=BLEU,
               edgecolor=FOND, linewidth=0.5)
     ax_h.axhline(seuil, color=GRIS, linestyle="--", linewidth=1)
     ax_h.set_xscale("log")
-    ax_h.set_xlabel("nombre de fenêtres (log)", color=ENCRE)
+    ax_h.set_xlabel("nombre de fenêtres (log)", color=ENCRE, fontsize=9)
     for ax in (ax_t, ax_h):
         ax.set_facecolor(FOND)
         ax.grid(axis="y", color=GRILLE, linewidth=0.5)
