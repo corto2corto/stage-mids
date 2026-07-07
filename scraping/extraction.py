@@ -4,6 +4,8 @@ Extraction des métadonnées et du corps d'un article à partir de son HTML.
 
 import json
 import re
+from html import unescape
+
 from bs4 import BeautifulSoup
 
 from scraping.medias import MEDIAS
@@ -11,7 +13,10 @@ from scraping.medias import MEDIAS
 def noeud_json_ld(soup):
     """Renvoie le noeud Article du JSON-LD de la page (ou {})."""
     for script in soup.find_all("script", type="application/ld+json"):
-        data = json.loads(script.get_text())
+        try:
+            data = json.loads(script.get_text())
+        except json.JSONDecodeError:
+            continue   # bloc ld+json invalide (vu sur certains sites) : on passe au suivant
         # Certains sites emballent les données dans une liste sous "@graph".
         noeuds = data.get("@graph", [data]) if isinstance(data, dict) else data
         for noeud in noeuds:
@@ -54,7 +59,8 @@ def meta_balises(soup, meta):
     return {
         "titre":   titre.get_text(strip=True) if titre else "",
         "auteur":  auteur.get_text(strip=True) if auteur else "",
-        "date":    date.get("datetime", "") if date else "",
+        # datetime propre si la balise en a un, sinon le texte brut (ex : francesoir)
+        "date":    (date.get("datetime") or date.get_text(strip=True)) if date else "",
         "section": "",
         "free":    "",
     }
@@ -86,23 +92,34 @@ def extraire(media, html):
     meta = MEDIAS[media]["meta"]
 
     infos = meta_json_ld(soup) if meta["strategie"] == "json_ld" else meta_balises(soup, meta)
+    # Repli : certains gabarits (bfmtv, atlantico) n'ont pas de json-ld complet,
+    # on va chercher dans les balises les champs restés vides.
+    for champ, selecteur in meta.get("secours", {}).items():
+        if not infos.get(champ):
+            element = soup.select_one(selecteur)
+            if element:
+                infos[champ] = (element.get("datetime") or element.get_text(strip=True)
+                                if champ == "date" else element.get_text(strip=True))
     if meta["corps"] == "json_ld":
-        corps = noeud_json_ld(soup).get("articleBody", "")
+        corps = str(noeud_json_ld(soup).get("articleBody", ""))
+        if "&lt;" in corps or "<" in corps:   # certains sites (laprovence) y laissent du HTML échappé
+            corps = BeautifulSoup(unescape(corps), "html.parser").get_text(" ")
         infos["contenu"] = re.sub(r"\s+", " ", corps).strip()
     else:
         infos["contenu"] = extraire_corps(media, meta["corps"], soup)
     return infos
 
 
-def extraire_url(media, url):  
-    from scraping.navigateur import configurer_ublock, ouvrir_firefox, scraper
+def extraire_url(media, url):
+    from scraping.moteurs import fermer_session, ouvrir_session, scraper
+    from scraping.navigateur import configurer_ublock
 
     configurer_ublock()
-    driver = ouvrir_firefox()
+    session = ouvrir_session(media)
     try:
-        return extraire(media, scraper(driver, url))
+        return extraire(media, scraper(media, session, url))
     finally:
-        driver.quit()
+        fermer_session(media, session)
 
 
 if __name__ == "__main__":

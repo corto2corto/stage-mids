@@ -441,6 +441,74 @@ Nouveaux médias potentiels :
 - Courrier Picard (à voir)
 - L'Union (2023)
 
+### Batch de 15 nouveaux médias (06/07/2026)
+
+Le mapping des 15 nouveaux médias est terminé : on a la liste complète des URLs
+d'articles pour **Ouest-France, Midi Libre, Le Parisien, Libération, Le Point,
+BFMTV, La Provence, La Croix, L'Express, Gala, Voici, Paris-Normandie,
+La Tribune, France-Soir et Marianne** — environ 16,3 millions d'URLs au total.
+Selon les sites, les URLs viennent des sitemaps, de la pagination des rubriques
+ou des archives Wayback (La Provence, Le Point, La Tribune, Libération).
+
+Sur ces 15, on sait déjà récupérer les articles de **8 médias**, validés sur du
+HTML réel et couverts par des tests : Gala, Voici, BFMTV, Ouest-France,
+Le Parisien, La Croix, La Provence et France-Soir. Tous passent par le moteur
+basic (simple requête HTTP, sans navigateur), donc rapides à scraper.
+
+Reste à configurer les 7 autres : Marianne, L'Express, Libération,
+Paris-Normandie, Le Point, La Tribune et Midi Libre. Point notable : pour
+La Tribune et Midi Libre, le bypass paywall ne débloque rien de plus que la
+requête simple — leurs articles premium resteront tronqués.
+
+### Moteur par média (06/07/2026)
+
+Après avoir re-sondé aussi les anciens médias, on a fixé le moteur de chacun des
+30 journaux configurés. Trois moteurs : **basic** (simple requête HTTP, la plus
+rapide), **firefox** (Selenium + extension bypass paywall, pour les payants
+contournables), **log** (Firefox connecté à un compte abonné). Le champ
+`attente` fixe le temps par article : 6 s de chargement pour firefox, 1 s pour
+log (validé : 1 s ne tronque pas), et 1 s de politesse pour basic (la requête
+est instantanée, on temporise juste pour ne pas marteler le site).
+
+| Média | Moteur | Attente |
+|---|---|---|
+| le_monde | log (compte abonné) | 1 s |
+| mediapart | log (compte abonné) | 1 s |
+| le_figaro | firefox (bypass) | 6 s |
+| telerama | firefox (bypass) | 6 s |
+| valeurs_actuelles | firefox (bypass) | 6 s |
+| les_echos | firefox (bypass) | 6 s |
+| paris_match | firefox (bypass) | 6 s |
+| le_nouvel_observateur | firefox (bypass) | 6 s |
+| nice_matin | firefox (bypass) | 6 s |
+| atlantico | firefox (bypass) | 6 s |
+| sud_ouest | firefox (bypass) | 6 s |
+| le_telegramme | firefox (bypass) | 6 s |
+| le_capital | basic | 1 s |
+| challenges | basic | 1 s |
+| l_opinion | basic | 1 s |
+| la_depeche | basic | 1 s |
+| le_journal_du_dimanche | basic | 1 s |
+| gala | basic | 1 s |
+| voici | basic | 1 s |
+| bfmtv | basic | 1 s |
+| ouest_france | basic | 1 s |
+| leparisien | basic | 1 s |
+| la_croix | basic | 1 s |
+| laprovence | basic | 1 s |
+| francesoir | basic | 1 s |
+| marianne | basic | 1 s |
+| midilibre | basic | 1 s |
+| paris_normandie | basic | 1 s |
+| latribune | basic | 1 s |
+| liberation | basic | 1 s |
+
+Soit 18 médias en basic, 10 en firefox et 2 en log.
+
+On a mis de côté **L'Express** et **Le Point** : L'Express est quasi entièrement
+payant sans corps d'article récupérable, et Le Point a trop d'URLs mortes (issues
+des archives Wayback) et un article rendu en JavaScript, invisible sans navigateur.
+
 Vérifier que les archives du monde
 
 Suite :

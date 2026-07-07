@@ -4,8 +4,12 @@ from pathlib import Path
 
 RACINE = Path("/data/elias/stage-mids")
 GECKODRIVER_PATH = RACINE / "extensions" / "geckodriver" / "geckodriver"
-TMP_FIREFOX = RACINE / "extensions" / "firefox" / "tmp"
+# Profils temporaires Firefox en RAM (/dev/shm) : le disque de données est
+# saturé en permanence, les profils y coûtaient x3 sur l'ouverture et la
+# navigation (mesuré 07/07/2026). ~122 Mo par profil, nettoyé au reboot.
+TMP_FIREFOX = Path("/dev/shm/stage-mids-firefox-tmp")
 SOURCES_SITE = RACINE / "site" / "sources" / "suivi"
+IDENTIFIANTS = RACINE / "identifiants.json"   # comptes abonnés (moteur "log"), jamais versionné
 FIREFOX_BIN = "/home/ubuntu/.cache/selenium/firefox/linux64/151.0.2/firefox"
 
 MANAGED_DIR = Path.home() / ".mozilla" / "managed-storage"
