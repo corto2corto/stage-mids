@@ -19,7 +19,7 @@ def new_batch():
 def prochaine_url(conn, media):
     """Prochaine URL d'un média : les nouvelles d'abord (etat=0), puis une
     seconde chance aux échecs (etat=1). Renvoie (id, url, etat) ou None.
-    Un échec retenté qui échoue encore passe en etat=3 (échec confirmé,
+    Un échec retenté qui échoue encore passe en etat=4 (échec confirmé,
     cf pipeline.traiter_url) et n'est plus jamais repris."""
     return conn.execute(
         "SELECT id, url, etat FROM urls WHERE media=? AND etat IN (0, 1) "
