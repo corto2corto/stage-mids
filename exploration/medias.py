@@ -106,12 +106,13 @@ CATALOGUE = {
         anti_filtre=r"/arc/outboundfeeds/",
         unescape=True,
     ),
+    # paris_normandie : reco du 07/07/2026 — Akamai bloque desormais UA_FIREFOX
+    # (403 sur l'index et la news) et laisse passer l'UA academique.
     "paris_normandie": IndexSitemap(
         index="https://www.paris-normandie.fr/sites/default/files/sitemaps/www_paris_normandie_fr/sitemapindex.xml",
         motif_sous_sitemap=r"<loc>([^<]+\.xml)</loc>",
         via_curl=True,
         filtre=r"/article/",
-        ua=UA_FIREFOX,
     ),
 
     # === SitemapPagine ===
