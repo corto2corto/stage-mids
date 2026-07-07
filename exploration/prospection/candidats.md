@@ -8,10 +8,10 @@ Règle absolue : jamais d'articles tronqués en base — un média part en « ba
 
 | # | Média | Propriétaire / rachat | Intérêt mémoire | Accès pressenti | Statut |
 |---|---|---|---|---|---|
-| 1 | cnews.fr | Bolloré (Canal+) | ★★★ cas d'école ligne éditoriale | gratuit | dossier en cours |
-| 2 | 20minutes.fr | Rossel + Ouest-France | ★★ | gratuit intégral | à traiter |
-| 3 | leprogres.fr | EBRA (Crédit Mutuel, rachats 2007-2010) | ★★★ | freemium | à traiter |
-| 4 | closermag.fr | Reworld Media (rachat Mondadori 2019) | ★★★ machine à rachats | gratuit | à traiter |
+| 1 | cnews.fr | Bolloré (Canal+) | ★★★ cas d'école ligne éditoriale | gratuit | ✅ **basic complet** (dossier cnews.md) |
+| 2 | 20minutes.fr | Rossel + Ouest-France | ★★ | gratuit intégral | ✅ **basic complet** (20minutes.md) |
+| 3 | leprogres.fr | EBRA (Crédit Mutuel, rachats 2007-2010) | ★★★ | freemium | ✅ **gratuits seuls, filtre free** (leprogres.md) — part de gratuit par époque à sonder |
+| 4 | closermag.fr | Reworld Media (rachat Mondadori 2019) | ★★★ machine à rachats | gratuit | ⚠️ **basic complet SOUS RÉSERVE** (closermag.md) — archives ≤2009+ vidées par Reworld, frontière à sonder |
 | 5 | actu.fr | Publihebdos (Ouest-France) | ★★ | gratuit | réserve |
 | 6 | lavoixdunord.fr | Rossel | ★★ | freemium | réserve |
 | 7 | europe1.fr | Lagardère → Vivendi/Bolloré (2021) | ★★★ | gratuit | réserve |
