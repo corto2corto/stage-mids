@@ -45,6 +45,11 @@ NEWS = {
     "la_depeche": {"url": "https://www.ladepeche.fr/sitemap-news.xml"},  # ~1000 dernières URLs
     "le_telegramme": {"url": "https://www.letelegramme.fr/sitemaps/sitemap-news.xml",
                       "via_curl": True},  # mini-index
+    # nice_matin, le_journal_du_dimanche, sud_ouest : anti-bots stricts, seule
+    # l'empreinte Chrome de curl_cffi passe (sondé le 07/07, comme le moteur basic).
+    "nice_matin": {"url": "https://www.nicematin.com/googlenews.xml", "via_cffi": True},
+    "le_journal_du_dimanche": {"url": "https://www.lejdd.fr/sitemap/news.xml", "via_cffi": True},
+    "sud_ouest": {"url": "https://www.sudouest.fr/sitemap-news.xml", "via_cffi": True},
 
     # --- nouveaux médias (CSV dans exploration/) ---
     # mediapart : la news du robots (« editor choice », 33 URLs) n'est pas
@@ -77,10 +82,7 @@ NEWS = {
     "liberation": {"url": "https://www.liberation.fr/arc/outboundfeeds/sitemap_news.xml?outputType=xml"},
 
     # --- sans entrée pour l'instant (reco 07/07/2026) ---
-    # le_journal_du_dimanche, sud_ouest, cnews : anti-bot (Cloudflare/Datadome)
-    #   sur toutes les sitemaps en curl -> passer par le navigateur du pipeline.
-    # nice_matin : googlenews.xml en 406 (Akamai) ; un passage UA Chrome avait
-    #   marché à la reco puis plus jamais -> navigateur aussi.
+    # cnews : Cloudflare bloque curl ; via_cffi à essayer quand le média sera mappé.
     # francesoir : pas de sitemap news, sitemap classique paginé non trié par date.
     # 20minutes : mapping en cours (session tmux du 07/07), à activer une fois le
     #   CSV posé : {"url": "https://www.20minutes.fr/sitemap-news.xml"}
@@ -99,7 +101,8 @@ for media in medias:
         print(f"{media:<24} AUCUN CSV : média pas encore mappé, ignoré")
         continue
     ua = fiche.get("ua")
-    options = {"via_curl": fiche.get("via_curl", False), **({"ua": ua} if ua else {})}
+    options = {"via_curl": fiche.get("via_curl", False),
+               "via_cffi": fiche.get("via_cffi", False), **({"ua": ua} if ua else {})}
     urls = []
     for u in ([fiche["url"]] if isinstance(fiche["url"], str) else fiche["url"]):
         texte = recuperer(u, **options)
