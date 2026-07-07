@@ -17,9 +17,13 @@ def new_batch():
 
 
 def prochaine_url(conn, media):
-    """Prochaine URL à traiter (etat=0) pour un média : (id, url), ou None."""
+    """Prochaine URL d'un média : les nouvelles d'abord (etat=0), puis une
+    seconde chance aux échecs (etat=1). Renvoie (id, url, etat) ou None.
+    Un échec retenté qui échoue encore passe en etat=3 (échec confirmé,
+    cf pipeline.traiter_url) et n'est plus jamais repris."""
     return conn.execute(
-        "SELECT id, url FROM urls WHERE media=? AND etat=0 LIMIT 1", (media,)
+        "SELECT id, url, etat FROM urls WHERE media=? AND etat IN (0, 1) "
+        "ORDER BY etat LIMIT 1", (media,)
     ).fetchone()
 
 if __name__ == "__main__":

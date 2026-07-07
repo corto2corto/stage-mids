@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 from bs4 import BeautifulSoup
 
 from scraping import basic, connexion, extraction, moteurs, pipeline
+from scraping.batch import prochaine_url
 from scraping.medias import ATTENTE_DEFAUT, MEDIAS
 from scraping.paywall import est_bloque
 
@@ -240,6 +241,25 @@ class TestPipeline(unittest.TestCase):
             etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a")
         self.assertEqual(etat, 1)
         self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 1)
+
+    def test_prochaine_url_nouvelles_puis_echecs(self):
+        conn = self._conn_memoire()
+        conn.execute("INSERT INTO urls (id, media, url, etat) VALUES (2, 'a', 'http://echec', 1)")
+        # tant qu'il reste du neuf (etat=0), il passe d'abord
+        self.assertEqual(prochaine_url(conn, "a"), (1, "http://a", 0))
+        conn.execute("UPDATE urls SET etat=2 WHERE id=1")
+        # plus de neuf : les échecs ont une seconde chance
+        self.assertEqual(prochaine_url(conn, "a"), (2, "http://echec", 1))
+        conn.execute("UPDATE urls SET etat=3 WHERE id=2")
+        # échec confirmé : plus jamais repris
+        self.assertIsNone(prochaine_url(conn, "a"))
+
+    def test_traiter_url_echec_confirme_apres_retentative(self):
+        conn = self._conn_memoire()
+        with patch("scraping.pipeline.scraper", side_effect=RuntimeError("boum")):
+            etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a", etat_prec=1)
+        self.assertEqual(etat, 3)
+        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 3)
 
     def test_traiter_url_succes(self):
         conn = self._conn_memoire()
