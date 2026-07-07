@@ -111,9 +111,20 @@ class TestDispatchMoteurs(unittest.TestCase):
         with patch("scraping.basic.scraper", return_value="<html tronqué>"), \
              patch("scraping.moteurs.extraction.extraire", return_value={"contenu": ""}), \
              patch("scraping.moteurs.est_bloque", return_value=True), \
-             patch("scraping.navigateur.scraper", return_value="<html complet>") as f:
+             patch("scraping.navigateur.scraper", return_value="<html complet>") as f, \
+             patch("scraping.moteurs.time.sleep") as sleep:
             self.assertEqual(moteurs.scraper("m_hybride", session, "http://u"), "<html complet>")
             f.assert_called_once_with("driver", "http://u", ATTENTE_DEFAUT)
+            sleep.assert_called_once()   # espacement basic -> firefox
+
+    def test_scraper_hybride_gratuit_applique_la_politesse(self):
+        session = {"basic": "s_http", "firefox": "driver"}
+        with patch("scraping.basic.scraper", return_value="<html>"), \
+             patch("scraping.moteurs.extraction.extraire", return_value={"contenu": "texte"}), \
+             patch("scraping.moteurs.est_bloque", return_value=False), \
+             patch("scraping.moteurs.time.sleep") as sleep:
+            moteurs.scraper("m_hybride", session, "http://u")
+            sleep.assert_called_once_with(2)   # politesse par défaut du chemin rapide
 
     def test_fermer_hybride_ferme_les_deux(self):
         session = {"basic": MagicMock(), "firefox": MagicMock()}

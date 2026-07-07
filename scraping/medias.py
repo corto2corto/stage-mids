@@ -50,9 +50,9 @@ MEDIAS = {
     # Nouveaux médias (sonde + analyse HTML du 06/07/2026) — moteur basic confirmé.
     "gala":         {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
     "voici":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
-    # bfmtv : les pages replay/podcast n'ont pas de json-ld NewsArticle (18 % de titres
-    # vides au test du 07/07) -> repli h1/time ; à terme, exclure /replay-emissions/ et
-    # /podcasts/ du corpus d'URLs (ce ne sont pas des articles).
+    # bfmtv : replays/podcasts exclus du corpus le 07/07 (159 601 URLs filtrées de
+    # bfmtv_url.csv, sauvegarde bfmtv_url.avant_filtre_replays.csv) ; le repli
+    # h1/time reste pour les vrais articles au json-ld incomplet.
     "bfmtv":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.content_body_wrapper", "secours": {"titre": "h1", "date": "time[datetime]"}}},
     "ouest_france": {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.su-article"}},
     "leparisien":   {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "section.content"}},
