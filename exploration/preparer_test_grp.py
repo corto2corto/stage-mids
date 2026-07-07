@@ -17,7 +17,8 @@ from scraping.stockage import COLONNES
 
 DOSSIER = Path("/data/elias/stage-mids-v2/exploration/test_run_grp")
 SOURCES = [Path("/data/elias/stage-mids-v2/exploration"),
-           Path("/data/elias/stage-mids/data/urls")]
+           Path("/data/elias/stage-mids/data/urls"),
+           Path("/data/elias/stage-mids/exploration")]   # mediapart_url.csv vit là
 BASE_XL = Path("/data/elias/stage-mids-v2/exploration/test_run_xl/urls.db")
 N_PAR_MOTEUR = {"basic": 2200, "firefox": 800, "log": 600}   # ~2 h à débit nominal
 
