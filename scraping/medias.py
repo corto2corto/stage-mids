@@ -10,6 +10,10 @@ Champs par média :
 - timeout : secondes max de chargement d'une page (moteur firefox). À poser sur
             les médias dont certaines pages ne répondent jamais (anti-bot) :
             au-delà, on abandonne l'URL (etat=1) et on passe à la suivante.
+- pause   : True pour suspendre le média (le pipeline l'ignore, ses URLs
+            restent à etat=0 en base et reprendront quand la pause sera levée).
+- meta.secours : sélecteurs de repli {champ: sélecteur CSS} utilisés quand le
+            json-ld laisse un champ vide (gabarits incomplets, ex. bfmtv).
 - meta    : stratégie d'extraction des métadonnées et du corps (cf extraction.py).
 """
 
@@ -23,13 +27,16 @@ MEDIAS = {
     "le_figaro":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
     # le_monde : bypass en échec permanent -> compte abonné (moteur log, connexion.py).
     "le_monde":              {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": ".article__content"}},
-    "telerama":              {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "article.article__page-content"}},
+    # telerama : prototype moteur hybride (07/07) — l'anti-bot ne freine que Firefox
+    # (40-65 % de timeouts), le client HTTP est servi en <1 s ; bypass en secours.
+    "telerama":              {"moteur": "hybride", "meta": {"strategie": "json_ld", "corps": "article.article__page-content"}},
     "valeurs_actuelles":     {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.post__content"}},
     "les_echos":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.post-paywall"}},
     "paris_match":           {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "section.content-rte"}},
     "le_nouvel_observateur": {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "p.node__paragraphe"}},
     "nice_matin":            {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "article"}},
-    "atlantico":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.rich-content__text"}},
+    # atlantico : json-ld incomplet sur ~8 % des pages (titre/date vides au test du 07/07) -> repli.
+    "atlantico":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.rich-content__text", "secours": {"titre": "h1", "date": "time[datetime]"}}},
     "la_depeche":            {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-full__body-content"}},
     "l_opinion":             {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.RichTextArticleBody"}},
     "sud_ouest":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.full-content"}},
@@ -43,7 +50,10 @@ MEDIAS = {
     # Nouveaux médias (sonde + analyse HTML du 06/07/2026) — moteur basic confirmé.
     "gala":         {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
     "voici":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
-    "bfmtv":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.content_body_wrapper"}},
+    # bfmtv : les pages replay/podcast n'ont pas de json-ld NewsArticle (18 % de titres
+    # vides au test du 07/07) -> repli h1/time ; à terme, exclure /replay-emissions/ et
+    # /podcasts/ du corpus d'URLs (ce ne sont pas des articles).
+    "bfmtv":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.content_body_wrapper", "secours": {"titre": "h1", "date": "time[datetime]"}}},
     "ouest_france": {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.su-article"}},
     "leparisien":   {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "section.content"}},
     "la_croix":     {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-content"}},
@@ -56,8 +66,11 @@ MEDIAS = {
     "marianne":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "midilibre":       {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-full__body-content"}},
     "paris_normandie": {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
-    "latribune":       {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
-    "liberation":      {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div[class*=TextElement__Container]"}},
+    # latribune : rate-limit constaté à politesse 1 s (échecs 8,7 % -> 13,4 %, nuit du 07/07) -> 2 s.
+    "latribune":       {"moteur": "basic", "attente": 2, "meta": {"strategie": "json_ld", "corps": "json_ld"}},
+    # liberation : EN PAUSE (07/07/2026) — archives tronquées côté serveur à ~240 mots
+    # (cf exploration/rapport_test_nuit.md §4.1), reprise prévue avec un compte abonné (moteur log).
+    "liberation":      {"moteur": "basic", "pause": True, "meta": {"strategie": "json_ld", "corps": "div[class*=TextElement__Container]"}},
     # Écartés : lexpress (9/10 payant, aucun corps json-ld, pas de sélecteur validable),
     # lepoint (URLs Wayback mortes en masse, corps rendu en JS invisible en basic).
 }

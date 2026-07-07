@@ -5,7 +5,7 @@
 # À lancer dans la session tmux "scrapping" : bash scripts/lancer.sh
 
 RACINE="/data/elias/stage-mids"
-TMP_DIR="$RACINE/extensions/firefox/tmp"
+TMP_DIR="/dev/shm/stage-mids-firefox-tmp"   # aligné sur TMP_FIREFOX (config.py)
 GECKODRIVER="$RACINE/extensions/geckodriver/geckodriver"
 
 # Verrou : une seule instance à la fois (deux pipelines sur la même base =
