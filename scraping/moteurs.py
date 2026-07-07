@@ -47,9 +47,13 @@ def scraper(media, session, url):
         except Exception:
             html = None   # le client HTTP a échoué : on tentera le Firefox
         if html and not est_bloque(extraction.extraire(media, html)["contenu"]):
-            time.sleep(regles.get("attente_basic", ATTENTE_BASIC))   # politesse
+            # Politesse du chemin rapide : sans elle, l'hybride enchaînerait
+            # les gratuits à la vitesse HTTP et martèlerait le site.
+            time.sleep(regles.get("attente_basic", 2))
             return html
-        # Article payant (ou requête en échec) : au tour du Firefox bypass.
+        # Article payant (ou requête en échec) : au tour du Firefox bypass,
+        # en espaçant les deux sollicitations du site.
+        time.sleep(1)
         return navigateur.scraper(session["firefox"], url,
                                   regles.get("attente", ATTENTE_DEFAUT))
     attente = regles.get("attente", ATTENTE_DEFAUT)
