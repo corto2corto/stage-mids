@@ -19,9 +19,9 @@ config.
 import sys
 import time
 
-from exploration.collecte import (PAUSE, UA_CHROME, UA_FIREFOX, ajouter,
-                                  filtrer, locs, recuperer, sous_sitemaps,
-                                  trouver_csv, urls_connues)
+from exploration.collecte import (PAUSE, UA_FIREFOX, ajouter, filtrer, locs,
+                                  recuperer, sous_sitemaps, trouver_csv,
+                                  urls_connues)
 
 # Une entrée par média : url = sitemap(s) news (str ou liste). Options :
 # filtre / anti_filtre (motifs sur les URLs gardées), via_curl, ua.
@@ -30,12 +30,11 @@ NEWS = {
     "le_figaro":  {"url": "https://www.lefigaro.fr/sitemap_news.xml"},
     # le_capital : sitemap/news.xml du robots = page html meta-refresh, la vraie :
     "le_capital": {"url": "https://www.capital.fr/sitemap/google-news.xml"},
-    # nice_matin : 406 sauf UA Chrome + en-têtes navigateur (servis par via_curl)
-    "nice_matin": {"url": "https://www.nicematin.com/googlenews.xml",
-                   "via_curl": True, "ua": UA_CHROME},
     "le_nouvel_observateur": {"url": "https://www.nouvelobs.com/sitemap/sitemap-articles-news.xml"},
     "le_monde":   {"url": "https://www.lemonde.fr/sitemap_news.xml"},
-    "les_echos":  {"url": "https://www.lesechos.fr/sitemap_news.xml"},
+    # les_echos, le_telegramme, ouest_france, paris_normandie : le CDN bloque
+    # l'empreinte TLS de python-requests (constaté au run du 07/07), curl passe.
+    "les_echos":  {"url": "https://www.lesechos.fr/sitemap_news.xml", "via_curl": True},
     "telerama":   {"url": "https://www.telerama.fr/sitemaps/sitemap_news.php"},
     "valeurs_actuelles": {"url": "https://www.valeursactuelles.com/news-sitemap.xml"},
     # l_opinion : news-sitemap.xml du robots = 301 vers celle-ci :
@@ -44,7 +43,8 @@ NEWS = {
     "paris_match": {"url": "https://www.parismatch.com/sitemap/news.xml"},
     "atlantico":  {"url": "https://atlantico.fr/news-sitemap.xml"},  # domaine sans www
     "la_depeche": {"url": "https://www.ladepeche.fr/sitemap-news.xml"},  # ~1000 dernières URLs
-    "le_telegramme": {"url": "https://www.letelegramme.fr/sitemaps/sitemap-news.xml"},  # mini-index
+    "le_telegramme": {"url": "https://www.letelegramme.fr/sitemaps/sitemap-news.xml",
+                      "via_curl": True},  # mini-index
 
     # --- nouveaux médias (CSV dans exploration/) ---
     # mediapart : la news du robots (« editor choice », 33 URLs) n'est pas
@@ -58,7 +58,8 @@ NEWS = {
     # voici : sitemap/news.xml du robots = 301 meta-refresh, la vraie :
     "voici":      {"url": "https://www.voici.fr/sitemap/google-news.xml"},
     "bfmtv":      {"url": "https://www.bfmtv.com/sitemap_news.xml"},  # plafond 1000, ~36 h
-    "ouest_france": {"url": "https://www.ouest-france.fr/googlenews.xml"},  # index de 4 fichiers
+    "ouest_france": {"url": "https://www.ouest-france.fr/googlenews.xml",
+                     "via_curl": True},  # index de 4 fichiers
     # leparisien : index de 2 pages ; la 2e mélange de vieux articles re-modifiés
     # (tri lastmod), sans conséquence grâce à la déduplication par URL.
     "leparisien": {"url": "https://www.leparisien.fr/arc/outboundfeeds/news-sitemap-index/?outputType=xml"},
@@ -69,7 +70,8 @@ NEWS = {
     # sans gravité pour la collecte, la déduplication écarte le déjà-connu.
     "midilibre":  {"url": "https://www.midilibre.fr/sitemap-news.xml"},
     # paris_normandie : Akamai bloque désormais UA_FIREFOX, l'UA académique passe
-    "paris_normandie": {"url": "https://www.paris-normandie.fr/sites/default/files/sitemaps/www_paris_normandie_fr/sitemapnews-0.xml"},
+    "paris_normandie": {"url": "https://www.paris-normandie.fr/sites/default/files/sitemaps/www_paris_normandie_fr/sitemapnews-0.xml",
+                        "via_curl": True},
     "latribune":  {"url": "https://www.latribune.fr/sitemap-actualites.xml"},  # plafond 100
     # liberation : plafond 100, fenêtre ~23 h -> interroger au moins 1x/jour
     "liberation": {"url": "https://www.liberation.fr/arc/outboundfeeds/sitemap_news.xml?outputType=xml"},
@@ -77,6 +79,8 @@ NEWS = {
     # --- sans entrée pour l'instant (reco 07/07/2026) ---
     # le_journal_du_dimanche, sud_ouest, cnews : anti-bot (Cloudflare/Datadome)
     #   sur toutes les sitemaps en curl -> passer par le navigateur du pipeline.
+    # nice_matin : googlenews.xml en 406 (Akamai) ; un passage UA Chrome avait
+    #   marché à la reco puis plus jamais -> navigateur aussi.
     # francesoir : pas de sitemap news, sitemap classique paginé non trié par date.
     # 20minutes : mapping en cours (session tmux du 07/07), à activer une fois le
     #   CSV posé : {"url": "https://www.20minutes.fr/sitemap-news.xml"}

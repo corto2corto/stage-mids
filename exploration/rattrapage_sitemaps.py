@@ -46,7 +46,10 @@ FICHES = {
                               "motif_sous_sitemap": r"/edito/2026-(0[3-9]|1[0-2])\.xml"},  # mensuel
     "le_monde": {"index": "https://www.lemonde.fr/sitemap_index.xml",
                  "motif_sous_sitemap": r"/articles/2026-(0[3-9]|1[0-2])-"},  # 1 fichier/semaine (lundi)
-    "les_echos": {"index": "https://sitemap.lesechos.fr/sitemap_index.xml"},  # sitemapN.xml.gz non datés, lastmod
+    # les_echos, le_telegramme : le CDN bloque l'empreinte TLS de
+    # python-requests (constaté au run du 07/07), curl passe.
+    "les_echos": {"index": "https://sitemap.lesechos.fr/sitemap_index.xml",
+                  "via_curl": True},  # sitemapN.xml.gz non datés, lastmod
     "telerama": {"index": "https://www.telerama.fr/sitemaps/sitemap_index.php",
                  "motif_sous_sitemap": r"/articles/2026-"},  # semestriel : 2026-01-01 + 2026-07-01
     "l_opinion": {"index": "https://www.lopinion.fr/sitemap.xml",
@@ -59,7 +62,8 @@ FICHES = {
     "la_depeche": {"index": "https://www.ladepeche.fr/sitemap.xml",
                    "motif_sous_sitemap": r"sitemap-2026-(0[3-9]|1[0-2])_"},  # mensuel en parts, gzip
     "le_telegramme": {"index": "https://www.letelegramme.fr/sitemaps/sitemap.xml",
-                      "motif_sous_sitemap": r"urlset_2026-(0[3-9]|1[0-2])"},  # mensuel, gzip
+                      "motif_sous_sitemap": r"urlset_2026-(0[3-9]|1[0-2])",
+                      "via_curl": True},  # mensuel, gzip
 
     # Exclus du rattrapage en curl (reco 07/07/2026) :
     # - nice_matin (sitemap.xml en 406 quel que soit l'UA), sud_ouest (anti-bot
