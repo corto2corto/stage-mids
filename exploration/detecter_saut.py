@@ -9,9 +9,10 @@ deux seuils — le quantile haut (ex. 99,9 %) pour les hausses brutales, le
 quantile bas symétrique (0,1 %) pour les chutes brutales. Une chute anormale
 peut s'interpréter comme une invisibilisation du sujet.
 
-Sortie : le texte ci-dessous, plus un PNG par taille de fenêtre dans
-exploration/figures/ — série temporelle du différentiel à gauche, histogramme
-de sa distribution à droite, les deux seuils en pointillé.
+Sortie : le texte ci-dessous pour chaque taille de fenêtre, plus un PNG pour
+les seules fenêtres de 1 et 7 jours dans exploration/figures/ — série
+temporelle du différentiel à gauche, histogramme de sa distribution à droite,
+les deux seuils en pointillé.
 
 Lancement (serveur) — 1 à 3 mots (guillemets si plusieurs) :
     python -m exploration.detecter_saut lemonde inflation
@@ -25,10 +26,11 @@ from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")  # rendu vers fichier, pas d'écran sur le serveur
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 
-BLEU, ROUGE, VIOLET = "#2a78d6", "#d03b3b", "#7a4fd0"
+BLEU, ROUGE, VIOLET = "#2a78d6", "#d03b3b", "#4a3aa7"
 ENCRE, GRIS, GRILLE, FOND = "#52514e", "#898781", "#e1e0d9", "#fcfcfb"
 
 corpus = sys.argv[1]
@@ -83,30 +85,43 @@ for k in fenetres:
     for date, valeur in baisses.head(15).items():
         print(f"    {date:%Y-%m-%d}   {valeur:+7.2f} / 100 000")
 
+    if k not in (1, 7):  # figure pour le jour et la semaine seulement
+        continue
+
     # figure : série temporelle du différentiel + histogramme, les deux seuils
-    fig, (ax_t, ax_h) = plt.subplots(1, 2, figsize=(12, 4), width_ratios=[3, 1],
+    fig, (ax_t, ax_h) = plt.subplots(1, 2, figsize=(12, 4.2), width_ratios=[3.5, 1],
                                      sharey=True, layout="constrained")
     fig.set_facecolor(FOND)
     fig.suptitle(f"« {mot} » — {corpus}, différentiel sur fenêtres de {k} jour(s)",
-                 color="#0b0b0b")
-    ax_t.plot(d.index, d, color=BLEU, linewidth=1.5)
-    if len(hausses):
-        ax_t.scatter(hausses.index, hausses, color=ROUGE, s=18, zorder=3,
-                     label=f"{len(hausses)} sauts > {seuil_haut:+.2f}")
-    if len(baisses):
-        ax_t.scatter(baisses.index, baisses, color=VIOLET, s=18, zorder=3,
-                     label=f"{len(baisses)} sauts < {seuil_bas:+.2f}")
+                 x=0.02, ha="left", color="#0b0b0b", fontweight="bold")
+    ax_t.fill_between(d.index, d, 0, color=BLEU, alpha=0.08, linewidth=0)
+    ax_t.plot(d.index, d, color=BLEU, linewidth=1.2,
+              solid_capstyle="round", solid_joinstyle="round")
     ax_t.axhline(seuil_haut, color=GRIS, linestyle="--", linewidth=1)
     ax_t.axhline(seuil_bas, color=GRIS, linestyle="--", linewidth=1)
     ax_t.axhline(0, color=GRILLE, linewidth=1)
-    ax_t.legend(frameon=False, labelcolor=ENCRE)
-    ax_t.set_ylabel("Δ fréquence / 100 000 mots", color=ENCRE)
+    # étiquette sur le plus fort saut de chaque sens seulement
+    for extremes, couleur, etiquette in ((hausses, ROUGE, f"sauts > {seuil_haut:+.2f}"),
+                                         (baisses, VIOLET, f"sauts < {seuil_bas:+.2f}")):
+        if len(extremes):
+            ax_t.scatter(extremes.index, extremes, color=couleur, s=26, zorder=3,
+                         edgecolors=FOND, linewidths=1.2,
+                         label=f"{len(extremes)} {etiquette}")
+            pic = extremes.index[0]
+            ax_t.annotate(f"{pic:%d %b %Y}", (pic, extremes.iloc[0]),
+                          xytext=(6, 3), textcoords="offset points",
+                          color=ENCRE, fontsize=8)
+    ax_t.legend(frameon=False, labelcolor=ENCRE, fontsize=8)
+    ax_t.set_ylabel("Δ fréquence / 100 000 mots", color=ENCRE, fontsize=9)
+    ax_t.xaxis.set_major_formatter(
+        mdates.ConciseDateFormatter(ax_t.xaxis.get_major_locator()))
+    ax_t.margins(x=0.01)
     ax_h.hist(d, bins=60, orientation="horizontal", color=BLEU,
               edgecolor=FOND, linewidth=0.5)
     ax_h.axhline(seuil_haut, color=GRIS, linestyle="--", linewidth=1)
     ax_h.axhline(seuil_bas, color=GRIS, linestyle="--", linewidth=1)
     ax_h.set_xscale("log")
-    ax_h.set_xlabel("nombre de fenêtres (log)", color=ENCRE)
+    ax_h.set_xlabel("nombre de fenêtres (log)", color=ENCRE, fontsize=9)
     for ax in (ax_t, ax_h):
         ax.set_facecolor(FOND)
         ax.grid(axis="y", color=GRILLE, linewidth=0.5)

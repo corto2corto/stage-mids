@@ -575,3 +575,84 @@ script liste les fenêtres au-dessus du seuil et enregistre une figure par
 temps avec les spikes en rouge ; à droite, l'histogramme de ces fréquences —
 la densité empirique du mot — avec le seuil en pointillé qui sépare le régime
 habituel des extrêmes.
+## Pipeline v2 : un rythme par média (2026-07-07)
+
+Le pipeline en batchs synchronisés (chaque batch attendait le média le plus lent
+avant de repartir) est remplacé par **une boucle indépendante par média** : un
+thread par média — prendre sa prochaine URL en base, scraper, écrire, respecter
+son attente, recommencer. Un site lent ne ralentit plus que lui-même. Débit
+mesuré : **~280 URLs/min** contre ~60 avant (serveur chargé), jusqu'à ×10 sur
+les médias à problème.
+
+Réglages actés après tests A/B :
+
+- `pageLoadStrategy: eager` (page « prête » au DOM, sans attendre pubs et
+  traqueurs) : chargement médian firefox 3,4 s → 0,8 s ;
+- `page_load_timeout` 30 s (couper plus court fait perdre des articles, testé
+  à 6/10/14 s) ;
+- politesse basic 1 s (latribune 2 s : rate-limit constaté), firefox 4 s
+  (bypass BPC vérifié : 0 bloqué à 4 s), log 3 s ;
+- `urls.db` en WAL : plus aucun « database is locked » entre threads, coût
+  base ~2 ms par URL ;
+- logins le_monde/mediapart ouverts **avant** le lancement groupé des Firefox :
+  une seule tentative de connexion par run ;
+- profils temporaires Firefox en RAM (`/dev/shm`) : ouverture ×3,5 ;
+- nouveau moteur **hybride** (requête HTTP d'abord, Firefox bypass si payant),
+  pour les sites qui ne ralentissent que les navigateurs — prototype telerama :
+  2-3 → ~12-15 URLs/min, politesse 2 s.
+
+### Les états d'une URL dans `urls.db`
+
+Chaque URL de la base porte un état, qui raconte sa vie dans le pipeline :
+
+| État | Sens | Qui le pose |
+|---|---|---|
+| 0 | à scraper | le chargement des corpus |
+| 1 | échec, **retentable** | le pipeline |
+| 2 | scrapée avec succès | le pipeline |
+| 3 | déjà couverte par le corpus historique | le script de dédup (hors pipeline) — 6,5 M d'URLs pour le_monde/le_figaro/les_echos |
+| 4 | échec **confirmé** (retentée, re-échouée) | le pipeline |
+| 5 | hors corpus (pages de service, média en pause) | à la main |
+
+Le pipeline sert chaque média dans cet ordre : d'abord toutes les nouveautés
+(état 0), puis — quand il n'y en a plus — une **seconde chance** aux échecs
+(état 1). Un échec qui re-échoue passe en état 4 et n'est plus jamais repris :
+chaque URL a droit à deux tentatives au maximum, ce qui évite de marteler à
+l'infini les payants et les pages mortes. Les états 3 et 5 sont invisibles
+pour le pipeline comme pour le suivi (ni succès, ni échec : hors périmètre).
+
+### Run de validation (nuit du 6 au 7 juillet)
+
+2 h sur 48 500 URLs tirées au hasard, 30 médias : **29 236 articles**, 0 blocage
+base, 0 thread mort, cohérence CSV↔base parfaite, reprise propre après un
+`kill -9` (au plus 1 doublon par média, absorbé par le marquage des doublons).
+Rapport détaillé : `exploration/rapport_test_nuit.md`.
+
+### Décisions médias
+
+- **liberation en pause** : les archives sont tronquées côté serveur (~240
+  mots), y compris dans le JSON interne des pages — reprise prévue avec un
+  compte abonné.
+- **bfmtv** : 159 601 replays/podcasts retirés du corpus d'URLs (17 %, ce ne
+  sont pas des articles) ; repli titre/date sur les balises quand le json-ld
+  est incomplet (idem atlantico).
+- telerama, le_figaro, nouvel_obs : leur lenteur venait d'un ralentissement
+  ciblant l'empreinte Firefox (servis en <1 s en HTTP simple) — d'où le moteur
+  hybride.
+
+### Prospection de nouveaux médias
+
+Quatre candidats évalués par équipes d'agents (dossiers dans
+`exploration/prospection/`, scripts de mapping écrits et testés, **rien de
+branché** — validation à venir) :
+
+| Média | Verdict | Profondeur |
+|---|---|---|
+| cnews (Bolloré) | basic complet | 2012→2026, ~195 000 articles |
+| 20minutes (Rossel/Ouest-France) | basic complet | 2006→2026, ~500-800 000 |
+| leprogres (EBRA) | gratuits seuls (filtre `free`) | 2018→2026, part de gratuit à sonder |
+| closermag (Reworld) | sous réserve | 2009→2026, texte des vieux articles effacé par le site en 2023 — frontière à sonder |
+
+À noter pour le mémoire : le cas closermag documente une **destruction
+d'archives éditoriales après rachat** (Reworld a vidé le corps des anciens
+articles en gardant URL et titre).

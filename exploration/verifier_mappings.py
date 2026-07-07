@@ -48,7 +48,7 @@ for media, motif in MEDIAS.items():
     nom = f"smoke {media}"
     try:
         p = subprocess.run(
-            [sys.executable, "-m", f"exploration.mapping_{media}"],
+            [sys.executable, "-m", "exploration.mapping", media],
             env=env, capture_output=True, text=True, timeout=300,
         )
     except subprocess.TimeoutExpired:

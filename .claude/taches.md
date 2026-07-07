@@ -134,6 +134,30 @@ Dans l'ordre :
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## equipe-agents-nouveaux-medias — Enrichir la base de médias avec une équipe d'agents (priorité basic)
+
+- Ajoutée : 2026-07-06
+- Branche : scraping (scrapping_v2)
+
+**Contexte** : le moteur « basic » (simple requête HTTP, sans navigateur — le moins coûteux et le plus rapide) est acté sur la branche scrapping_v2 et couvre déjà une quinzaine de médias. On veut continuer à enrichir le registre MEDIAS avec de nouveaux médias, en priorisant ceux qui passent en basic. Le processus d'ajout (échantillon d'URLs → HTML → repérage des métadonnées → mapping complet → branchement) est bien rodé mais manuel : on veut le confier à une équipe d'agents qui collaborent.
+
+**Piste envisagée** : orchestrer 4 rôles d'agents par média candidat — mapping (récupère un échantillon d'URLs), scrapper (teste si le HTML en basic est satisfaisant), explorateur (localise les métadonnées dans le HTML), manager (synthétise, tranche ajoutable/écarté, lance le mapping complet et prépare l'entrée medias.py — validation de Corto obligatoire avant tout branchement au pipeline).
+
+**Prompt** :
+
+```
+Objectif : enrichir le registre MEDIAS avec de nouveaux médias français, en priorisant ceux qui passent en moteur « basic » (simple requête HTTP, le moins coûteux et le plus rapide). Tout se passe sur la branche scrapping_v2 (scraping/medias.py, scraping/basic.py) — ne pas toucher main, et lire la branche via git show plutôt qu'en switchant le dépôt principal.
+
+Organiser une équipe d'agents (outil Agent), un média candidat à la fois :
+1. Agent mapping : trouve la source d'URLs du média (sitemap, archives, pagination — s'inspirer des exploration/mapping_*.py existants) et en tire un échantillon d'une dizaine d'URLs d'articles variées, gratuits ET payants.
+2. Agent scrapper : récupère le HTML de l'échantillon en basic — sur gallica uniquement, jamais de curl/fetch sur le Mac — et juge le contenu : payants complets, gratuits seuls exploitables, ou tronqués.
+3. Agent explorateur : fouille les HTML pour localiser titre/auteur/date/corps (stratégie json_ld en priorité, sinon balises — cf exploration/lister_balises.py et exploration/detail_metadonnees.md).
+4. Agent manager : croise les trois rapports et tranche : ajoutable en basic complet, ajoutable en gratuits seuls (filtre via la colonne free), ou écarté — règle absolue : jamais d'articles tronqués en base. Si ajoutable : faire écrire le script de mapping complet (exploration/mapping_<media>.py + passage dans exploration/verifier_mappings.py) et préparer l'entrée medias.py pour le branchement au pipeline — SANS brancher : présenter le dossier complet à Corto et attendre sa validation explicite.
+
+Commencer par proposer à Corto une liste de médias candidats (hors MEDIAS actuels de scrapping_v2 et hors écartés : lexpress, lepoint) et la faire valider avant de lancer les agents.
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
 
 (aucune pour l'instant)
