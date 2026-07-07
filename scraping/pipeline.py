@@ -147,7 +147,9 @@ def main():
 
     # Le premier batch fixe l'ensemble des médias à traiter, donc les sessions
     # à ouvrir (aucun média ne peut en gagner en cours de route).
-    batch = new_batch()
+    # Les médias en pause (champ "pause" de medias.py) sont écartés d'emblée.
+    batch = {media: iu for media, iu in new_batch().items()
+             if not MEDIAS.get(media, {}).get("pause")}
     if not batch:
         print("Aucune URL à etat=0 — rien à faire.")
         return

@@ -92,6 +92,14 @@ def extraire(media, html):
     meta = MEDIAS[media]["meta"]
 
     infos = meta_json_ld(soup) if meta["strategie"] == "json_ld" else meta_balises(soup, meta)
+    # Repli : certains gabarits (bfmtv, atlantico) n'ont pas de json-ld complet,
+    # on va chercher dans les balises les champs restés vides.
+    for champ, selecteur in meta.get("secours", {}).items():
+        if not infos.get(champ):
+            element = soup.select_one(selecteur)
+            if element:
+                infos[champ] = (element.get("datetime") or element.get_text(strip=True)
+                                if champ == "date" else element.get_text(strip=True))
     if meta["corps"] == "json_ld":
         corps = str(noeud_json_ld(soup).get("articleBody", ""))
         if "&lt;" in corps or "<" in corps:   # certains sites (laprovence) y laissent du HTML échappé

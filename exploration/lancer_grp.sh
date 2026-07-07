@@ -7,7 +7,7 @@
 
 RACINE_V2="/data/elias/stage-mids-v2"
 D="$RACINE_V2/exploration/test_run_grp"
-TMP_DIR="/data/elias/stage-mids/extensions/firefox/tmp"   # RACINE de config.py
+TMP_DIR="/dev/shm/stage-mids-firefox-tmp"   # aligné sur TMP_FIREFOX (config.py)
 GECKODRIVER="/data/elias/stage-mids/extensions/geckodriver/geckodriver"
 
 exec 9>"$D/lancer_grp.lock"

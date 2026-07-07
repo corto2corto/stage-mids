@@ -21,13 +21,14 @@ FAUX_MEDIAS = {
     "m_log":     {"moteur": "log", "meta": {}},
     "m_basic":   {"moteur": "basic", "meta": {}},
     "m_lent":    {"moteur": "firefox", "attente": 12, "meta": {}},
+    "m_hybride": {"moteur": "hybride", "meta": {}},
 }
 
 
 class TestRegistreMedias(unittest.TestCase):
     def test_chaque_media_a_un_moteur_connu(self):
         for media, regles in MEDIAS.items():
-            self.assertIn(regles["moteur"], ("firefox", "log", "basic"), media)
+            self.assertIn(regles["moteur"], ("firefox", "log", "basic", "hybride"), media)
 
     def test_chaque_media_a_une_strategie_extraction(self):
         for media, regles in MEDIAS.items():
@@ -85,6 +86,40 @@ class TestDispatchMoteurs(unittest.TestCase):
             self.assertEqual(moteurs.scraper("m_basic", "session", "http://u"), "<html>")
             m.assert_called_once_with("session", "http://u")
             sleep.assert_called_once()   # délai de politesse appliqué
+
+    def test_ouvrir_hybride_deux_sessions(self):
+        with patch("scraping.basic.ouvrir_session", return_value="SESSION") as b, \
+             patch("scraping.navigateur.ouvrir_firefox", return_value="DRIVER") as f:
+            self.assertEqual(moteurs.ouvrir_session("m_hybride"),
+                             {"basic": "SESSION", "firefox": "DRIVER"})
+            b.assert_called_once()
+            f.assert_called_once()
+
+    def test_scraper_hybride_gratuit_reste_en_basic(self):
+        session = {"basic": "s_http", "firefox": "driver"}
+        with patch("scraping.basic.scraper", return_value="<html>") as b, \
+             patch("scraping.moteurs.extraction.extraire", return_value={"contenu": "texte complet"}), \
+             patch("scraping.moteurs.est_bloque", return_value=False), \
+             patch("scraping.navigateur.scraper") as f, \
+             patch("scraping.moteurs.time.sleep"):
+            self.assertEqual(moteurs.scraper("m_hybride", session, "http://u"), "<html>")
+            b.assert_called_once_with("s_http", "http://u")
+            f.assert_not_called()   # pas de Firefox pour un article gratuit
+
+    def test_scraper_hybride_payant_bascule_sur_firefox(self):
+        session = {"basic": "s_http", "firefox": "driver"}
+        with patch("scraping.basic.scraper", return_value="<html tronqué>"), \
+             patch("scraping.moteurs.extraction.extraire", return_value={"contenu": ""}), \
+             patch("scraping.moteurs.est_bloque", return_value=True), \
+             patch("scraping.navigateur.scraper", return_value="<html complet>") as f:
+            self.assertEqual(moteurs.scraper("m_hybride", session, "http://u"), "<html complet>")
+            f.assert_called_once_with("driver", "http://u", ATTENTE_DEFAUT)
+
+    def test_fermer_hybride_ferme_les_deux(self):
+        session = {"basic": MagicMock(), "firefox": MagicMock()}
+        moteurs.fermer_session("m_hybride", session)
+        session["basic"].close.assert_called_once()
+        session["firefox"].quit.assert_called_once()
 
     def test_fermer_basic_close_et_firefox_quit(self):
         session, driver = MagicMock(), MagicMock()
