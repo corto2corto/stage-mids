@@ -126,14 +126,22 @@ d'exploiter le pré-2022 (cf exploration/prospection/closermag.md)`.
 2. Lancer `python -m exploration.mapping_closermag` sur gallica (~221
    requêtes, ~7 min). Produit `exploration/closermag_url.csv` (~219 000 URLs
    attendues).
-3. Copier/déplacer `exploration/closermag_url.csv` vers `DATA_DIR` (par
-   défaut `/data/elias/stage-mids/data/closermag_url.csv`, ou le
-   `STAGE_DATA_DIR` de test si on valide d'abord sur base isolée).
-4. Charger en base : `charger_nouvelles_urls(conn)` dans
-   `scraping/pipeline.py` est actuellement **désactivé** (ligne commentée
-   dans `main()`) — réactiver temporairement ou appeler manuellement, puis
-   recommenter si elle doit rester désactivée par défaut.
-5. Ajouter l'entrée `"closermag"` ci-dessus dans `scraping/medias.py`.
+3. Ajouter l'entrée `"closermag"` ci-dessus dans `scraping/medias.py` —
+   **avant** le chargement : le script de chargement parcourt le registre
+   MEDIAS et ignore les médias qui n'y figurent pas.
+4. Charger en base via `python -m exploration.charger_nouveaux_medias`
+   (PAS `charger_nouvelles_urls` de pipeline.py) : garde-fous intégrés —
+   média déjà présent en base ignoré, **déduplication des URLs à
+   l'intérieur du CSV**, une transaction par média. Le CSV doit être dans
+   un des dossiers `SOURCES` du script
+   (`/data/elias/stage-mids-v2/exploration` convient). La sauvegarde de
+   `urls.db` est automatique (VACUUM INTO intégré au script avant la
+   première écriture).
+5. Marquer les doublons du corpus historique :
+   `.venv/bin/python scripts/4_marquer_doublons.py` — passe en etat=3 les
+   URLs etat=0 déjà couvertes par regicid/press_metadata (jamais
+   re-scrapées). Idempotent, à relancer après chaque chargement de
+   nouveau média.
 6. Relancer le pipeline pour que `closermag` entre dans le prochain
    `new_batch()` — `lancer.sh` est actuellement à l'arrêt depuis le 06/07
    (tests v2 en cours), donc ce point dépend de la reprise générale du
