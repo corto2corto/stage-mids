@@ -27,10 +27,34 @@ MOTIF_LASTMOD = re.compile(r"<lastmod>([^<]+)</lastmod>")
 DOSSIERS_CSV = [Path("data/urls"), Path("exploration")]
 
 
-def recuperer(url, ua=UA, via_curl=False, timeout=60):
+_SESSION_CFFI = None
+
+
+def _cffi():
+    """Session curl_cffi partagée, créée au premier besoin (import paresseux :
+    curl_cffi n'est installé que sur le serveur)."""
+    global _SESSION_CFFI
+    if _SESSION_CFFI is None:
+        from curl_cffi import requests as cffi_requests
+        _SESSION_CFFI = cffi_requests.Session(impersonate="chrome")
+        _SESSION_CFFI.headers["Accept-Language"] = "fr-FR,fr;q=0.8,en-US;q=0.5,en;q=0.3"
+    return _SESSION_CFFI
+
+
+def recuperer(url, ua=UA, via_curl=False, via_cffi=False, timeout=60):
     """Contenu texte d'une URL (fichier .gz décompressé si besoin), None si échec.
-    via_curl : certains CDN bloquent l'empreinte TLS de python-requests."""
-    if via_curl:
+    via_curl : certains CDN bloquent l'empreinte TLS de python-requests.
+    via_cffi : anti-bots plus stricts (Cloudflare/Datadome/Akamai) — imite un
+    vrai Chrome comme le moteur basic (cf scraping/basic.py)."""
+    if via_cffi:
+        try:
+            r = _cffi().get(url, timeout=timeout)
+        except Exception:
+            return None
+        if r.status_code != 200 or not r.content:
+            return None
+        brut = r.content
+    elif via_curl:
         p = subprocess.run(
             ["curl", "-s", "-m", str(timeout), "--compressed", "-A", ua,
              "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",

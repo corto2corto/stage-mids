@@ -65,12 +65,21 @@ FICHES = {
                       "motif_sous_sitemap": r"urlset_2026-(0[3-9]|1[0-2])",
                       "via_curl": True},  # mensuel, gzip
 
-    # Exclus du rattrapage en curl (reco 07/07/2026) :
-    # - nice_matin (sitemap.xml en 406 quel que soit l'UA), sud_ouest (anti-bot
-    #   sur tout, robots.txt compris), le_journal_du_dimanche (challenge
-    #   Cloudflare) -> à faire via le navigateur du pipeline ;
-    # - valeurs_actuelles : post-sitemaps figés au 20/10/2025, aucun contenu
-    #   2026 dans les sitemaps classiques -> autre source à trouver.
+    # nice_matin, le_journal_du_dimanche, sud_ouest : anti-bots stricts, seule
+    # l'empreinte Chrome de curl_cffi passe (sondé le 07/07, comme le moteur basic).
+    # nice_matin : pages numérotées à l'envers (1 = le plus récent, ~1000 URLs
+    # par page), lastmod d'index tous re-tamponnés -> pages 1 à 40 (~4-5 mois).
+    "nice_matin": {"index": "https://www.nicematin.com/sitemap.xml",
+                   "motif_sous_sitemap": r"/sitemap_articles_([1-9]|[1-3]\d|40)\.xml",
+                   "via_cffi": True},
+    "le_journal_du_dimanche": {"index": "https://www.lejdd.fr/sitemap.xml",
+                               "via_cffi": True},  # 15 pages, lastmod fiables
+    "sud_ouest": {"index": "https://www.sudouest.fr/sitemap.xml",
+                  "motif_sous_sitemap": r"articles-2026-(0[3-9]|1[0-2])",
+                  "via_cffi": True},  # mensuel daté
+
+    # Exclu : valeurs_actuelles — post-sitemaps figés au 20/10/2025, aucun
+    # contenu 2026 dans les sitemaps classiques -> autre source à trouver.
 }
 
 
@@ -102,6 +111,7 @@ for media in medias:
     index = fiche["index"] if isinstance(fiche["index"], list) else [fiche["index"]]
     ua = fiche.get("ua", UA)
     via_curl = fiche.get("via_curl", False)
+    via_cffi = fiche.get("via_cffi", False)
 
     # parcours de l'index : on descend dans les sous-sitemaps retenus par la
     # borne, un <sitemapindex> intermédiaire est développé au tour suivant
@@ -118,7 +128,7 @@ for media in medias:
             anti_sm = fiche.get("anti_sous_sitemap")
             if profondeur and anti_sm and re.search(anti_sm, loc):
                 continue
-            texte = recuperer(loc, ua=ua, via_curl=via_curl)
+            texte = recuperer(loc, ua=ua, via_curl=via_curl, via_cffi=via_cffi)
             if texte is None:
                 print(f"{loc} : échec, ignoré")
                 continue
