@@ -73,9 +73,10 @@ def traiter_url(conn, media, session, id, url, etat_prec=0):
     """Scrape une URL, écrit le résultat, met à jour l'état. Retourne l'état.
 
     Un échec sur une URL neuve (etat_prec=0) donne etat=1 (retentable) ; un
-    échec sur une URL déjà retentée (etat_prec=1) donne etat=3 (confirmé,
-    plus jamais reprise)."""
-    echec = 3 if etat_prec == 1 else 1
+    échec sur une URL déjà retentée (etat_prec=1) donne etat=4 (confirmé,
+    plus jamais reprise — le 3 est pris : « déjà couvert par le corpus
+    historique », posé par le script de dédup de Corto)."""
+    echec = 4 if etat_prec == 1 else 1
     try:
         html = scraper(media, session, url)
     except Exception:

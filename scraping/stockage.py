@@ -4,7 +4,8 @@
 - 0 : à scraper
 - 1 : échec (retenté une fois quand le média n'a plus de nouveautés, cf batch.prochaine_url)
 - 2 : scrapée avec succès
-- 3 : échec confirmé (retenté et re-échoué : plus jamais repris)
+- 3 : déjà couverte par le corpus historique (posé par le script de dédup, hors pipeline)
+- 4 : échec confirmé (retenté et re-échoué : plus jamais repris)
 - 5 : hors corpus (pages de service, média en pause…) — posé à la main, jamais scrapé
 """
 
