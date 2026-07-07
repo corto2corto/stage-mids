@@ -129,7 +129,10 @@ def avancement():
 
     par_media = {}                       # media -> {0: restants, 1: échecs, 2: réussis}
     for media, etat, n in rows:
-        par_media.setdefault(media, {0: 0, 1: 0, 2: 0})[etat] = n
+        compte = par_media.setdefault(media, {0: 0, 1: 0, 2: 0})
+        etat = 1 if etat == 3 else etat  # échec confirmé = échec
+        if etat in compte:               # etat=5 (hors corpus) : ignoré
+            compte[etat] += n
 
     total = {0: 0, 1: 0, 2: 0}
     lignes = []
@@ -182,13 +185,13 @@ def echecs():
     """
     with _connexion() as conn:
         rows = conn.execute(
-            "SELECT media, etat, COUNT(*) FROM urls WHERE etat IN (1, 2) "
+            "SELECT media, etat, COUNT(*) FROM urls WHERE etat IN (1, 2, 3) "
             "GROUP BY media, etat"
         ).fetchall()
 
     par_media = {}                       # media -> {1: échecs, 2: réussis}
     for media, etat, n in rows:
-        par_media.setdefault(media, {1: 0, 2: 0})[etat] = n
+        par_media.setdefault(media, {1: 0, 2: 0})[1 if etat == 3 else etat] += n
 
     lignes = []
     for media in sorted(par_media):
@@ -326,12 +329,12 @@ def _compteurs_db():
     """Compteurs cumulés (réussis, échecs) par média, lus dans urls.db."""
     with _connexion() as conn:
         rows = conn.execute(
-            "SELECT media, etat, COUNT(*) FROM urls WHERE etat IN (1, 2) "
+            "SELECT media, etat, COUNT(*) FROM urls WHERE etat IN (1, 2, 3) "
             "GROUP BY media, etat"
         ).fetchall()
     par_media = {}
     for media, etat, n in rows:
-        par_media.setdefault(media, {1: 0, 2: 0})[etat] = n
+        par_media.setdefault(media, {1: 0, 2: 0})[1 if etat == 3 else etat] += n
     return {m: (c[2], c[1]) for m, c in par_media.items()}   # (réussis, échecs)
 
 
