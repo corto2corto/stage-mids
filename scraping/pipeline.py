@@ -69,16 +69,23 @@ def ouvrir_sessions(batch):
     return {media: session for media, session in resultats.items() if session}
 
 
-def traiter_url(conn, media, session, id, url):
-    """Scrape une URL, écrit le résultat, met à jour l'état. Retourne l'état (1 ou 2)."""
+def traiter_url(conn, media, session, id, url, etat_prec=0):
+    """Scrape une URL, écrit le résultat, met à jour l'état. Retourne l'état.
+
+    Un échec sur une URL neuve (etat_prec=0) donne etat=1 (retentable) ; un
+    échec sur une URL déjà retentée (etat_prec=1) donne etat=3 (confirmé,
+    plus jamais reprise)."""
+    echec = 3 if etat_prec == 1 else 1
     try:
         html = scraper(media, session, url)
     except Exception:
         html = None
     try:
-        etat = ecriture_csv(media, id, url, html) if html else 1
+        etat = ecriture_csv(media, id, url, html) if html else echec
+        if etat == 1:
+            etat = echec
     except Exception:
-        etat = 1
+        etat = echec
     maj_bdd(conn, id, etat)
     conn.commit()
     return etat
@@ -101,9 +108,9 @@ def boucle_media(media, session, debut):
             suivant = prochaine_url(conn, media)
             if not suivant:
                 break
-            id, url = suivant
+            id, url, etat_prec = suivant
             t = time.time()
-            etat = traiter_url(conn, media, session, id, url)
+            etat = traiter_url(conn, media, session, id, url, etat_prec)
             traitees += 1
             with VERROU_PRINT:
                 print(f"  {media:<24} id={id}  etat={etat} "
