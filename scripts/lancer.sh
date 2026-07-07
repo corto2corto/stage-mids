@@ -5,7 +5,7 @@
 # À lancer dans la session tmux "scrapping" : bash scripts/lancer.sh
 
 RACINE="/data/elias/stage-mids"
-TMP_DIR="$RACINE/extensions/firefox/tmp"
+TMP_DIR="/dev/shm/stage-mids-firefox-tmp"   # aligné sur TMP_FIREFOX (config.py)
 GECKODRIVER="$RACINE/extensions/geckodriver/geckodriver"
 
 # Verrou : une seule instance à la fois (deux pipelines sur la même base =
@@ -27,9 +27,9 @@ while true; do
     sleep 5
     find "$TMP_DIR" -mindepth 1 -delete 2>/dev/null
 
-    # Filet de sécurité : le pipeline s'arrête seul à 2h ; s'il gèle (appel
+    # Filet de sécurité : le pipeline s'arrête seul à 4h ; s'il gèle (appel
     # Selenium sans réponse), timeout le tue à 2h30 et le cycle repart.
-    timeout -k 30 150m python -m scraping.pipeline
+    timeout -k 30 270m python -m scraping.pipeline
     rc=$?   # à relever avant l'echo : le $(date) écraserait $?
 
     echo "[$(date '+%F %T')] Pipeline terminé (code $rc), nettoyage puis relance."

@@ -54,6 +54,10 @@ def ouvrir_firefox():
 
     options = Options()
     options.add_argument("--headless")
+    # « Prêt » au DOM construit (DOMContentLoaded) au lieu du chargement complet :
+    # une pub ou un traqueur qui pend faisait timeouter des pages saines en masse
+    # (telerama 42 % de timeouts). L'attente après driver.get laisse le JS finir.
+    options.page_load_strategy = "eager"
     options.binary_location = FIREFOX_BIN
     options.set_preference("permissions.default.image", 2)
     # Pas de cache retour : Firefox garde sinon en RAM les dernières pages de
@@ -64,9 +68,10 @@ def ouvrir_firefox():
     # Si l'installation des extensions échoue, on ferme le Firefox déjà lancé
     # pour ne pas laisser de processus orphelin.
     try:
-        # Au-delà, driver.get lève TimeoutException au lieu d'attendre le
-        # défaut de 300 s (une page lente bloquerait toute la vague).
-        driver.set_page_load_timeout(60)
+        # Au-delà, driver.get lève TimeoutException (défaut : 300 s). Un
+        # timeout coûte tout ce temps au média : 30 s suffisent, une page
+        # saine charge bien avant (durées visibles dans le log du pipeline).
+        driver.set_page_load_timeout(30)
         extensions_dir = RACINE / "extensions" / "firefox"
         for xpi in extensions_dir.glob("*.xpi"):
             driver.install_addon(str(xpi), temporary=True)
@@ -79,8 +84,10 @@ def ouvrir_firefox():
     return driver
 
 
-def scraper(driver, url, attente=6):
-    driver.delete_all_cookies()
+def scraper(driver, url, attente=6, garder_cookies=False):
+    # garder_cookies=True pour le moteur "log" : effacer les cookies déconnecterait le compte.
+    if not garder_cookies:
+        driver.delete_all_cookies()
     driver.get(url)
     time.sleep(attente)
     html = driver.page_source

@@ -7,12 +7,16 @@
 """
 
 import csv
+import os
 from pathlib import Path
 
 from scraping import extraction
 from scraping.paywall import est_bloque
 
-DATA_DIR = Path("/data/elias/stage-mids/data")
+# Emplacement des données (base urls.db + CSV de sortie). Surchargeable par
+# STAGE_DATA_DIR pour lancer le pipeline sur une base de test isolée, sans
+# toucher la prod. batch.py et pipeline.py importent ce DATA_DIR.
+DATA_DIR = Path(os.environ.get("STAGE_DATA_DIR", "/data/elias/stage-mids/data"))
 
 # éventuellement à supprimer.
 COLONNES = ["id", "url", "titre", "auteur", "date", "section", "free", "contenu"]
