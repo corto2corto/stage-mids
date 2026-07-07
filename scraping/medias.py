@@ -26,7 +26,10 @@ MEDIAS = {
     "le_capital":            {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     "le_figaro":             {"moteur": "firefox", "meta": {"strategie": "json_ld", "corps": "div.fig-content-body"}},
     # le_monde : bypass en échec permanent -> compte abonné (moteur log, connexion.py).
-    "le_monde":              {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": ".article__content"}},
+    # EN PAUSE 07/07 : login en échec au premier run de prod v2 (0/42, pages paywall
+    # servies) alors que mediapart passe -> diagnostic du compte à faire à part.
+    # URLs brûlées en etat=1 ce matin : ids ~6580250-6580320, à repasser à 0 après correction.
+    "le_monde":              {"moteur": "log", "pause": True, "attente": 3, "meta": {"strategie": "json_ld", "corps": ".article__content"}},
     # telerama : prototype moteur hybride (07/07) — l'anti-bot ne freine que Firefox
     # (40-65 % de timeouts), le client HTTP est servi en <1 s ; bypass en secours.
     "telerama":              {"moteur": "hybride", "meta": {"strategie": "json_ld", "corps": "article.article__page-content"}},
