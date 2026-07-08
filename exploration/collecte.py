@@ -116,9 +116,34 @@ def trouver_csv(media):
     return None
 
 
-def urls_connues(chemin):
+def url_article(champs):
+    """URL d'article d'une ligne CSV : le dernier champ qui commence par http.
+    Gère les deux formats de nos CSV — ancien 'sitemap,url' (2 colonnes,
+    l'article est en 2e) et nouveau 'url' (1 colonne) — ainsi que nos ajouts,
+    toujours écrits en 1 colonne. Renvoie None si aucun champ n'est une URL
+    (ligne vide, octet résiduel d'un crash, déchet)."""
+    for c in reversed(champs):
+        c = c.strip()
+        if c.startswith("http"):
+            return c
+    return None
+
+
+def lire_urls(chemin):
+    """Ensemble des URLs d'articles d'un CSV, tous formats confondus."""
+    urls = set()
     with open(chemin, newline="", encoding="utf-8") as f:
-        return {ligne["url"] for ligne in csv.DictReader(f)}
+        r = csv.reader(f)
+        next(r, None)  # en-tête (url ou sitemap,url)
+        for champs in r:
+            u = url_article(champs)
+            if u:
+                urls.add(u)
+    return urls
+
+
+def urls_connues(chemin):
+    return lire_urls(chemin)
 
 
 def ajouter(chemin, urls):

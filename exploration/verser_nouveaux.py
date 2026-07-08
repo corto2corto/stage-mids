@@ -26,6 +26,7 @@ import sys
 import time
 from pathlib import Path
 
+from exploration.collecte import url_article
 from scraping.medias import MEDIAS
 from scraping.stockage import DATA_DIR
 
@@ -59,20 +60,20 @@ for media in medias:
     en_base = set(lignes)
     doublons = len(lignes) - len(en_base)
     doublons_total += doublons
-    # On ne garde que les vraies URLs : une ligne vide (csv -> url=None) ou un
-    # champ qui ne commence pas par http (déchet du scraping d'origine) est
-    # ignoré, jamais inséré — sinon SQLite lève NOT NULL sur url.
-    du_csv, ignorees = [], 0
-    vus = set()
+    # Extraction universelle de l'URL d'article (gère 'sitemap,url' et 'url',
+    # cf. collecte.url_article) ; une ligne sans URL (vide, déchet, octet de
+    # crash) est comptée en `ignorees`, jamais insérée (sinon NOT NULL sur url).
+    du_csv_set, ignorees = set(), 0
     with open(chemin, newline="", encoding="utf-8") as f:
-        for ligne in csv.DictReader(f):
-            u = (ligne.get("url") or "").strip()
-            if not u.startswith("http"):
+        r = csv.reader(f)
+        next(r, None)  # en-tête
+        for champs in r:
+            u = url_article(champs)
+            if u:
+                du_csv_set.add(u)
+            else:
                 ignorees += 1
-                continue
-            if u not in vus:
-                vus.add(u)
-                du_csv.append(u)
+    du_csv = du_csv_set
     nouvelles = [u for u in du_csv if u not in en_base]
     if nouvelles and not sauvegarde_faite:  # VACUUM INTO refuse d'écraser : nom horodaté
         if os.environ.get("VERSER_SKIP_BACKUP"):
