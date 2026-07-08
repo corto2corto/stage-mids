@@ -20,6 +20,7 @@ déjà chargés. Garde-fous :
     python -m exploration.verser_nouveaux le_figaro  # un seul
 """
 import csv
+import os
 import sqlite3
 import sys
 import time
@@ -58,20 +59,36 @@ for media in medias:
     en_base = set(lignes)
     doublons = len(lignes) - len(en_base)
     doublons_total += doublons
+    # On ne garde que les vraies URLs : une ligne vide (csv -> url=None) ou un
+    # champ qui ne commence pas par http (déchet du scraping d'origine) est
+    # ignoré, jamais inséré — sinon SQLite lève NOT NULL sur url.
+    du_csv, ignorees = [], 0
+    vus = set()
     with open(chemin, newline="", encoding="utf-8") as f:
-        du_csv = list(dict.fromkeys(ligne["url"] for ligne in csv.DictReader(f)))
+        for ligne in csv.DictReader(f):
+            u = (ligne.get("url") or "").strip()
+            if not u.startswith("http"):
+                ignorees += 1
+                continue
+            if u not in vus:
+                vus.add(u)
+                du_csv.append(u)
     nouvelles = [u for u in du_csv if u not in en_base]
     if nouvelles and not sauvegarde_faite:  # VACUUM INTO refuse d'écraser : nom horodaté
-        cible = DATA_DIR / f"urls.db.avant_versement-{time.strftime('%Y%m%d-%H%M%S')}"
-        print(f"sauvegarde de urls.db vers {cible} (quelques minutes)...", flush=True)
-        conn.execute(f"VACUUM INTO '{cible}'")
+        if os.environ.get("VERSER_SKIP_BACKUP"):
+            print("sauvegarde sautée (VERSER_SKIP_BACKUP) — backup déjà disponible", flush=True)
+        else:
+            cible = DATA_DIR / f"urls.db.avant_versement-{time.strftime('%Y%m%d-%H%M%S')}"
+            print(f"sauvegarde de urls.db vers {cible} (quelques minutes)...", flush=True)
+            conn.execute(f"VACUUM INTO '{cible}'")
         sauvegarde_faite = True
     if nouvelles:
         with conn:  # une transaction par média : tout ou rien
             conn.executemany("INSERT INTO urls (media, url, etat) VALUES (?, ?, 0)",
                              [(media, u) for u in nouvelles])
+    suffixe = f", {ignorees} ignorées" if ignorees else ""
     print(f"{media:<24} {len(en_base):>8} en base ({doublons} doublons), "
-          f"{len(du_csv):>8} au CSV, {len(nouvelles):>6} insérées", flush=True)
+          f"{len(du_csv):>8} au CSV{suffixe}, {len(nouvelles):>6} insérées", flush=True)
     total += len(nouvelles)
 
 print(f"\nTerminé : {total} URLs insérées ; {doublons_total} doublons (media,url) préexistants en base.")
