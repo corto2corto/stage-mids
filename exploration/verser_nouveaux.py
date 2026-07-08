@@ -32,9 +32,8 @@ import sqlite3
 
 SOURCES = [Path("data/urls"), Path("exploration")]
 
-# sud_ouest : zone disque illisible sous son CSV (07/07, lectures figées en
-# état D) — à réintégrer une fois le fichier régénéré depuis la base.
-EXCLUS = {"sud_ouest"}
+# Médias temporairement écartés du versement (aucun pour l'instant).
+EXCLUS = set()
 
 conn = sqlite3.connect(DATA_DIR / "urls.db", timeout=60)
 medias = sys.argv[1:] or sorted(MEDIAS)
