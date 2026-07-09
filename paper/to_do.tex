@@ -1,0 +1,182 @@
+% Build: latexmk -pdf to_do.tex
+
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,french]{babel}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{microtype}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{mathptmx}
+
+\geometry{margin=2.5cm}
+
+\input{macros}
+
+\title{Stage MIDS --- À faire}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Notations}
+
+\begin{itemize}
+    \item $X^w_t$ = nombre total d'occurrences du mot $w$ à l'instant $t$
+    \item $N_t$ = nombre total de mots dans le corpus à l'instant $t$
+    \item $f_t = \frac{X^w_t}{N_t}$ = fréquence du mot $w$ à l'instant $t$
+\end{itemize}
+
+Le problème avec $f_t$ est que ce n'est pas un entier ; je préférerais conserver la structure entière de $X_t$, mais il faut tout de même une forme de normalisation par rapport à $N_t$. Pour cela, je propose de normaliser la moyenne de n'importe quel modèle probabiliste par rapport à $N_t$.
+
+\section{Détection de pics (spikes)}
+
+\subsection{Étape 1 : ajuster un modèle binomial négatif}
+
+La loi binomiale négative de paramètres $p \in (0,1)$, $r > 0$ est définie par
+$$\mathbb{P}(X = k) = \frac{\Gamma(k + r)}{\Gamma(k + 1) \Gamma(r)} p^k (1-p)^r. $$
+Sa moyenne et sa variance valent
+$$
+\mathbb{E}[X] = \frac{r(1-p)}{p} \quad \text{et} \quad \text{Var}[X] = \frac{r(1-p)}{p^2}.
+$$
+Une paramétrisation courante consiste à poser $m = r(1-p)/p$, de sorte que $\mathbb{E}[X] = m$ et $\mathrm{Var}(X) = m + m^2/r$. C'est la paramétrisation que nous utiliserons, c'est-à-dire
+$$\mathbb{P}(X = k) = \frac{\Gamma(k + r)}{\Gamma(k + 1) \Gamma(r)} \left(\frac{r}{m+r}\right)^k \left(\frac{m}{m+r}\right)^r.$$
+
+\begin{itemize}
+    \item D'après GPT, ajuster une binomiale négative avec cette paramétrisation peut se faire avec \texttt{statsmodels.discrete.discrete\_model.NegativeBinomial}, avec $\phi = r^{-1}$.
+    \item Les queues sont exponentielles, i.e. $p_n \approx e^{-c n}$ pour un certain $c$. Les queues deviennent plus légères quand $r$ augmente.
+    \item Quand $r \to \infty$, la loi converge vers une loi de Poisson de paramètre $m$ ; ce modèle est donc très polyvalent, absorbant les lois de Poisson, géométrique et de Pascal.
+    \item Comme $X^w_t$ peut fortement dépendre du nombre de mots $N_t$, il est naturel de normaliser le modèle linéairement avec $N_t$, i.e. de paramétrer $X_t \sim \mathrm{NB}(\mu N_t, r)$. Il est apparemment possible d'ajuster ce modèle sur les observations $(X_t, N_t)$ à l'aide du paramètre \texttt{exposure} de \texttt{statsmodels.discrete.discrete\_model.NegativeBinomial}. Dans ce cas, $\mu$ sera la fréquence moyenne du mot $w$.
+    \item Une fois le modèle ajusté et les paramètres optimaux $\mu_*, r_*$ trouvés, il est important de tracer la densité de $\mathrm{NB}(\mu_* \times 100000, r_*)$ par-dessus l'histogramme des données (le graphe de droite sur les graphes d'Elias) pour voir si l'ajustement est bon ou non.
+\end{itemize}
+
+\bigskip
+
+Diagnostics pour la qualité de l'ajustement ? Je ne sais pas. Vérifier peut-être la moyenne, la variance, l'asymétrie (skewness) et l'aplatissement (kurtosis) ?
+
+\subsection{Étape 2 : détecter les pics}
+
+Une fois un modèle ajusté, disons $\mu_*, r_*$, on peut détecter les valeurs aberrantes (outliers) dans les données. Notons $P_t$ la densité de probabilité de $\mathrm{NB}(\mu_* N_t, r_*)$. On pose
+$$p_t = P_t([X_t, +\infty]), $$
+qui est la $p$-valeur de $X_t$ sous le modèle ajusté. On déclare $X_t$ comme aberrant si $p_t$ est trop petit, disons $p_t < 0{,}0001$.
+
+Remarques.
+\begin{itemize}
+\item $\log_{10}(p_t)$ est appelé la « surprise » de l'observation $X_t$. Plus elle est élevée, plus l'observation est surprenante.
+\item on peut procéder en plusieurs tours : ajuster un premier modèle NB2, puis retirer tous les « outliers évidents » (ceux ayant une surprise très élevée), puis réajuster un modèle sur les données restantes, retirer à nouveau les outliers, etc.
+\item Diag : tracer l'histogramme des $p_t$, il devrait être à peu près uniforme, sauf pour quelques outliers trop proches de $0$ ?
+\end{itemize}
+
+\subsection{Étape 3 : clusters d'activité anormale}
+
+\subsection{Étape 4 : séries temporelles ?}
+
+Si ce qui précède ne fonctionne pas très bien, on pourrait ajouter un modèle autorégressif sur les paramètres. @Elias : il serait bien de tracer la fonction d'autocorrélation de $X_t$, ou plutôt de $f_t$ ; je m'attends fortement à observer des autocorrélations intéressantes dans $f_t$.
+
+On ajusterait typiquement quelque chose comme $m_t = N_t \times e^{R_t}$ avec $R_t$ un processus AR(1) ?
+
+\newpage
+\section{Nouveautés à intégrer (par ordre de difficulté)}
+
+Cette section rassemble les pistes issues des échanges les plus récents,
+classées de la plus simple à la plus difficile à mettre en œuvre.
+
+\subsection*{Facile}
+
+\begin{itemize}
+    \item \textbf{Commencer par une loi de Poisson.} Avant la binomiale négative,
+    ajuster mot par mot un modèle de Poisson, en veillant à faire scaler la moyenne
+    avec la taille du corpus : fitter $\mathrm{Poisson}(\lambda N_t)$ et \emph{non}
+    $\mathrm{Poisson}(\lambda)$ (c'est la remarque de Benoît sur la normalisation par $N_t$).
+
+    \item \textbf{Batterie d'indicateurs et de graphes, pour 5 ou 6 mots.} Pour chaque mot,
+    produire :
+    \begin{itemize}
+        \item moyenne / écart-type / asymétrie (skewness) / aplatissement (kurtosis)
+        de la \emph{série observée} ;
+        \item les mêmes moments pour la \emph{loi ajustée} ;
+        \item le graphe histogramme des données \emph{vs} densité de la loi ajustée (superposés) ;
+        \item l'histogramme des $p$-valeurs de chaque observation.
+    \end{itemize}
+    Ces sorties suffisent déjà à bien réfléchir à la suite.
+
+    \item \textbf{Rappel sur la $p$-valeur.} Une fois le modèle ajusté, si $F$ est sa
+    fonction de répartition, la $p$-valeur d'une observation $X$ est simplement
+    $1 - F(X) = \mathbb{P}(\text{être} > X)$. Une $p$-valeur trop petite $\Rightarrow$ outlier.
+\end{itemize}
+
+\subsection*{Moyen}
+
+\begin{itemize}
+    \item \textbf{Regarder le différentiel de fréquences $X_t - X_{t-1}$}, et pas seulement
+    $X_t$. Ce différentiel peut être négatif : on obtient donc des sauts vers le haut
+    (quantile supérieur) \emph{et} vers le bas (quantile inférieur). Un saut anormal
+    \emph{vers le bas} peut s'interpréter comme une volonté de censure ou d'invisibilisation.
+    Il faudra comparer ce signal à la fréquence elle-même.
+
+    \item \textbf{Distinguer soigneusement le différentiel de la fréquence.}
+    Difficulté observée : les pics négatifs semblent souvent n'être que le
+    contrecoup d'un pic positif précédent (retour à la normale après une hausse),
+    plutôt qu'une vraie censure. Deux pistes complémentaires :
+    \begin{itemize}
+        \item passer à un modèle autorégressif d'ordre supérieur, AR(2) ou AR(3),
+        pour absorber cet effet de rebond ;
+        \item garder à l'esprit qu'il est aussi possible qu'il n'y ait tout simplement
+        pas de phénomène de censure sur les mots regardés.
+    \end{itemize}
+
+    \item \textbf{Rendre le choix du seuil « principled » plutôt qu'arbitraire.}
+    Le seuil actuel (99{,}9\,\% ou 99\,\%) est arbitraire ; selon les mots, 97\,\%
+    pourrait suffire. Objectif : déduire le seuil des données. Pistes :
+    \begin{itemize}
+        \item identifier le point où l'ajustement d'une loi devient « assez mauvais »
+        (le bulk lisse de la distribution \emph{vs} les points qui n'en font pas partie) ;
+        \item transposer un critère d'outlier type distance de Cook, en l'adaptant
+        aux données discrètes (comptages) ;
+        \item construire un test statistique : estimer la loi \emph{en éliminant} les
+        outliers, puis tester si les occurrences suspectes sont « naturelles » sous cette loi.
+    \end{itemize}
+
+    \item \textbf{Cadrer outliers vs breakpoints.} Distinction à garder claire :
+    pour l'instant on cherche des \emph{outliers} (périodes courtes d'activité anormale :
+    un jour, une semaine, un mois — typiquement le Covid), car c'est le plus simple et
+    probablement déjà très significatif. La question des \emph{breakpoints} (changement
+    total et définitif de toute la distribution, typiquement un rachat comme
+    Bolloré $\to$ JDD) viendra dans un second temps.
+\end{itemize}
+
+\subsection*{Difficile}
+
+\begin{itemize}
+    \item \textbf{Ajuster une loi commune à plusieurs mots.} Au lieu d'ajuster
+    les occurrences d'un seul mot, ajuster simultanément les occurrences de tout
+    (ou d'une partie) du vocabulaire, pour disposer d'un critère d'outlier partagé.
+    Plus difficile que l'approche mot par mot ; à tenter dans un second temps.
+
+    \item \textbf{Détecter les breakpoints (ruptures durables).} Au-delà des pics
+    ponctuels, détecter un déplacement définitif de la distribution après un événement
+    (rachat de journal). Suppose des outils de détection de rupture, pas seulement
+    de détection d'outliers.
+
+    \item \textbf{Question ouverte : le bruit décroît-il vraiment en $\sqrt{n}$ en
+    lexicométrie ?} Intuition de Benoît : probablement \emph{non} (comportement
+    non-diffusif). Deux raisons avancées :
+    \begin{itemize}
+        \item les mots ne sont pas des variables indépendantes : le texte est un tissu ;
+        \item la taille d'échantillon effective (\emph{effective sample size}) est très
+        inférieure à la taille brute $n$ (nombre de tokens) : on ne peut pas répéter
+        « inflation » trois fois par phrase (facteur constant), et le texte se répète
+        (effet non linéaire, ESS probablement concave en $n$).
+    \end{itemize}
+    Conséquence pratique : on observe des valeurs plus extrêmes sur un petit corpus
+    (un hebdo) que sur un grand (un quotidien). Le modèle standard « mots i.i.d. »
+    donnerait une loi binomiale à variance décroissant en $\sqrt{n}$ ; il n'existe pas
+    de littérature sur la construction d'intervalles de confiance en lexicométrie.
+    Piste suggérée : du \textbf{bootstrap} pour mesurer empiriquement le rythme de
+    convergence.
+\end{itemize}
+
+\end{document}
