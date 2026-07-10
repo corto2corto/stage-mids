@@ -158,6 +158,31 @@ Commencer par proposer à Corto une liste de médias candidats (hors MEDIAS actu
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## chi2-fit-fiche — Ajouter le chi-deux d'adéquation et sa p-value dans /fiche
+
+- Ajoutée : 2026-07-10
+- Branche : main
+
+**Contexte** : demande du tuteur (« good practice ») — la route `/fiche` de l'API (`api/app.py`) ajuste une loi de Poisson (`lam`) et une binomiale négative (`mu`, `r`) aux occurrences d'un mot par corpus, mais ne renvoie aucune mesure d'adéquation du fit. Il faut ajouter la statistique du chi-deux du goodness-of-fit et sa p-value, pour Poisson **et** NB, dans la réponse JSON.
+
+**Piste envisagée** : subtilité à ne pas rater — l'exposition `N_t` (total d'occurrences du jour, colonne `total`) varie chaque jour, donc ce n'est pas un test d'adéquation sur une distribution fixe : chaque jour a sa propre loi (`lam*N_t` pour Poisson, moyenne `mu*N_t` pour NB). Deux options propres : (a) chi-deux de Pearson jour par jour `Σ (X_t − E_t)² / Var_t` avec `E_t = lam*N_t` (Poisson) ou `mu*N_t` (NB) et la variance du modèle, ou (b) statistique de déviance. Degrés de liberté = nb de jours (`len(df)`) − nb de params estimés (1 pour Poisson : λ ; 2 pour NB : μ et r). p-value via `scipy.stats.chi2.sf(stat, ddl)`. Exposer sous `"gof": {"poisson": {"chi2":…, "ddl":…, "p":…}, "nb": {…}}` dans le `jsonify` (ligne ~270). Décider avec Corto entre Pearson et déviance avant de coder.
+
+**Prompt** :
+
+```
+Le tuteur demande d'ajouter au fit de la route /fiche (api/app.py) le chi-deux du test d'adéquation (goodness-of-fit) et sa p-value, pour la loi de Poisson ET la binomiale négative — « good practice ». Aujourd'hui /fiche ajuste Poisson (lam, MLE forme fermée ligne ~250) et NB (mu, r via NegativeBinomial statsmodels, ligne ~253) mais ne renvoie aucune mesure d'adéquation.
+
+Subtilité à ne PAS rater : l'exposition N_t (colonne total, occurrences totales du jour) varie chaque jour, donc chaque jour a sa propre loi (moyenne lam*N_t pour Poisson, mu*N_t pour NB). Ce n'est donc pas un test d'adéquation contre une distribution unique.
+
+À faire :
+1. Choisir avec moi la statistique : chi-deux de Pearson jour par jour Σ (X_t − E_t)²/Var_t (E_t = lam*N_t Poisson / mu*N_t NB, Var du modèle : mu*N_t pour Poisson, mu*N_t + (mu*N_t)²/r pour NB), ou statistique de déviance. Trancher avant de coder.
+2. Calculer chi2 et p-value pour Poisson et NB. Degrés de liberté = len(df) − nb params estimés (1 Poisson, 2 NB). p-value = scipy.stats.chi2.sf(stat, ddl).
+3. Exposer dans le jsonify final (ligne ~270), p.ex. "gof": {"poisson": {"chi2":…, "ddl":…, "p":…}, "nb": {…}}.
+4. Vérifier sur un mot de test (ex. /fiche?mot=guerre&corpus=lemonde&from=2020&to=2024) que les deux stats sont cohérentes : NB devrait mieux s'ajuster (p plus élevée) que Poisson, puisque les séries sont sur-dispersées.
+
+Le front (api/index.html, onglet Fiche) pourra afficher ces valeurs ensuite — pas obligatoire dans cette tâche.
+```
+
 ## Faites
 
 (aucune pour l'instant)
