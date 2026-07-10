@@ -13,3 +13,12 @@
 donnees_maths/build_*/
 donnees_maths/.quarto/
 donnees_maths/__pycache__/
+
+# donnees et sorties regenerables (extraire.sh, scripts, /fiche-mot)
+donnees_maths/*_lemonde.csv
+donnees_maths/comparaison_moments.csv
+donnees_maths/params_estimes.csv
+donnees_maths/pics_detectes.csv
+donnees_maths/*.png
+donnees_maths/*.html
+donnees_maths/fiches/
