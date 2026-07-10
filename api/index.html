@@ -73,17 +73,17 @@
   .message { color: var(--ink-2); padding: 36px 8px; text-align: center; }
   .erreur { color: #d03b3b; }
 
-  #infobulle {
+  #infobulle, .infobulle-fiche {
     position: absolute; pointer-events: none; display: none;
     background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.12); padding: 8px 11px; font-size: 13px;
     min-width: 150px; z-index: 2;
   }
-  #infobulle .date { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-  #infobulle .ligne { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
-  #infobulle .trait { width: 12px; flex: none; }
-  #infobulle .val { font-weight: 650; font-variant-numeric: tabular-nums; }
-  #infobulle .nom { color: var(--ink-2); }
+  #infobulle .date, .infobulle-fiche .date { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  #infobulle .ligne, .infobulle-fiche .ligne { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+  #infobulle .trait, .infobulle-fiche .trait { width: 12px; flex: none; }
+  #infobulle .val, .infobulle-fiche .val { font-weight: 650; font-variant-numeric: tabular-nums; }
+  #infobulle .nom, .infobulle-fiche .nom { color: var(--ink-2); }
 
   .rangee-top { display: grid; grid-template-columns: minmax(100px, 200px) 1fr; gap: 12px;
                 align-items: center; padding: 2.5px 0; }
@@ -98,6 +98,14 @@
   .colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 32px; }
   @media (max-width: 760px) { .colonnes { grid-template-columns: 1fr; } }
   .colonnes h3 { font-size: 13.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+
+  #resultat-fiche .carte { margin-top: 12px; }
+  .deux-cartes { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 860px) { .deux-cartes { grid-template-columns: 1fr; } }
+  .deux-cartes .carte { margin-top: 0 !important; }
+  .rangee-stats { display: flex; flex-wrap: wrap; gap: 8px 40px; padding: 4px 0 8px; }
+  .stat .valeur { font-size: 21px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .stat .intitule { font-size: 12.5px; color: var(--muted); }
 
   details { margin-top: 14px; }
   summary { cursor: pointer; color: var(--ink-2); font-size: 13.5px; }
@@ -117,6 +125,7 @@
   <button type="button" data-vue="courbes" class="actif">Courbes</button>
   <button type="button" data-vue="top">Top n-grammes</button>
   <button type="button" data-vue="evolution">Avant / après</button>
+  <button type="button" data-vue="fiche">Fiche d'un mot</button>
 </nav>
 
 <!-- ═══════════ COURBES ═══════════ -->
@@ -298,6 +307,89 @@
   pour zéro. Idéal pour repérer les sujets qui émergent ou disparaissent autour d'un rachat.</p>
 </section>
 
+<!-- ═══════════ FICHE ═══════════ -->
+<section id="vue-fiche" hidden>
+  <form id="formulaire-fiche">
+    <div>
+      <label for="fiche-mot">Mot (ou expression de 2-3 mots)</label>
+      <input id="fiche-mot" value="guerre" autocomplete="off" style="width:220px">
+    </div>
+    <div>
+      <label for="fiche-corpus">Journal</label>
+      <select id="fiche-corpus">
+        <option value="lemonde">Le Monde</option>
+        <option value="lefigaro">Le Figaro</option>
+        <option value="lesechos">Les Échos</option>
+      </select>
+    </div>
+    <div>
+      <label for="fiche-de">Du</label>
+      <input id="fiche-de" type="date" value="2020-01-01" min="1944-12-19" max="2025-12-31">
+    </div>
+    <div>
+      <label for="fiche-a">Au</label>
+      <input id="fiche-a" type="date" value="2024-12-31" min="1944-12-19" max="2025-12-31">
+    </div>
+    <div>
+      <label for="fiche-seuil">Jour anormal si</label>
+      <select id="fiche-seuil">
+        <option value="0.001">p &lt; 10⁻³</option>
+        <option value="0.0001" selected>p &lt; 10⁻⁴</option>
+        <option value="0.00001">p &lt; 10⁻⁵</option>
+      </select>
+    </div>
+    <button type="submit">Analyser</button>
+  </form>
+
+  <div class="carte" id="carte-attente-fiche">
+    <div class="message" id="message-fiche">Choisis un mot puis « Analyser ».</div>
+  </div>
+
+  <div id="resultat-fiche" hidden>
+    <div class="carte">
+      <h2 id="titre-fiche"></h2>
+      <div class="rangee-stats" id="stats-fiche"></div>
+    </div>
+
+    <div class="carte">
+      <h2>Fréquence quotidienne</h2>
+      <div class="unite">occurrences pour 100 000 mots — quotidien, moyenne mobile 7 jours,
+        <span style="color:var(--s6)">●</span> jours anormaux</div>
+      <div id="zone-serie-fiche" style="position:relative"><div id="infobulle-fiche" class="infobulle-fiche"></div></div>
+    </div>
+
+    <div class="deux-cartes">
+      <div class="carte">
+        <h2>Histogramme et lois ajustées</h2>
+        <div class="unite">densité de <i>X<sub>t</sub></i> —
+          <span style="color:var(--s8)">—</span> Poisson (λ̂),
+          <span style="color:var(--s1)">—</span> binomiale négative (μ̂, r̂)</div>
+        <div id="zone-hist-fiche"></div>
+      </div>
+      <div class="carte">
+        <h2 id="titre-pval-fiche">p-valeurs</h2>
+        <div class="unite">p<sub>t</sub> = P(X ≥ X<sub>t</sub>) sous la NB — uniforme si le modèle colle</div>
+        <div id="zone-pval-fiche"></div>
+      </div>
+    </div>
+
+    <div class="carte">
+      <h2>Moments observés et moments des lois ajustées</h2>
+      <div style="overflow-x:auto"><table id="tableau-moments-fiche"></table></div>
+    </div>
+
+    <div class="carte">
+      <h2 id="titre-pics-fiche">Jours anormaux</h2>
+      <div style="overflow-x:auto"><table id="tableau-pics-fiche"></table></div>
+    </div>
+  </div>
+  <p class="note">Modèles : X<sub>t</sub> ~ Poisson(λN<sub>t</sub>) ou NB(μN<sub>t</sub>, r) —
+  la moyenne scale avec le volume du jour N<sub>t</sub>, μ est la fréquence moyenne du mot, et r règle la
+  dispersion (r petit = série irrégulière ; r → ∞ redonne Poisson). Estimation par maximum de vraisemblance
+  (forme fermée pour λ ; statsmodels pour μ, r). Les lois tracées sont les mélanges exacts sur les vrais
+  N<sub>t</sub> de la période. Même méthode et mêmes sorties que les fiches PDF du mémoire.</p>
+</section>
+
 <script>
 "use strict";
 const COULEURS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"]
@@ -328,7 +420,7 @@ document.querySelectorAll(".onglets button").forEach(bouton =>
   bouton.addEventListener("click", () => {
     document.querySelectorAll(".onglets button").forEach(b =>
       b.classList.toggle("actif", b === bouton));
-    for (const vue of ["courbes", "top", "evolution"])
+    for (const vue of ["courbes", "top", "evolution", "fiche"])
       document.getElementById("vue-" + vue).hidden = bouton.dataset.vue !== vue;
   }));
 
@@ -759,9 +851,296 @@ function dessinerEvolution(donnees) {
   zoneEvolution.appendChild(colonnes);
 }
 
+// ---------- vue fiche ----------
+// même page-type que les fiches PDF du mémoire (rapport.qmd) : série avec pics,
+// histogramme + lois-mélange, p-valeurs, moments — mêmes couleurs (s1 NB, s8 Poisson, s6 pics)
+const zoneSerieFiche = document.getElementById("zone-serie-fiche");
+const infobulleFiche = document.getElementById("infobulle-fiche");
+let ficheDonnees = null;
+
+const svgDans = (conteneur, largeur, hauteur, garder) => {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${largeur} ${hauteur}`);
+  conteneur.replaceChildren(svg, ...(garder ? [garder] : []));
+  return [svg, (nom, attrs, parent = svg) => {
+    const e = document.createElementNS(svgNS, nom);
+    for (const [cle, v] of Object.entries(attrs)) e.setAttribute(cle, v);
+    parent.appendChild(e); return e;
+  }];
+};
+
+function axeY(el, x0, x1, y, vMax, format = v => formaterNombre(v)) {
+  const pas = pasArrondi(vMax / 4);
+  for (let v = 0; v <= vMax * 1.001; v += pas) {
+    el("line", { x1: x0, x2: x1, y1: y(v), y2: y(v),
+                 stroke: v === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 });
+    if (v > 0) el("text", { x: x0 - 8, y: y(v) + 4, "text-anchor": "end",
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = format(v);
+  }
+}
+
+function dateEnMs(d) { return Date.UTC(Math.floor(d / 10000), Math.floor(d / 100) % 100 - 1, d % 100); }
+function formaterJour(d) {
+  return `${String(d % 100).padStart(2, "0")}/${String(Math.floor(d / 100) % 100).padStart(2, "0")}/${Math.floor(d / 10000)}`;
+}
+
+document.getElementById("formulaire-fiche").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const mot = document.getElementById("fiche-mot").value.trim();
+  if (!mot) return;
+  const corpus = document.getElementById("fiche-corpus").value;
+  const de = document.getElementById("fiche-de").value || "2020-01-01";
+  const a = document.getElementById("fiche-a").value || "2024-12-31";
+  const seuil = document.getElementById("fiche-seuil").value;
+  const attente = document.getElementById("carte-attente-fiche");
+  attente.hidden = false;
+  document.getElementById("resultat-fiche").hidden = true;
+  document.getElementById("message-fiche").textContent = "Ajustement en cours…";
+  document.getElementById("message-fiche").classList.remove("erreur");
+  try {
+    const reponse = await fetch("/fiche?" + new URLSearchParams({ mot, corpus, from: de, to: a, seuil }));
+    if (!reponse.ok) throw new Error(await reponse.text());
+    ficheDonnees = await reponse.json();
+    attente.hidden = true;
+    document.getElementById("resultat-fiche").hidden = false;
+    dessinerFiche();
+    history.replaceState(null, "", "?" + new URLSearchParams({ vue: "fiche", mot, corpus, de, a, seuil }));
+  } catch (err) {
+    document.getElementById("message-fiche").textContent = "Erreur : " + err.message;
+    document.getElementById("message-fiche").classList.add("erreur");
+  }
+});
+
+function dessinerFiche() {
+  const d = ficheDonnees;
+  const nbPics = d.pics.length;
+  document.getElementById("titre-fiche").textContent =
+    `${d.mot} — ${NOMS_CORPUS[d.corpus]}, ${formaterJour(d.de)} → ${formaterJour(d.a)}`;
+
+  // bandeau de paramètres (l'équivalent du chapeau des fiches PDF)
+  const stats = document.getElementById("stats-fiche");
+  stats.replaceChildren();
+  for (const [valeur, intitule] of [
+      [formaterNombre(d.params.lambda * 1e5, 4), "λ̂ Poisson (pour 100 000)"],
+      [formaterNombre(d.params.mu * 1e5, 4), "μ̂ NB (pour 100 000)"],
+      [formaterNombre(d.params.r, 3), "r̂ (petit = irrégulier)"],
+      [d.jours.toLocaleString("fr-FR"), "jours ajustés"],
+      [String(nbPics), "jours anormaux"]]) {
+    const bloc = document.createElement("div");
+    bloc.className = "stat";
+    const v = document.createElement("div"); v.className = "valeur"; v.textContent = valeur;
+    const i = document.createElement("div"); i.className = "intitule"; i.textContent = intitule;
+    bloc.append(v, i);
+    stats.appendChild(bloc);
+  }
+
+  dessinerSerieFiche();
+  dessinerHistFiche();
+  dessinerPvalFiche();
+  remplirMomentsFiche();
+  remplirPicsFiche();
+}
+
+function dessinerSerieFiche() {
+  const d = ficheDonnees;
+  const f = d.serie.x.map((x, i) => x / d.serie.total[i] * 1e5);
+  const ts = d.serie.date.map(dateEnMs);
+  // moyenne mobile 7 jours centrée (comme les fiches PDF)
+  const mm = f.map((_, i) => {
+    const fen = f.slice(Math.max(0, i - 3), i + 4);
+    return fen.reduce((s, v) => s + v, 0) / fen.length;
+  });
+  const largeur = zoneSerieFiche.clientWidth || 940, hauteur = 300;
+  const m = { haut: 12, droite: 12, bas: 26, gauche: 46 };
+  const [t0, t1] = [ts[0], ts[ts.length - 1]];
+  const fMax = Math.max(...f) * 1.08 || 1;
+  const x = t => m.gauche + (t - t0) / (t1 - t0) * (largeur - m.gauche - m.droite);
+  const y = v => hauteur - m.bas - v / fMax * (hauteur - m.haut - m.bas);
+  const [svg, el] = svgDans(zoneSerieFiche, largeur, hauteur, infobulleFiche);
+
+  axeY(el, m.gauche, largeur - m.droite, y, fMax);
+  const ticks = graduationsX(t0, t1);
+  const saut = Math.ceil(ticks.length / Math.max(2, Math.floor(largeur / 90)));
+  for (const tick of ticks.filter((_, i) => i % saut === 0))
+    el("text", { x: x(tick.t), y: hauteur - 8, "text-anchor": "middle",
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = tick.libelle;
+
+  const chemin = serie => "M" + serie.map((v, i) => `${x(ts[i]).toFixed(1)},${y(v).toFixed(1)}`).join("L");
+  el("path", { d: chemin(f), fill: "none", stroke: "var(--axis)", "stroke-width": 0.8 });
+  el("path", { d: chemin(mm), fill: "none", stroke: COULEURS[0], "stroke-width": 2,
+               "stroke-linejoin": "round" });
+  for (const pic of ficheDonnees.pics) {
+    const i = d.serie.date.indexOf(pic.date);
+    el("circle", { cx: x(ts[i]), cy: y(f[i]), r: 3.5, fill: COULEURS[5],
+                   stroke: "var(--surface)", "stroke-width": 1.5 });
+  }
+
+  // survol : date la plus proche -> X_t, f_t, p_t
+  svg.addEventListener("pointermove", (ev) => {
+    const boite = svg.getBoundingClientRect();
+    const tCible = t0 + (ev.clientX - boite.left) / boite.width * (t1 - t0);
+    let i = 0;
+    for (let j = 1; j < ts.length; j++) if (Math.abs(ts[j] - tCible) < Math.abs(ts[i] - tCible)) i = j;
+    infobulleFiche.style.display = "block";
+    infobulleFiche.replaceChildren();
+    const date = document.createElement("div");
+    date.className = "date"; date.textContent = formaterJour(d.serie.date[i]);
+    infobulleFiche.appendChild(date);
+    for (const [nom, val] of [["occurrences", String(d.serie.x[i])],
+                              ["pour 100 000", formaterNombre(f[i])],
+                              ["p-valeur", d.serie.p[i] < 0.001 ? d.serie.p[i].toExponential(1)
+                                                                : formaterNombre(d.serie.p[i], 2)]]) {
+      const ligne = document.createElement("div");
+      ligne.className = "ligne";
+      const v = document.createElement("span"); v.className = "val"; v.textContent = val;
+      const n = document.createElement("span"); n.className = "nom"; n.textContent = nom;
+      ligne.append(v, n);
+      infobulleFiche.appendChild(ligne);
+    }
+    const xPix = (x(ts[i]) / largeur) * boite.width;
+    infobulleFiche.style.left = Math.min(xPix + 14, boite.width - infobulleFiche.offsetWidth - 4) + "px";
+    infobulleFiche.style.top = Math.min(ev.clientY - boite.top + 14,
+      boite.height - infobulleFiche.offsetHeight - 4) + "px";
+  });
+  svg.addEventListener("pointerleave", () => { infobulleFiche.style.display = "none"; });
+}
+
+function quantile(valeurs, q) {
+  const tri = [...valeurs].sort((a, b) => a - b);
+  return tri[Math.min(tri.length - 1, Math.floor(q * tri.length))];
+}
+
+function dessinerHistFiche() {
+  const d = ficheDonnees;
+  const X = d.serie.x;
+  const zone = document.getElementById("zone-hist-fiche");
+  const xMax = quantile(X, 0.995) + Math.max(3, Math.round(Math.max(...X) * 0.05));
+  const xMin = d.hist.k[0] > 0 ? Math.min(...X) : 0;
+  const largeurBac = Math.max(1, Math.ceil((xMax - xMin) / 70));
+  const bacs = new Map();
+  for (const v of X) {
+    const b = Math.floor((v - xMin) / largeurBac);
+    bacs.set(b, (bacs.get(b) || 0) + 1);
+  }
+  const densite = b => (bacs.get(b) || 0) / (X.length * largeurBac);
+  const nbBacs = Math.ceil((xMax - xMin) / largeurBac);
+  // le plafond inclut les pics des deux lois (visibles en entier, comme dans les fiches PDF)
+  const dansFenetre = serie => serie.filter((_, i) => d.hist.k[i] >= xMin && d.hist.k[i] <= xMax);
+  const yMax = Math.max(...[...bacs.keys()].map(densite),
+                        ...dansFenetre(d.hist.poisson), ...dansFenetre(d.hist.nb)) * 1.08;
+
+  const largeur = zone.clientWidth || 540, hauteur = 260;
+  const m = { haut: 10, droite: 10, bas: 26, gauche: 52 };
+  const x = v => m.gauche + (v - xMin) / (xMax - xMin) * (largeur - m.gauche - m.droite);
+  const y = v => hauteur - m.bas - v / yMax * (hauteur - m.haut - m.bas);
+  const [, el] = svgDans(zone, largeur, hauteur);
+
+  axeY(el, m.gauche, largeur - m.droite, y, yMax, v => formaterNombre(v, 2));
+  for (let b = 0; b < nbBacs; b++) {
+    if (!bacs.get(b)) continue;
+    const g0 = xMin + b * largeurBac;
+    el("rect", { x: x(g0), y: y(densite(b)), width: Math.max(1, x(g0 + largeurBac) - x(g0) - 0.5),
+                 height: y(0) - y(densite(b)), fill: "var(--axis)", opacity: 0.55 });
+  }
+  const courbe = serie => "M" + d.hist.k.map((kv, i) => [kv, serie[i]])
+    .filter(([kv]) => kv >= xMin && kv <= xMax)
+    .map(([kv, pv]) => `${x(kv).toFixed(1)},${y(Math.min(pv, yMax)).toFixed(1)}`).join("L");
+  el("path", { d: courbe(d.hist.poisson), fill: "none", stroke: COULEURS[7], "stroke-width": 1.8 });
+  el("path", { d: courbe(d.hist.nb), fill: "none", stroke: COULEURS[0], "stroke-width": 2.2 });
+  const pasX = pasArrondi((xMax - xMin) / 5);
+  for (let v = Math.ceil(xMin / pasX) * pasX; v <= xMax; v += pasX)
+    el("text", { x: x(v), y: hauteur - 8, "text-anchor": "middle",
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = v.toLocaleString("fr-FR");
+}
+
+function dessinerPvalFiche() {
+  const d = ficheDonnees;
+  const zone = document.getElementById("zone-pval-fiche");
+  const expSeuil = { 3: "³", 4: "⁴", 5: "⁵" }[Math.round(-Math.log10(d.seuil))] || "⁴";
+  document.getElementById("titre-pval-fiche").textContent =
+    `p-valeurs — ${d.pics.length} jour${d.pics.length > 1 ? "s" : ""} sous 10⁻${expSeuil}`;
+  const bacs = Array(20).fill(0);
+  for (const p of d.serie.p) bacs[Math.min(19, Math.floor(p * 20))]++;
+  const densites = bacs.map(n => n / d.serie.p.length * 20);
+  const yMax = Math.max(1.3, ...densites) * 1.1;
+
+  const largeur = zone.clientWidth || 380, hauteur = 260;
+  const m = { haut: 10, droite: 10, bas: 26, gauche: 40 };
+  const x = v => m.gauche + v * (largeur - m.gauche - m.droite);
+  const y = v => hauteur - m.bas - v / yMax * (hauteur - m.haut - m.bas);
+  const [, el] = svgDans(zone, largeur, hauteur);
+
+  axeY(el, m.gauche, largeur - m.droite, y, yMax);
+  densites.forEach((dens, b) => {
+    if (dens) el("rect", { x: x(b / 20) + 0.5, y: y(dens), width: x(1 / 20) - x(0) - 1,
+                           height: y(0) - y(dens), fill: "var(--axis)", opacity: 0.55 });
+  });
+  el("line", { x1: m.gauche, x2: largeur - m.droite, y1: y(1), y2: y(1),
+               stroke: "var(--ink-2)", "stroke-width": 1, "stroke-dasharray": "5 4" });
+  el("text", { x: largeur - m.droite - 2, y: y(1) - 5, "text-anchor": "end",
+    fill: "var(--ink-2)", "font-size": 11 }).textContent = "uniforme";
+  for (const v of [0, 0.25, 0.5, 0.75, 1])
+    el("text", { x: x(v), y: hauteur - 8, "text-anchor": "middle",
+      fill: "var(--muted)", "font-size": 11.5 }).textContent = formaterNombre(v);
+}
+
+function ligneTable(table, cellules, entete = false, gras = false) {
+  const tr = document.createElement("tr");
+  for (const contenu of cellules) {
+    const td = document.createElement(entete ? "th" : "td");
+    td.textContent = contenu;
+    if (gras) td.style.fontWeight = "650";
+    tr.appendChild(td);
+  }
+  table.appendChild(tr);
+}
+
+function remplirMomentsFiche() {
+  const d = ficheDonnees;
+  const table = document.getElementById("tableau-moments-fiche");
+  table.replaceChildren();
+  ligneTable(table, ["Source", "Moyenne", "Écart-type", "Var/Moy", "Skewness", "Kurtosis"], true);
+  for (const [nom, cle, gras] of [["observé", "observe", true], ["Poisson", "poisson", false],
+                                  ["binomiale négative", "nb", false]])
+    ligneTable(table, [nom, ...d.moments[cle].map(v => v === null ? "—" : formaterNombre(v, 4))],
+               false, gras);
+}
+
+function remplirPicsFiche() {
+  const d = ficheDonnees;
+  const table = document.getElementById("tableau-pics-fiche");
+  const titre = document.getElementById("titre-pics-fiche");
+  table.replaceChildren();
+  if (!d.pics.length) {
+    titre.textContent = "Jours anormaux — aucun au seuil choisi";
+    return;
+  }
+  titre.textContent = `Jours anormaux (${d.pics.length}), triés par surprise décroissante`;
+  ligneTable(table, ["Date", "Xₜ", "pour 100 000", "p-valeur", "Surprise −log₁₀(p)"], true);
+  const parDate = new Map(d.serie.date.map((dt, i) => [dt, i]));
+  for (const pic of [...d.pics].sort((a, b) => a.p - b.p)) {
+    const i = parDate.get(pic.date);
+    ligneTable(table, [formaterJour(pic.date), String(pic.x),
+      formaterNombre(pic.x / d.serie.total[i] * 1e5),
+      pic.p.toExponential(1), formaterNombre(-Math.log10(pic.p))]);
+  }
+}
+
+window.addEventListener("resize", () => { if (ficheDonnees) dessinerFiche(); });
+
 // ---------- lien partagé : pré-remplir et tracer ----------
 const paramsURL = new URLSearchParams(location.search);
-if (paramsURL.get("mot")) {
+if (paramsURL.get("vue") === "fiche") {
+  document.querySelector('.onglets button[data-vue="fiche"]').click();
+  if (paramsURL.get("mot")) {
+    document.getElementById("fiche-mot").value = paramsURL.get("mot");
+    for (const [param, champ] of [["corpus", "fiche-corpus"], ["de", "fiche-de"],
+                                  ["a", "fiche-a"], ["seuil", "fiche-seuil"]])
+      if (paramsURL.get(param)) document.getElementById(champ).value = paramsURL.get(param);
+    document.getElementById("formulaire-fiche").requestSubmit();
+  }
+} else if (paramsURL.get("mot")) {
   document.getElementById("mot").value = paramsURL.get("mot");
   for (const param of ["corpus", "resolution", "de", "a", "lissage"])
     if (paramsURL.get(param)) document.getElementById(param).value = paramsURL.get(param);
