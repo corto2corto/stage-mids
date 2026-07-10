@@ -5,15 +5,14 @@
 import os
 import re
 import sqlite3
-from flask import Flask, Response, request, send_file
+import unicodedata
+from flask import Flask, Response, jsonify, request, send_file
 from flask_cors import CORS
 import pandas as pd
 
-CORPUS = {
-    "lesechos": "/data/elias/stage-mids/data/corpus/lesechos_ngram.db",
-    "lefigaro": "/data/elias/stage-mids/data/corpus/lefigaro_ngram.db",
-    "lemonde": "/data/elias/stage-mids/data/corpus/lemonde_ngram.db",
-}
+# NGRAM_DIR surchargeable pour tester en local sur une mini-base
+DOSSIER = os.environ.get("NGRAM_DIR", "/data/elias/stage-mids/data/corpus")
+CORPUS = {nom: f"{DOSSIER}/{nom}_ngram.db" for nom in ("lesechos", "lefigaro", "lemonde")}
 TABLE = {1: "unigram", 2: "bigram", 3: "trigram"}
 
 app = Flask(__name__)
@@ -177,6 +176,114 @@ def evolution():
     df = pd.DataFrame([("hausse", *l) for l in hausses] + [("baisse", *l) for l in baisses],
                       columns=["sens", "gram", "avant", "apres", "delta"])
     return Response(df.to_csv(index=False), mimetype="text/plain")
+
+
+def sans_accents(texte):
+    return unicodedata.normalize("NFD", texte).encode("ascii", "ignore").decode()
+
+
+def serie_sommee(conn, gram, date_min, date_max):
+    # somme les graphies avec/sans accents (l'OCR a créé des doublons type "président"/"president")
+    morceaux = []
+    for forme in {gram, sans_accents(gram)}:
+        tokens = tokeniser(forme)
+        if 1 <= len(tokens) <= 3:
+            df = serie(conn, tokens, date_min, date_max)
+            if len(df):
+                morceaux.append(df)
+    if not morceaux:
+        return pd.DataFrame({"date": [], "n": []})
+    return pd.concat(morceaux).groupby("date", as_index=False)["n"].sum()
+
+
+def moments_grille(pmf, k):
+    # moyenne, écart-type, Var/Moy, skewness, kurtosis (excès) d'une loi discrète (pmf sur k)
+    m = float((k * pmf).sum())
+    v = float(((k - m) ** 2 * pmf).sum())
+    return [m, v ** 0.5, v / m if m else None,
+            float(((k - m) ** 3 * pmf).sum()) / v ** 1.5 if v else None,
+            float(((k - m) ** 4 * pmf).sum()) / v ** 2 - 3 if v else None]
+
+
+@app.route("/fiche")
+def fiche():
+    # fiche statistique d'un mot : ajustements Poisson(lambda*N_t) et NB(mu*N_t, r),
+    # p-valeur de chaque jour sous la NB, pics, moments et densités-mélange.
+    # /fiche?mot=guerre&corpus=lemonde&from=2020&to=2024[&seuil=1e-4]
+    import numpy as np
+    from scipy.stats import poisson, nbinom, skew, kurtosis
+    try:
+        from statsmodels.discrete.discrete_model import NegativeBinomial
+    except ImportError:
+        return "statsmodels manquant : pip install statsmodels dans le venv de l'API", 500
+    import warnings
+
+    corpus = request.args.get("corpus", "lemonde")
+    if corpus not in CORPUS:
+        return f"corpus inconnu : {corpus} (choix : {', '.join(CORPUS)})", 400
+    gram = request.args.get("mot", "").strip()
+    if not gram:
+        return "paramètre mot manquant", 400
+    if not 1 <= len(tokeniser(gram)) <= 3:
+        return f"« {gram} » : 1 à 3 mots attendus", 400
+    date_min = borne_date(request.args.get("from") or "2020", 101)
+    date_max = borne_date(request.args.get("to") or "2024", 1231)
+    seuil = float(request.args.get("seuil", 1e-4))
+
+    conn = sqlite3.connect(f"file:{CORPUS[corpus]}?mode=ro", uri=True)
+    n_tokens = len(tokeniser(gram))
+    totaux = pd.read_sql_query(
+        f"SELECT date, total FROM total_{TABLE[n_tokens]} WHERE date BETWEEN ? AND ?",
+        conn, params=[date_min, date_max])
+    df = totaux.merge(serie_sommee(conn, gram, date_min, date_max), on="date", how="left")
+    conn.close()
+    df["n"] = df["n"].fillna(0).astype(int)
+    df = df[df["total"] > 0].sort_values("date")  # jours sans publication : hors modèle
+
+    if len(df) < 60:
+        return f"période trop courte ({len(df)} jours avec publication) : fit trop fragile", 400
+    X = df["n"].to_numpy(float)
+    N = df["total"].to_numpy(float)
+    if X.sum() == 0:
+        return f"« {gram} » : aucune occurrence dans {corpus} sur la période", 404
+
+    lam = X.sum() / N.sum()                          # MLE Poisson (forme fermée)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        res = NegativeBinomial(X, np.ones((len(X), 1)), exposure=N).fit(disp=0, maxiter=300)
+    mu, r = float(np.exp(res.params[0])), float(1.0 / res.params[1])
+
+    p = nbinom.sf(X - 1, r, r / (r + mu * N))        # p_t = P(X >= X_t) sous la loi du jour
+    pics = df[p < seuil]
+
+    # densités-mélange (moyenne des pmf sur les vrais N_t), par blocs pour borner la mémoire
+    k0 = 0 if X.max() < 3000 else max(0, int(X.min() * 0.6))
+    k1 = min(int(X.max() * 1.3) + 6, k0 + 30000)
+    k = np.arange(k0, k1)
+    pois_mix, nb_mix = np.empty(len(k)), np.empty(len(k))
+    for debut in range(0, len(k), 2000):
+        bloc = k[debut:debut + 2000, None]
+        pois_mix[debut:debut + 2000] = poisson.pmf(bloc, (lam * N)[None, :]).mean(1)
+        nb_mix[debut:debut + 2000] = nbinom.pmf(bloc, r, (r / (r + mu * N))[None, :]).mean(1)
+
+    pas = max(1, len(k) // 800)                      # ~800 points suffisent pour le tracé
+    return jsonify({
+        "mot": gram, "corpus": corpus, "de": int(date_min), "a": int(date_max),
+        "jours": len(df), "seuil": seuil,
+        "params": {"lambda": lam, "mu": mu, "r": r},
+        "serie": {"date": df["date"].tolist(), "x": df["n"].tolist(),
+                  "total": df["total"].tolist(), "p": np.round(p, 8).tolist()},
+        "pics": [{"date": int(d), "x": int(x), "p": float(pv)}
+                 for d, x, pv in zip(pics["date"], pics["n"], p[p < seuil])],
+        "hist": {"k": k[::pas].tolist(), "poisson": pois_mix[::pas].tolist(),
+                 "nb": nb_mix[::pas].tolist()},
+        "moments": {
+            "observe": [float(X.mean()), float(X.std()), float(X.var() / X.mean()),
+                        float(skew(X)), float(kurtosis(X))],
+            "poisson": moments_grille(pois_mix, k),
+            "nb": moments_grille(nb_mix, k),
+        },
+    })
 
 
 if __name__ == "__main__":

@@ -1,0 +1,99 @@
+---
+title: "Indicateurs descriptifs des séries d'occurrences"
+subtitle: "Occurrences Xₜ et fréquence fₜ — Le Monde, 2020–2024 — étape 1 (V2)"
+date: today
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2.2cm
+    fontsize: 11pt
+    toc: false
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+---
+
+## Contexte et définitions
+
+Ce rapport présente des indicateurs **descriptifs** des occurrences quotidiennes de
+six mots dans *Le Monde* sur la période 2020–2024 (grille complète de 1 827 jours ;
+un jour sans occurrence est compté 0, jamais absent de la grille).
+
+Pour chaque jour $t$ :
+
+- $X_t$ : nombre d'occurrences du mot ce jour-là (comptage brut).
+- $N_t$ : nombre total de mots publiés ce jour-là, tous mots confondus.
+- $f_t = X_t / N_t$ : fréquence du mot. Dans ce rapport, $f_t$ est exprimée
+  **pour 100 000 mots**, soit $f_t = 10^5 \cdot X_t / N_t$, pour la lisibilité.
+
+Pour chaque mot et chaque période, les tableaux donnent les moments empiriques
+calculés séparément sur $X_t$ (comptage brut) et sur $f_t$ (fréquence pour 100 000
+mots) : moyenne, écart-type, rapport **Var/Moy** (indice de dispersion — vaut 1 pour
+une loi de Poisson), **skewness** et **kurtosis** (excès, nul pour une loi normale).
+
+Aucune loi n'est ajustée à ce stade : cette étape est purement descriptive, préalable
+à la modélisation.
+
+```{python}
+#| echo: false
+#| warning: false
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path.cwd()))
+from indicateurs2_lib import *
+
+donnees = {nom: charger(nom) for nom in MOTS}
+ordre = sorted(MOTS, key=lambda n: -donnees[n]["f_t"].mean())
+
+chemin_synthese = sauver_tableau(gt_synthese(donnees, ordre), "synthese")
+
+chemins = {}
+for nom in ordre:
+    chemins[nom] = {
+        "fig": sauver_figure(nom, donnees[nom]),
+        "tab": sauver_tableau(gt_periodes(donnees[nom], MOTS[nom]), nom),
+    }
+```
+
+## Vue d'ensemble — période 2020–2024
+
+Le tableau ci-dessous synthétise les six mots sur la période globale, triés par
+fréquence $f_t$ moyenne décroissante.
+
+```{=typst}
+#figure(
+  image("build_indic2/tab_synthese.png", width: 100%),
+  caption: [Synthèse des 6 mots — période 2020–2024, triée par fréquence $f_t$ décroissante],
+  kind: "table",
+  supplement: [Tableau],
+)
+```
+
+```{python}
+#| output: asis
+def bloc_typst(corps):
+    return "\n\n```{=typst}\n" + corps + "\n```\n\n"
+
+for nom in ordre:
+    libelle = MOTS[nom]
+    print(bloc_typst("#pagebreak()"))
+    print(f"## {libelle}\n")
+    print(bloc_typst(
+        f'#figure(\n'
+        f'  image("{chemins[nom]["fig"]}", width: 100%),\n'
+        f'  caption: [Fréquence quotidienne $f_t$ (pour 100 000 mots) — {libelle}],\n'
+        f'  supplement: [Figure],\n'
+        f')'
+    ))
+    print(bloc_typst(
+        f'#figure(\n'
+        f'  image("{chemins[nom]["tab"]}", width: 100%),\n'
+        f'  caption: [Moments de $X_t$ et $f_t$ par période — {libelle}],\n'
+        f'  kind: "table",\n'
+        f'  supplement: [Tableau],\n'
+        f')'
+    ))
+```

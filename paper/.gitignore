@@ -8,3 +8,8 @@
 *.pdf
 *.synctex.gz
 *.toc
+
+# dossiers de build (figures/tableaux regenerables par les scripts)
+donnees_maths/build_*/
+donnees_maths/.quarto/
+donnees_maths/__pycache__/

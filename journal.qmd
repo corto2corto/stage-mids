@@ -639,6 +639,13 @@ Rapport détaillé : `exploration/rapport_test_nuit.md`.
 - telerama, le_figaro, nouvel_obs : leur lenteur venait d'un ralentissement
   ciblant l'empreinte Firefox (servis en <1 s en HTTP simple) — d'où le moteur
   hybride.
+- **le_monde en pause (09/07)** : le login abonné passe mais le contenu reste
+  inaccessible (~99,6 % d'échec, mesuré sur ~500 reprises) ; ses 53 874 URLs
+  retentables (état 1) ont été basculées en état 4 pour ne plus les marteler.
+  Corrige au passage un angle mort de [`batch.py`](scraping/batch.py) : un média
+  sans aucun état 0 sortait de `new_batch`, ses états 1 n'étaient donc jamais
+  retentés (désormais `WHERE etat IN (0,1)`). Reste un filet de news du jour à
+  écarter côté `medias.py` pour une pause complète.
 
 ### Prospection de nouveaux médias
 

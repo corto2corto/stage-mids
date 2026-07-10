@@ -1,0 +1,199 @@
+---
+title: "Six mots dans *Le Monde*, 2020–2024"
+subtitle: "Indicateurs, ajustements Poisson / binomiale négative, premiers pics détectés"
+date: today
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2.2cm
+    fontsize: 11pt
+    toc: false
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+---
+
+## Données
+
+Pour six mots (*président, gouvernement, guerre, climat, économie, inflation*) et
+chaque jour $t$ de la période 2020–2024 (grille complète de 1 827 jours, un jour
+sans occurrence compte 0) :
+
+- $X_t$ : occurrences du mot ce jour-là ; $N_t$ : total de mots publiés ce jour-là ;
+- $f_t = 10^5 \cdot X_t / N_t$ : fréquence pour 100 000 mots.
+
+```{python}
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path.cwd()))
+from rapport_lib import *
+
+mods = [ajuster(nom) for nom in MOTS]
+mods.sort(key=lambda m: -m["mu"])
+
+chemin_stats = tab_stats(mods)
+chemin_params = tab_params(mods)
+chemins = {}
+for m in mods:
+    k, pois, nb = melanges(m)
+    chemins[m["nom"]] = {
+        "serie": fig_serie(m),
+        "ajust": fig_ajustement(m, k, pois, nb),
+        "moments": tab_moments(m, k, pois, nb),
+    }
+chemin_pics = tab_pics(mods)
+```
+
+## Principales statistiques
+
+```{=typst}
+#figure(
+  image("build_rapport/tab_stats.png", width: 92%),
+  caption: [Statistiques observées des comptages quotidiens $X_t$, 2020–2024,
+    triées par fréquence décroissante.],
+  kind: "table",
+  supplement: [Tableau],
+)
+```
+
+Les six mots couvrent un large éventail de fréquences (d'environ 108 occurrences
+pour 100 000 mots pour *président* à moins de 2 pour *inflation*). Deux traits
+communs ressortent. D'abord, le rapport Var/Moy — qui vaudrait 1 si les comptages
+suivaient une loi de Poisson — est partout nettement supérieur à 1 : les séries
+varient beaucoup plus que ne le prévoirait un simple tirage aléatoire à fréquence
+constante. Ensuite, skewness et kurtosis sont systématiquement positifs : les
+distributions penchent à droite, avec des queues épaisses — la marque de journées
+à très forte actualité.
+
+## Modèles et estimation
+
+On modélise le comptage entier $X_t$ en normalisant la moyenne par la taille du
+corpus $N_t$ :
+
+$$
+X_t \sim \mathrm{Poisson}(\lambda N_t)
+\qquad \text{ou} \qquad
+X_t \sim \mathrm{NB}(m_t,\ r), \quad m_t = \mu N_t .
+$$
+
+La binomiale négative a deux paramètres : sa moyenne $m$ et un paramètre de forme
+$r$, avec $\mathrm{Var} = m + m^2/r$. Plus $r$ est petit, plus la loi s'étale
+au-delà de sa moyenne ; quand $r \to \infty$, le terme $m^2/r$ disparaît et on
+retrouve la loi de Poisson. Prendre $m_t = \mu N_t$ fait scaler la moyenne avec le
+volume du jour : $\mu$ s'interprète alors comme la fréquence moyenne du mot.
+
+Pour la loi de Poisson, le maximum de vraisemblance a une forme fermée :
+$\hat\lambda = \sum_t X_t / \sum_t N_t$, la fréquence moyenne empirique. Pour la
+binomiale négative il n'y a pas de forme fermée ; l'ajustement est fait
+numériquement avec `statsmodels` (`NegativeBinomial`, intercept seul,
+`exposure` $= N_t$).
+
+```{=typst}
+#figure(
+  image("build_rapport/tab_params.png", width: 72%),
+  caption: [Paramètres estimés par mot (fréquences pour 100 000 mots), triés par
+    fréquence décroissante.],
+  kind: "table",
+  supplement: [Tableau],
+)
+```
+
+Deux lectures : $\hat\lambda \approx \hat\mu$ partout (les deux modèles s'accordent
+sur la fréquence moyenne), et $\hat r$ couvre un gradient large — de
+$\hat r \approx 18$ (*président*, presque Poisson) à $\hat r \approx 1$
+(*inflation*, très étalé). C'est cohérent avec la surdispersion vue au tableau 1.
+
+## Batterie d'indicateurs, mot par mot
+
+Pour chaque mot, trois sorties :
+
+1. la **série temporelle** de $f_t$, avec les jours anormaux détectés (p-valeur
+   $p_t = \mathbb{P}(X \geq X_t) < 10^{-4}$ sous la loi NB du jour) ;
+2. l'**histogramme des données** superposé aux deux lois ajustées — comme $N_t$
+   varie, la loi affichée est la densité-mélange $\frac{1}{T}\sum_t
+   \mathbb{P}(X = k \mid N_t)$, calculée sur les vrais $N_t$ — et
+   l'**histogramme des p-valeurs**, qui doit être proche de l'uniforme si le
+   modèle colle (un excès près de 0 signale des jours anormaux ; pour les mots
+   rares, le caractère discret de $X_t$ concentre aussi la masse près de 1) ;
+3. le tableau des **moments** : observés vs loi de Poisson vs binomiale négative.
+
+```{python}
+#| output: asis
+def bloc_typst(corps):
+    return "\n\n```{=typst}\n" + corps + "\n```\n\n"
+
+for m in mods:
+    c = chemins[m["nom"]]
+    lib = m["lib"]
+    print(bloc_typst("#pagebreak()"))
+    print(f"### {lib}\n")
+    print(bloc_typst(
+        f'#figure(\n'
+        f'  image("{c["serie"]}", width: 100%),\n'
+        f'  caption: [Fréquence quotidienne $f_t$ — {lib}],\n'
+        f')'
+    ))
+    print(bloc_typst(
+        f'#figure(\n'
+        f'  image("{c["ajust"]}", width: 100%),\n'
+        f'  caption: [Histogramme de $X_t$ et lois ajustées ; p-valeurs sous la NB — {lib}],\n'
+        f')'
+    ))
+    print(bloc_typst(
+        f'#figure(\n'
+        f'  image("{c["moments"]}", width: 72%),\n'
+        f'  caption: [Moments observés et moments des lois ajustées — {lib}],\n'
+        f'  kind: "table",\n'
+        f'  supplement: [Tableau],\n'
+        f')'
+    ))
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Jours anormaux détectés
+
+Au seuil $p_t < 10^{-4}$, dix jours ressortent sur l'ensemble des six mots.
+Tous correspondent à des événements identifiables : discours de politique générale
+du gouvernement Borne (04/07/2022), lendemain du second tour de la présidentielle
+(25/04/2022), assaut du Capitole (07/01/2021), COP26 et COP27, annonce de
+l'« indemnité inflation » (21/10/2021), invasion de l'Ukraine (début mars 2022),
+censure du gouvernement Barnier (05/12/2024).
+
+```{=typst}
+#figure(
+  image("build_rapport/tab_pics.png", width: 78%),
+  caption: [Jours anormaux ($p_t < 10^(-4)$), triés par surprise décroissante.],
+  kind: "table",
+  supplement: [Tableau],
+)
+```
+
+À noter : *guerre* ne produit que deux jours anormaux alors que la série change
+d'échelle en février 2022. La rupture durable a « élargi » la binomiale négative
+ajustée ($\hat r = 3{,}6$), qui absorbe le choc au lieu de le signaler —
+la détection de pics jour par jour ne suffit pas pour les changements de régime.
+
+## Quels trois mots garder ?
+
+Les six mots couvrent trois régimes bien distincts ; on propose de retenir un
+représentant de chacun :
+
+- ***président*** — le cas de référence : fréquent, presque Poisson
+  ($\hat r \approx 18$), le modèle simple marche et les pics détectés sont nets
+  et interprétables (second tour 2022, Capitole). *gouvernement* est son doublon,
+  légèrement plus dispersé.
+- ***inflation*** — le mot rare et très surdispersé ($\hat r \approx 1$) :
+  Poisson échoue complètement, et la fréquence change durablement de niveau entre
+  mi-2021 et 2023 — le cas qui pose la question outlier *vs* rupture.
+- ***guerre*** — la rupture brutale de février 2022 : la fréquence change
+  d'échelle du jour au lendemain sans redescendre. C'est le cas d'école pour
+  motiver la détection de ruptures (breakpoints), au-delà des pics ponctuels.
+
+*économie* et *climat* sont des régimes intermédiaires, redondants avec les
+mots retenus.
