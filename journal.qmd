@@ -787,19 +787,26 @@ doublon dans le CSV (~13 % du fichier, certains articles en triple).
 
 ## Suivi de la collecte des sitemaps sur le site (2026-07-11)
 
-Le site de suivi gagne une page **Collecte des sitemaps** : nouvelles URLs
-trouvées par jour (barres) et détail de chaque passage du cron (URLs vues
-dans les sitemaps news, nouvelles).
+Le site de suivi gagne une page **Collecte des sitemaps** : une barre par
+jour (bleu = passage du matin 5h40 UTC, orange = après-midi 17h40, empilés)
+des nouvelles URLs trouvées, et un tableau du détail par passage.
 
 - [`sitemap_news.py`](exploration/sitemap_news.py) consigne désormais chaque
   passage dans `data/suivi_sitemaps.csv` (un relevé par média : URLs vues,
   ajoutées) ;
 - [`maj_csv_suivi.sh`](scripts/maj_csv_suivi.sh) copie ce journal vers les
-  sources du site (`sitemaps_journal.csv`), publié par le commit quotidien ;
+  sources du site (`sitemaps_journal.csv`), publié par le commit quotidien
+  de 4h — la page se complète donc chaque matin avec la veille ;
 - historique reconstruit depuis le log du cron (7 passages depuis le
   08/07/2026, totaux vérifiés contre les lignes « Terminé » du log), versé
   dans le CSV du site et dans `data/suivi_sitemaps.csv` sur le serveur pour
   que les prochains passages s'y ajoutent à la suite.
+
+Vocabulaire de la page : « URLs listées » = tout ce que les sitemaps news
+affichent au passage (fenêtre glissante ~48 h, les mêmes articles
+réapparaissent d'un passage à l'autre) ; « Nouvelles » = les URLs jamais
+vues, celles qui rejoignent la file de scraping — c'est ce que trace le
+graphique.
 
 ## Inspection des URLs non-articles : règles par média (2026-07-12)
 
