@@ -800,3 +800,31 @@ dans les sitemaps news, nouvelles).
   08/07/2026, totaux vérifiés contre les lignes « Terminé » du log), versé
   dans le CSV du site et dans `data/suivi_sitemaps.csv` sur le serveur pour
   que les prochains passages s'y ajoutent à la suite.
+
+## Inspection des URLs non-articles : règles par média (2026-07-12)
+
+L'inspection média par média annoncée le 11/07 est faite. Chaque règle a été
+validée sur échantillons (requêtes indexées + sondes HTTP avec la vraie chaîne
+d'extraction) avant tout marquage, avec le principe convenu : au moindre doute
+on garde — un faux article ne coûte qu'un échec de scraping, un vrai article
+écarté ne se rattrape pas.
+
+- **417 870 URLs passées en état 5** (non-articles) sur 11 médias : pages vidéo
+  (`video.lefigaro.fr` 233 946, `/internal/` des Échos 2 024), résultats
+  d'élections/podcasts/lives du Monde (107 708), artefacts Wayback latribune
+  (29 228, migrés de l'état 4), diaporamas et fiches challenges (21 903),
+  pages de navigation et corps perdus côté site l_opinion (14 556), galeries
+  photos nouvelobs (8 157), sommaires JDD (220), artefacts laprovence (123),
+  URLs malformées telerama/ouest_france (5).
+- **Tout est réversible** : chaque marquage a sa sauvegarde (media, id, url)
+  dans `data/backup/` — `etat4_vers_5_20260711.csv`,
+  `non_articles_vers_5_20260712.csv`, `le_monde_etat4_avant_tri_20260711.csv`.
+  Un UPDATE depuis ces fichiers remet tout en l'état.
+- **Gardés après test** (ne pas re-proposer) : les 1 885 871 slugs à markup
+  `span` du Télégramme — zéro doublon par ID d'article sur les 4,6 M d'URLs du
+  média, 48 763 déjà scrapés avec succès, donc vrais articles uniques ; les
+  pages `video-` de gala/voici/valeurs_actuelles/francesoir (vrais articles,
+  gala sondé à ~262 mots) ; les slugs `http--` d'atlantico (motif non fiable).
+- Référence : [`exploration/regles_non_articles.md`](exploration/regles_non_articles.md)
+  (règles appliquées, règles écartées, motifs à bloquer en amont) ; l'état 5
+  est documenté dans [`scraping/stockage.py`](scraping/stockage.py).
