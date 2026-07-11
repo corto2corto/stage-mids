@@ -3,8 +3,9 @@
 #
 # À lancer SUR LE SERVEUR (cron quotidien). Rafraîchit les sources du site
 # (site/sources/suivi/, versionnées) :
-#   - suivi_journal.csv : copié depuis data/ (taux de réussite dans le temps) ;
-#   - avancement.csv    : régénéré depuis urls.db (avancement par média).
+#   - suivi_journal.csv   : copié depuis data/ (taux de réussite dans le temps) ;
+#   - avancement.csv      : régénéré depuis urls.db (avancement par média) ;
+#   - sitemaps_journal.csv : copié depuis data/ (URLs collectées par passage sitemaps).
 # Puis commite et pousse sur main, ce qui déclenche la reconstruction du site
 # par la GitHub Action.
 #
@@ -18,9 +19,11 @@ set -euo pipefail
 
 REPO=/data/elias/stage-mids
 SOURCE="$REPO/data/suivi_journal.csv"                 # journal produit par le scraping (gitignoré)
+SOURCE_SITEMAPS="$REPO/data/suivi_sitemaps.csv"       # journal des passages sitemaps (gitignoré)
 DOSSIER_SITE="$REPO/site/sources/suivi"               # sources versionnées lues par le site
 JOURNAL_SITE="$DOSSIER_SITE/suivi_journal.csv"
 AVANCEMENT_SITE="$DOSSIER_SITE/avancement.csv"
+SITEMAPS_SITE="$DOSSIER_SITE/sitemaps_journal.csv"
 
 cd "$REPO"
 
@@ -34,9 +37,12 @@ fi
 # Repart du dernier état distant avant toute modification (évite les rejets au push).
 git pull --rebase --quiet
 
-# 1) Journal de suivi : copie du fichier frais (s'il existe).
+# 1) Journaux de suivi : copie des fichiers frais (s'ils existent).
 if [ -f "$SOURCE" ]; then
     cp "$SOURCE" "$JOURNAL_SITE"
+fi
+if [ -f "$SOURCE_SITEMAPS" ]; then
+    cp "$SOURCE_SITEMAPS" "$SITEMAPS_SITE"
 fi
 
 # 2) Avancement : régénéré depuis urls.db via le venv du dépôt.
@@ -44,12 +50,12 @@ source "$REPO/.venv/bin/activate"
 python -m scraping.suivi exporter_avancement > /dev/null
 
 # Rien n'a changé ? On s'arrête là : pas de commit, pas de rebuild.
-if git diff --quiet -- "$JOURNAL_SITE" "$AVANCEMENT_SITE"; then
+if git diff --quiet -- "$JOURNAL_SITE" "$AVANCEMENT_SITE" "$SITEMAPS_SITE"; then
     echo "$(date '+%F %T') : données inchangées — rien à publier."
     exit 0
 fi
 
-git add "$JOURNAL_SITE" "$AVANCEMENT_SITE"
+git add "$JOURNAL_SITE" "$AVANCEMENT_SITE" "$SITEMAPS_SITE"
 git commit --quiet -m "data : mise à jour des données de suivi ($(date '+%F'))"
 git push --quiet origin main
 

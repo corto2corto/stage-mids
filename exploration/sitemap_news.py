@@ -4,6 +4,9 @@ ajoute au CSV d'URLs du média celles qui y manquent. Conçu pour tourner tous
 les jours ; réexécutable à volonté (déduplication contre le CSV, jamais de
 réécriture) ; la base urls.db n'est pas touchée.
 
+Chaque passage est consigné dans data/suivi_sitemaps.csv (un relevé par média :
+URLs vues dans la sitemap, URLs ajoutées), repris par le site de suivi.
+
 Si l'URL configurée est un index (<sitemapindex>), ses sous-sitemaps sont
 développés automatiquement (ouest_france, leparisien, le_telegramme).
 
@@ -16,12 +19,17 @@ config.
 
 À lancer depuis la racine du dépôt.
 """
+import csv
 import sys
 import time
+from datetime import datetime
 
 from exploration.collecte import (PAUSE, UA_FIREFOX, ajouter, filtrer, locs,
                                   recuperer, sous_sitemaps, trouver_csv,
                                   urls_connues)
+from scraping.stockage import DATA_DIR
+
+JOURNAL = DATA_DIR / "suivi_sitemaps.csv"
 
 # Une entrée par média : url = sitemap(s) news (str ou liste). Options :
 # filtre / anti_filtre (motifs sur les URLs gardées), via_curl, ua.
@@ -96,6 +104,8 @@ inconnus = [m for m in medias if m not in NEWS]
 if inconnus:
     raise SystemExit(f"média(s) sans sitemap news : {', '.join(inconnus)}\nmedias : {', '.join(NEWS)}")
 
+horodatage = datetime.now().isoformat(timespec="seconds")
+releves = []
 total = 0
 for media in medias:
     fiche = NEWS[media]
@@ -128,6 +138,15 @@ for media in medias:
     if nouvelles:
         ajouter(chemin, nouvelles)
     print(f"{media:<24} {len(urls):>5} dans la sitemap news, {len(nouvelles):>5} ajoutées")
+    releves.append((horodatage, media, len(urls), len(nouvelles)))
     total += len(nouvelles)
+
+if releves:
+    nouveau = not JOURNAL.exists()
+    with open(JOURNAL, "a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        if nouveau:
+            w.writerow(("horodatage", "media", "dans_sitemap", "ajoutees"))
+        w.writerows(releves)
 
 print(f"\nTerminé : {total} URLs ajoutées.")
