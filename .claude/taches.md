@@ -153,6 +153,34 @@ Deux défauts dans data/csv/francesoir.csv (435 Mo, sur gallica), constatés le 
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## inspection-urls-non-articles — Inspection par média des URLs non-articles + état dédié en base
+
+- Ajoutée : 2026-07-11
+- Branche : main
+
+**Contexte** : l'audit du 11/07/2026 (agent Opus, rapport `rapport_motifs_urls.md` en scratchpad de session — synthèse reprise dans le prompt) a repéré ~242 300 URLs non-articles dans `urls.db`, toutes en etat 0/1 (rien dans les CSV) : `video.lefigaro.fr` (~233 900), galeries photos du Nouvel Obs (~8 150), petits artefacts laprovence, plus des cas à arbitrer (slugs à markup `span` du Télégramme, pages `video-` de gala/voici). Mais les filtres par mots-clés génèrent des faux positifs massifs dans les slugs (« jeu-video », « urssaf », « l-auteur »…) — décision : **pas de filtre appliqué à la va-vite**.
+
+**Piste envisagée** : une grosse inspection média par média pour documenter le format d'URL de chacun et en tirer une règle de filtrage fiable (sous-domaine ou segment de chemin, jamais un mot seul), et marquer les URLs corrompues d'un **numéro d'état dédié** dans `urls.db` (proposer etat=5) qui servira de corpus de référence pour créer les filtres.
+
+**Prompt** :
+
+```
+Objectif : pour chacun des 29 médias de urls.db (gallica, /data/elias/stage-mids/data/urls.db), définir une règle fiable d'identification des URLs non-articles, et marquer ces URLs d'un état dédié en base — corpus de référence pour construire les futurs filtres en amont.
+
+Acquis de l'audit du 11/07/2026 (rapport_motifs_urls.md, scratchpad de la session du 11/07 s'il existe encore) :
+- ~242 300 URLs non-articles nettes, toutes en etat 0/1, zéro dans les CSV : le_figaro sous-domaine video.lefigaro.fr (~233 900), le_nouvel_observateur /galeries-photos/ (~8 150), laprovence ~120 artefacts (motifs « image:media » et « httpRequest »).
+- Cas à arbitrer avec Corto : le_telegramme ~72 400 slugs à markup span (l'article se résout probablement — vérifier doublons avec le slug propre), pages video- de gala/voici.
+- Piège établi : les mots video, podcast, rss, auteur, diaporama… abondent dans des slugs d'articles légitimes. Toute règle doit porter sur le sous-domaine, un segment de chemin ou une extension — jamais la présence d'un mot — et être validée sur échantillons.
+
+À faire :
+1. Choisir le numéro d'état dédié « non-article » (proposer etat=5 après vérification que rien ne l'utilise : pipeline.py ne consomme que 0 et 1) et le documenter là où les états sont décrits.
+2. Média par média : documenter le format d'URL, établir la règle de filtrage exacte, la valider sur échantillons (requêtes indexées WHERE media=..., LIMIT), puis passer les URLs concernées à l'état dédié — UPDATE ciblés, scrapping en pause pendant les écritures.
+3. Migrer les 29 228 latribune actuellement en etat=4 (artefacts Wayback du nettoyage du 11/07 — tout l'etat=4 de ce média) vers l'état dédié, pour ne plus les confondre avec de vrais échecs.
+4. Livrable : un document des règles par média + comptes avant/après, base des futurs filtres à poser en amont (mapping / chargement).
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
 
 ## latribune-urls-poubelle — Dédoublonner latribune.csv (URLs Wayback à fragments)
