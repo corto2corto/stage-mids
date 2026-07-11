@@ -211,7 +211,7 @@ def fiche():
     # p-valeur de chaque jour sous la NB, pics, moments et densités-mélange.
     # /fiche?mot=guerre&corpus=lemonde&from=2020&to=2024[&seuil=1e-4]
     import numpy as np
-    from scipy.stats import poisson, nbinom, skew, kurtosis
+    from scipy.stats import poisson, nbinom, skew, kurtosis, chi2 as loi_chi2
     try:
         from statsmodels.discrete.discrete_model import NegativeBinomial
     except ImportError:
@@ -253,6 +253,16 @@ def fiche():
         res = NegativeBinomial(X, np.ones((len(X), 1)), exposure=N).fit(disp=0, maxiter=300)
     mu, r = float(np.exp(res.params[0])), float(1.0 / res.params[1])
 
+    # test d'adéquation du chi² sur les résidus de Pearson : chaque jour est comparé
+    # à sa propre loi (N_t varie, impossible de binner un histogramme commun) ;
+    # ddl = jours - paramètres estimés (1 pour Poisson : lambda ; 2 pour la NB : mu, r)
+    adequation = {}
+    for nom, m, v, k_estimes in (("poisson", lam * N, lam * N, 1),
+                                 ("nb", mu * N, mu * N + (mu * N) ** 2 / r, 2)):
+        stat = float(((X - m) ** 2 / v).sum())
+        ddl = len(X) - k_estimes
+        adequation[nom] = {"chi2": stat, "ddl": ddl, "p": float(loi_chi2.sf(stat, ddl))}
+
     p = nbinom.sf(X - 1, r, r / (r + mu * N))        # p_t = P(X >= X_t) sous la loi du jour
     pics = df[p < seuil]
 
@@ -271,6 +281,7 @@ def fiche():
         "mot": gram, "corpus": corpus, "de": int(date_min), "a": int(date_max),
         "jours": len(df), "seuil": seuil,
         "params": {"lambda": lam, "mu": mu, "r": r},
+        "adequation": adequation,
         "serie": {"date": df["date"].tolist(), "x": df["n"].tolist(),
                   "total": df["total"].tolist(), "p": np.round(p, 8).tolist()},
         "pics": [{"date": int(d), "x": int(x), "p": float(pv)}

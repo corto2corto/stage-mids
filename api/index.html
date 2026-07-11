@@ -379,6 +379,12 @@
     </div>
 
     <div class="carte">
+      <h2>Adéquation des lois — test du χ²</h2>
+      <div class="unite">résidus de Pearson jour par jour — si la loi colle : χ²/ddl ≈ 1 et p &gt; 0,05</div>
+      <div style="overflow-x:auto"><table id="tableau-adequation-fiche"></table></div>
+    </div>
+
+    <div class="carte">
       <h2 id="titre-pics-fiche">Jours anormaux</h2>
       <div style="overflow-x:auto"><table id="tableau-pics-fiche"></table></div>
     </div>
@@ -387,7 +393,9 @@
   la moyenne scale avec le volume du jour N<sub>t</sub>, μ est la fréquence moyenne du mot, et r règle la
   dispersion (r petit = série irrégulière ; r → ∞ redonne Poisson). Estimation par maximum de vraisemblance
   (forme fermée pour λ ; statsmodels pour μ, r). Les lois tracées sont les mélanges exacts sur les vrais
-  N<sub>t</sub> de la période. Même méthode et mêmes sorties que les fiches PDF du mémoire.</p>
+  N<sub>t</sub> de la période. L'adéquation est testée par un χ² sur les résidus de Pearson
+  (χ² = Σ (X<sub>t</sub> − moyenne<sub>t</sub>)²/variance<sub>t</sub>, ddl = jours − paramètres estimés) :
+  p &lt; 0,05 rejette la loi. Même méthode et mêmes sorties que les fiches PDF du mémoire.</p>
 </section>
 
 <script>
@@ -939,6 +947,7 @@ function dessinerFiche() {
   dessinerHistFiche();
   dessinerPvalFiche();
   remplirMomentsFiche();
+  remplirAdequationFiche();
   remplirPicsFiche();
 }
 
@@ -1105,6 +1114,21 @@ function remplirMomentsFiche() {
                                   ["binomiale négative", "nb", false]])
     ligneTable(table, [nom, ...d.moments[cle].map(v => v === null ? "—" : formaterNombre(v, 4))],
                false, gras);
+}
+
+function remplirAdequationFiche() {
+  const d = ficheDonnees;
+  const table = document.getElementById("tableau-adequation-fiche");
+  table.replaceChildren();
+  if (!d.adequation) return;  // réponse d'une version de l'API sans le test
+  ligneTable(table, ["Loi", "χ²", "ddl", "χ²/ddl", "p-valeur", "verdict"], true);
+  for (const [nom, cle] of [["Poisson", "poisson"], ["binomiale négative", "nb"]]) {
+    const a = d.adequation[cle];
+    ligneTable(table, [nom, formaterNombre(a.chi2, 4), String(a.ddl),
+      formaterNombre(a.chi2 / a.ddl, 3),
+      a.p === 0 ? "≈ 0" : a.p < 1e-3 ? a.p.toExponential(1) : formaterNombre(a.p, 2),
+      a.p < 0.05 ? "rejetée" : "compatible"]);
+  }
 }
 
 function remplirPicsFiche() {
