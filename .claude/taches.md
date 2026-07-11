@@ -105,35 +105,6 @@ Avant de coder, valider avec Corto le déroulé d'une journée type (ordre des o
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
-## charger-urls-nouveaux-medias — Charger les URLs des nouveaux médias dans urls.db (prod)
-
-- Ajoutée : 2026-07-06
-- Branche : scrapping_v2 (à faire après le merge vers main)
-
-**Contexte** : la v2 configure 30 médias dans `scraping/medias.py`, mais la base de prod `urls.db` ne contient les URLs que des anciens médias. Les 13 nouveaux médias basic (gala, voici, bfmtv, ouest_france, leparisien, la_croix, laprovence, francesoir, marianne, midilibre, paris_normandie, latribune, liberation) et mediapart (log) ont leurs CSV d'URLs sur le serveur mais ne sont pas encore en base : sans ce chargement, le pipeline prod ne les scrape pas. À faire une fois le merge scrapping_v2 → main effectué et la prod repartie.
-
-**Piste envisagée** : réactiver / utiliser `charger_nouvelles_urls()` (déjà écrit dans `scraping/pipeline.py`, actuellement commenté) qui importe les `*_url.csv` non encore en base à etat=0. CSV nouveaux médias dans `exploration/` (colonne `url`), mediapart_url.csv dans `exploration/` aussi. Nettoyer au passage les ~6 % d'URLs poubelle de latribune (fragments Wayback : `width=`, `&` final).
-
-**Prompt** :
-
-```
-Charger dans la base de prod urls.db (sur gallica, /data/elias/stage-mids/data/urls.db) les URLs des nouveaux médias configurés dans scraping/medias.py mais encore absents de la base : les 13 basic (gala, voici, bfmtv, ouest_france, leparisien, la_croix, laprovence, francesoir, marianne, midilibre, paris_normandie, latribune, liberation) et mediapart (moteur log). Sans ça, le pipeline prod ne les scrape pas.
-
-Points établis :
-- Les CSV d'URLs sont sur le serveur : exploration/<media>_url.csv (colonne url) pour les nouveaux médias, exploration/mediapart_url.csv (~34 000 URLs) pour mediapart.
-- La fonction charger_nouvelles_urls() existe déjà dans scraping/pipeline.py (actuellement commentée dans main) : elle importe les *_url.csv non encore en base à etat=0. Vérifier qu'elle pointe le bon dossier de CSV et qu'elle ne recharge pas les médias déjà en base.
-- Nettoyer les ~6 % d'URLs poubelle de latribune_url.csv (fragments Wayback : contiennent « width= » ou finissent par « & ») AVANT de charger.
-- Ne PAS toucher aux URLs des médias déjà en base (ne pas remettre d'etat à 0).
-
-Dans l'ordre :
-1. Vérifier quels médias sont déjà en base (SELECT DISTINCT media, requête indexée) pour ne charger que les manquants.
-2. Nettoyer le CSV latribune.
-3. Charger les CSV manquants à etat=0, en comptant les lignes ajoutées par média.
-4. Vérifier avec suivi.avancement que chaque nouveau média apparaît bien avec le bon nombre d'URLs à traiter.
-
-Me demander avant de lancer quoi que ce soit sur le serveur.
-```
-
 ## equipe-agents-nouveaux-medias — Enrichir la base de médias avec une équipe d'agents (priorité basic)
 
 - Ajoutée : 2026-07-06
@@ -183,6 +154,24 @@ Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
 ## Faites
+
+## latribune-urls-poubelle — Dédoublonner latribune.csv (URLs Wayback à fragments)
+
+- Ajoutée : 2026-07-11 · Faite : 2026-07-11
+- Branche : main
+
+**Contexte** : les URLs Wayback à fragments de latribune (`width=1200`, `format=auto`, `height=675/...jpg`, `&` final, `&quot;`) n'avaient pas été nettoyées avant le chargement dans `urls.db`, et le site les résout vers l'article réel → doublons/triplons dans `latribune.csv` (~13 % du CSV).
+
+**Résultat** (scrapping en pause pendant l'opération, relance à faire) : `latribune.csv` dédoublonné par identifiant d'article (15 899 lignes supprimées, 90 378 articles conservés, zéro identifiant en double — sauvegarde dans `data/backup/latribune_avant_dedup_20260711.csv`) ; 29 228 URLs à fragments passées en etat=4 dans `urls.db` (dont les 14 483 images `height=` qui étaient retentées en boucle) ; 29 228 lignes purgées de `exploration/latribune_url.csv` (111 786 URLs propres restantes).
+
+## charger-urls-nouveaux-medias — Charger les URLs des nouveaux médias dans urls.db (prod)
+
+- Ajoutée : 2026-07-06 · Faite : vérifiée en base le 2026-07-11
+- Branche : scrapping_v2 (après merge vers main)
+
+**Contexte** : la v2 configurait 30 médias dans `scraping/medias.py`, mais la base de prod `urls.db` ne contenait que les anciens médias.
+
+**Résultat** : les 13 basic et mediapart sont chargés dans `urls.db` et traités par le pipeline (francesoir, marianne, voici et mediapart déjà entièrement passés au 11/07). `liberation` exclu volontairement (en pause depuis le 07/07, archives tronquées à ~240 mots). Le nettoyage des URLs poubelle de latribune n'avait pas été fait → repris dans la tâche [latribune-urls-poubelle].
 
 ## chi2-fit-fiche — Ajouter le chi-deux d'adéquation et sa p-value dans /fiche
 
