@@ -103,6 +103,8 @@
   .deux-cartes { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; margin-top: 12px; }
   @media (max-width: 860px) { .deux-cartes { grid-template-columns: 1fr; } }
   .deux-cartes .carte { margin-top: 0 !important; }
+  .rangee-adequation { display: grid; grid-template-columns: auto 1fr 1fr; gap: 18px; align-items: center; margin-top: 10px; }
+  @media (max-width: 860px) { .rangee-adequation { grid-template-columns: 1fr; } }
   .rangee-stats { display: flex; flex-wrap: wrap; gap: 8px 40px; padding: 4px 0 8px; }
   .stat .valeur { font-size: 21px; font-weight: 650; font-variant-numeric: tabular-nums; }
   .stat .intitule { font-size: 12.5px; color: var(--muted); }
@@ -380,8 +382,19 @@
 
     <div class="carte">
       <h2>Adéquation des lois — test du χ²</h2>
-      <div class="unite">résidus de Pearson jour par jour — si la loi colle : χ²/ddl ≈ 1 et p &gt; 0,05</div>
-      <div style="overflow-x:auto"><table id="tableau-adequation-fiche"></table></div>
+      <div class="unite">résidus de Pearson z<sub>t</sub> = (X<sub>t</sub> − moyenne<sub>t</sub>)/√variance<sub>t</sub>
+        — si la loi colle : χ²/ddl ≈ 1, p &gt; 0,05, et l'histogramme des z<sub>t</sub> proche de la cloche</div>
+      <div class="rangee-adequation">
+        <div style="overflow-x:auto"><table id="tableau-adequation-fiche"></table></div>
+        <div>
+          <div class="unite" id="titre-resid-poisson"></div>
+          <div id="zone-resid-poisson"></div>
+        </div>
+        <div>
+          <div class="unite" id="titre-resid-nb"></div>
+          <div id="zone-resid-nb"></div>
+        </div>
+      </div>
     </div>
 
     <div class="carte">
@@ -395,7 +408,9 @@
   (forme fermée pour λ ; statsmodels pour μ, r). Les lois tracées sont les mélanges exacts sur les vrais
   N<sub>t</sub> de la période. L'adéquation est testée par un χ² sur les résidus de Pearson
   (χ² = Σ (X<sub>t</sub> − moyenne<sub>t</sub>)²/variance<sub>t</sub>, ddl = jours − paramètres estimés) :
-  p &lt; 0,05 rejette la loi. Même méthode et mêmes sorties que les fiches PDF du mémoire.</p>
+  p &lt; 0,05 rejette la loi. La cloche N(0,1) des panneaux de résidus est un repère : sous la NB,
+  l'histogramme penche légitimement à droite (asymétrie ≈ 2/√r) même quand la loi colle —
+  c'est la variance des z qui fait foi. Même méthode et mêmes sorties que les fiches PDF du mémoire.</p>
 </section>
 
 <script>
@@ -948,6 +963,7 @@ function dessinerFiche() {
   dessinerPvalFiche();
   remplirMomentsFiche();
   remplirAdequationFiche();
+  dessinerResidusFiche();
   remplirPicsFiche();
 }
 
@@ -1131,6 +1147,54 @@ function remplirAdequationFiche() {
   }
 }
 
+function dessinerResidusFiche() {
+  // les deux panneaux à côté du tableau d'adéquation : histogramme des résidus de
+  // Pearson vs N(0,1) — tout se calcule depuis serie et params, rien de plus dans l'API
+  const d = ficheDonnees;
+  if (!d.adequation) return;
+  const { lambda, mu, r } = d.params;
+  const panneaux = [
+    ["poisson", "Poisson", COULEURS[7], t => { const mo = lambda * t; return [mo, mo]; }],
+    ["nb", "binomiale négative", COULEURS[0],
+     t => { const mo = mu * t; return [mo, mo + mo * mo / r]; }]];
+  for (const [cle, nom, couleur, loi] of panneaux) {
+    const z = d.serie.x.map((xv, i) => {
+      const [mo, va] = loi(d.serie.total[i]);
+      return (xv - mo) / Math.sqrt(va);
+    });
+    document.getElementById(`titre-resid-${cle}`).textContent =
+      `${nom} — variance des z : ${formaterNombre(d.adequation[cle].chi2 / d.adequation[cle].ddl, 3)}`;
+
+    const zLim = 5, nbBacs = 30, largeurBac = 2 * zLim / nbBacs;
+    const bacs = Array(nbBacs).fill(0);  // les z hors [−5, 5] sont ramenés aux bords
+    for (const v of z) bacs[Math.max(0, Math.min(nbBacs - 1, Math.floor((v + zLim) / largeurBac)))]++;
+    const densites = bacs.map(n => n / (z.length * largeurBac));
+    const yMax = Math.max(0.42, ...densites) * 1.08;  // la cloche (pic 0,4) toujours visible
+
+    const zone = document.getElementById(`zone-resid-${cle}`);
+    const largeur = zone.clientWidth || 300, hauteur = 190;
+    const m = { haut: 8, droite: 8, bas: 24, gauche: 38 };
+    const x = v => m.gauche + (v + zLim) / (2 * zLim) * (largeur - m.gauche - m.droite);
+    const y = v => hauteur - m.bas - v / yMax * (hauteur - m.haut - m.bas);
+    const [, el] = svgDans(zone, largeur, hauteur);
+
+    axeY(el, m.gauche, largeur - m.droite, y, yMax, v => formaterNombre(v, 2));
+    densites.forEach((dens, b) => {
+      if (dens) el("rect", { x: x(-zLim + b * largeurBac) + 0.5, y: y(dens),
+        width: x(largeurBac) - x(0) - 1, height: y(0) - y(dens), fill: couleur, opacity: 0.55 });
+    });
+    const points = [];
+    for (let v = -zLim; v <= zLim; v += 0.1)
+      points.push(`${x(v).toFixed(1)},${y(Math.exp(-v * v / 2) / Math.sqrt(2 * Math.PI)).toFixed(1)}`);
+    el("path", { d: "M" + points.join("L"), fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.8 });
+    el("text", { x: largeur - m.droite - 2, y: m.haut + 12, "text-anchor": "end",
+      fill: "var(--ink-2)", "font-size": 11 }).textContent = "N(0,1)";
+    for (const v of [-4, -2, 0, 2, 4])
+      el("text", { x: x(v), y: hauteur - 8, "text-anchor": "middle",
+        fill: "var(--muted)", "font-size": 11.5 }).textContent = String(v);
+  }
+}
+
 function remplirPicsFiche() {
   const d = ficheDonnees;
   const table = document.getElementById("tableau-pics-fiche");
@@ -1140,8 +1204,8 @@ function remplirPicsFiche() {
     titre.textContent = "Jours anormaux — aucun au seuil choisi";
     return;
   }
-  titre.textContent = `Jours anormaux (${d.pics.length}), triés par surprise décroissante`;
-  ligneTable(table, ["Date", "Xₜ", "pour 100 000", "p-valeur", "Surprise −log₁₀(p)"], true);
+  titre.textContent = `Jours anormaux (${d.pics.length}), triés par p-valeur croissante`;
+  ligneTable(table, ["Date", "Xₜ", "pour 100 000", "p-valeur", "−log₁₀(p)"], true);
   const parDate = new Map(d.serie.date.map((dt, i) => [dt, i]));
   for (const pic of [...d.pics].sort((a, b) => a.p - b.p)) {
     const i = parDate.get(pic.date);

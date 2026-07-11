@@ -158,31 +158,37 @@ Commencer par proposer à Corto une liste de médias candidats (hors MEDIAS actu
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
-## chi2-fit-fiche — Ajouter le chi-deux d'adéquation et sa p-value dans /fiche
+## extracteur-francesoir — Corriger l'extracteur francesoir (date brute + pied de page promo)
 
-- Ajoutée : 2026-07-10
+- Ajoutée : 2026-07-11
 - Branche : main
 
-**Contexte** : demande du tuteur (« good practice ») — la route `/fiche` de l'API (`api/app.py`) ajuste une loi de Poisson (`lam`) et une binomiale négative (`mu`, `r`) aux occurrences d'un mot par corpus, mais ne renvoie aucune mesure d'adéquation du fit. Il faut ajouter la statistique du chi-deux du goodness-of-fit et sa p-value, pour Poisson **et** NB, dans la réponse JSON.
+**Contexte** : constaté le 11/07/2026 lors du check des CSV — dans `data/csv/francesoir.csv` (435 Mo, sur gallica), le champ date est du texte brut français (« Publié le 30 septembre 2022 - 14:20 ») au lieu de l'ISO utilisé partout ailleurs, et chaque contenu se termine par un bloc promo France-Soir (« …France-Soir est un rendez-vous journalistique incontournable [...] Lire la suite »).
 
-**Piste envisagée** : subtilité à ne pas rater — l'exposition `N_t` (total d'occurrences du jour, colonne `total`) varie chaque jour, donc ce n'est pas un test d'adéquation sur une distribution fixe : chaque jour a sa propre loi (`lam*N_t` pour Poisson, moyenne `mu*N_t` pour NB). Deux options propres : (a) chi-deux de Pearson jour par jour `Σ (X_t − E_t)² / Var_t` avec `E_t = lam*N_t` (Poisson) ou `mu*N_t` (NB) et la variance du modèle, ou (b) statistique de déviance. Degrés de liberté = nb de jours (`len(df)`) − nb de params estimés (1 pour Poisson : λ ; 2 pour NB : μ et r). p-value via `scipy.stats.chi2.sf(stat, ddl)`. Exposer sous `"gof": {"poisson": {"chi2":…, "ddl":…, "p":…}, "nb": {…}}` dans le `jsonify` (ligne ~270). Décider avec Corto entre Pearson et déviance avant de coder.
+**Piste envisagée** : corriger l'extracteur (date depuis les métadonnées de la page, exclusion du bloc promo du corps), puis one-shot de nettoyage du CSV existant (dates → ISO, troncature du pied de page sur marqueur stable).
 
 **Prompt** :
 
 ```
-Le tuteur demande d'ajouter au fit de la route /fiche (api/app.py) le chi-deux du test d'adéquation (goodness-of-fit) et sa p-value, pour la loi de Poisson ET la binomiale négative — « good practice ». Aujourd'hui /fiche ajuste Poisson (lam, MLE forme fermée ligne ~250) et NB (mu, r via NegativeBinomial statsmodels, ligne ~253) mais ne renvoie aucune mesure d'adéquation.
+Deux défauts dans data/csv/francesoir.csv (435 Mo, sur gallica), constatés le 11/07/2026 :
+1. Le champ date est du texte brut français « Publié le 30 septembre 2022 - 14:20 » au lieu de l'ISO des autres médias. Cause : scraping/medias.py ligne ~63, la date est lue sur le texte affiché (sélecteur div.field--name-field-date.me-3, stratégie balises) ; cf aussi le fallback texte brut dans scraping/extraction.py (~ligne 62).
+2. Chaque contenu se termine par un bloc promo du site (« …France-Soir est un rendez-vous journalistique incontournable [...] Lire la suite ») embarqué par le sélecteur de corps div.field--name-body.
 
-Subtilité à ne PAS rater : l'exposition N_t (colonne total, occurrences totales du jour) varie chaque jour, donc chaque jour a sa propre loi (moyenne lam*N_t pour Poisson, mu*N_t pour NB). Ce n'est donc pas un test d'adéquation contre une distribution unique.
+À faire, dans l'ordre :
+1. Corriger l'extracteur pour les scrapes futurs : prendre la date ISO dans les métadonnées de la page (json-ld ou balise meta — vérifier sur 2-3 HTML réels ce que francesoir expose) et exclure le bloc promo du corps (identifier sa balise/classe dans le HTML pour l'écarter du sélecteur).
+2. One-shot de nettoyage du CSV existant : conversion des dates françaises en ISO (motif fixe, mois français → mm ; logguer les lignes qui ne matchent pas au lieu de deviner) + troncature du contenu à la première occurrence d'un marqueur stable du début du bloc promo (vérifier d'abord sur quelques articles où le bloc commence exactement, et compter les occurrences avant de couper). Réécriture via fichier temporaire puis mv, scrapping en pause pendant l'opération.
+3. Vérifier sur les 5 derniers articles : date ISO, plus de pied de page, contenu intact.
 
-À faire :
-1. Choisir avec moi la statistique : chi-deux de Pearson jour par jour Σ (X_t − E_t)²/Var_t (E_t = lam*N_t Poisson / mu*N_t NB, Var du modèle : mu*N_t pour Poisson, mu*N_t + (mu*N_t)²/r pour NB), ou statistique de déviance. Trancher avant de coder.
-2. Calculer chi2 et p-value pour Poisson et NB. Degrés de liberté = len(df) − nb params estimés (1 Poisson, 2 NB). p-value = scipy.stats.chi2.sf(stat, ddl).
-3. Exposer dans le jsonify final (ligne ~270), p.ex. "gof": {"poisson": {"chi2":…, "ddl":…, "p":…}, "nb": {…}}.
-4. Vérifier sur un mot de test (ex. /fiche?mot=guerre&corpus=lemonde&from=2020&to=2024) que les deux stats sont cohérentes : NB devrait mieux s'ajuster (p plus élevée) que Poisson, puisque les séries sont sur-dispersées.
-
-Le front (api/index.html, onglet Fiche) pourra afficher ces valeurs ensuite — pas obligatoire dans cette tâche.
+Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
 ## Faites
 
-(aucune pour l'instant)
+## chi2-fit-fiche — Ajouter le chi-deux d'adéquation et sa p-value dans /fiche
+
+- Ajoutée : 2026-07-10 · Faite : 2026-07-11 (commit `40d1ea0`)
+- Branche : main
+
+**Contexte** : demande du tuteur (« good practice ») — la route `/fiche` ajuste Poisson (`lam`) et binomiale négative (`mu`, `r`) mais ne renvoyait aucune mesure d'adéquation.
+
+**Solution retenue** : χ² de Pearson **jour par jour** sur les résidus (`Σ (X_t − m_t)²/v_t`), chaque jour comparé à sa propre loi puisque l'exposition `N_t` varie — `m_t = lam*N_t` / `mu*N_t`, variance du modèle (`mu*N_t` Poisson, `mu*N_t + (mu*N_t)²/r` NB), `ddl = jours − params estimés` (1 Poisson, 2 NB), p-value via `chi2.sf`. Exposé sous `"adequation"` dans le JSON de `api/app.py`, affiché dans un tableau du front (`api/index.html`, onglet Fiche : χ², ddl, χ²/ddl, p-valeur, verdict compatible/rejetée).
