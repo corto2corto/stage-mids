@@ -21,7 +21,6 @@ from scraping.paywall import est_bloque
 # toucher la prod. batch.py et pipeline.py importent ce DATA_DIR.
 DATA_DIR = Path(os.environ.get("STAGE_DATA_DIR", "/data/elias/stage-mids/data"))
 
-# éventuellement à supprimer.
 COLONNES = ["id", "url", "titre", "auteur", "date", "section", "free", "contenu"]
 
 
@@ -31,8 +30,12 @@ def ecriture_csv(media, id, url, html):
     if est_bloque(meta["contenu"]):
         return 1
     chemin = DATA_DIR/"csv"/f"{media}.csv"
+    nouveau = not chemin.exists() or chemin.stat().st_size == 0
     with open(chemin, "a", newline="", encoding="utf-8") as f:
-        csv.DictWriter(f, fieldnames=COLONNES).writerow({"id": id, "url": url, **meta})
+        writer = csv.DictWriter(f, fieldnames=COLONNES)
+        if nouveau:
+            writer.writeheader()
+        writer.writerow({"id": id, "url": url, **meta})
     return 2
 
 
