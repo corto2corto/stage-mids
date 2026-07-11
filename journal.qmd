@@ -663,3 +663,100 @@ branché** — validation à venir) :
 À noter pour le mémoire : le cas closermag documente une **destruction
 d'archives éditoriales après rachat** (Reworld a vidé le corps des anciens
 articles en gardant URL et titre).
+
+## Collecte quotidienne des sitemaps (2026-07-08)
+
+Jusqu'ici le corpus d'URLs était figé : chaque média avait été cartographié une
+fois (section « Pagination »), puis plus rien. Or les journaux publient tous les
+jours. On branche donc une collecte quotidienne qui alimente `urls.db` toute
+seule, sans reconstruction. Deux briques, chacune réexécutable sans risque
+(déduplication, jamais de réécriture) :
+
+- [`sitemap_news.py`](exploration/sitemap_news.py) : chaque média expose un
+  *sitemap news* qui ne liste que ses articles récents (fenêtre ~48 h). On le
+  lit et on ajoute au CSV d'URLs du média les liens qui y manquent. La config
+  vient de la reco des `robots.txt` des médias (07/07) ; quelques cas
+  particuliers : sous-sitemaps à développer (ouest_france, leparisien), CDN qui
+  bloque l'empreinte TLS de `requests` → `curl` (les_echos, le_telegramme),
+  anti-bots stricts → empreinte Chrome de `curl_cffi` (nice_matin, jdd,
+  sud_ouest).
+- [`verser_nouveaux.py`](exploration/verser_nouveaux.py) : verse ces URLs en
+  base en `INSERT OR IGNORE`, l'index unique `(media, url)` écartant les déjà
+  connues. Idempotent : reverser deux fois ne crée aucun doublon.
+
+Le tout est enchaîné par [`cron_sitemaps.sh`](scripts/cron_sitemaps.sh), lancé
+2×/jour (07 h 40 et 19 h 40). Un `flock` empêche deux cycles concurrents ; comme
+la fenêtre news fait ~48 h, un cycle raté est rattrapé le lendemain.
+
+### Rattrapage des anciens médias
+
+Les médias cartographiés en mai-juin puis mis en pause avaient un trou entre la
+fin de leur mapping et le branchement de la collecte news.
+[`rattrapage_sitemaps.py`](exploration/rattrapage_sitemaps.py) le comble en
+one-shot : il reparcourt les sitemaps d'articles de chaque média mais ne
+télécharge que les sous-sitemaps susceptibles de couvrir mars 2026 →
+aujourd'hui (via le `lastmod` de l'index, sinon la date dans l'URL du
+sous-sitemap), puis ajoute au CSV les URLs manquantes. Même garantie :
+réexécutable, base intacte.
+
+Bilan : le corpus de scraping n'est plus un instantané, il grossit chaque jour.
+
+## Fiche statistique d'un mot : Poisson vs binomiale négative (2026-07-10)
+
+Premier livrable « maths » du mémoire, demandé par le tuteur : avant les modèles
+de rupture, poser proprement le modèle de comptage d'un mot au fil du temps.
+Support : [`paper/donnees_maths/rapport.qmd`](paper/donnees_maths/rapport.qmd)
+(→ `rapport.pdf`), sur six mots dans Le Monde, 2020-2024 (grille complète de
+1 827 jours, un jour sans occurrence compte 0). Cela prolonge la section
+« Détection de spikes et histogrammes » en lui donnant un modèle explicite.
+
+### Modèle
+
+Pour chaque jour $t$ : $X_t$ occurrences du mot, $N_t$ mots publiés ce jour-là,
+fréquence $f_t = 10^5 \cdot X_t / N_t$. On modélise le comptage $X_t$ en
+normalisant la moyenne par l'exposition $N_t$ :
+
+- **Poisson** $X_t \sim \mathcal{P}(\lambda N_t)$ — un seul paramètre,
+  moyenne = variance ;
+- **binomiale négative** $X_t \sim \mathrm{NB}(\mu N_t,\ r)$ — un paramètre de
+  forme $r$ en plus, qui autorise la surdispersion (variance > moyenne).
+
+$\lambda$ a une forme fermée au maximum de vraisemblance ; $\mu$ et $r$ sont
+estimés par `statsmodels`. Résultat net : $\hat\lambda \approx \hat\mu$ partout,
+mais la NB colle bien mieux aux histogrammes — les séries de mots sont
+sur-dispersées, Poisson sous-estime les gros jours.
+
+### Jours anormaux
+
+Sous la NB ajustée, chaque jour a une p-valeur (probabilité d'observer au moins
+$X_t$ occurrences). Au seuil $p_t < 10^{-4}$, dix jours ressortent sur les six
+mots, tous rattachables à un événement : second tour de la présidentielle 2022,
+assaut du Capitole, COP26/27, annonce de l'« indemnité inflation », invasion de
+l'Ukraine, discours et censures des gouvernements Borne et Barnier.
+
+### Ce qu'on en retient
+
+Les six mots couvrent trois régimes ; on propose d'en garder un par régime pour
+la suite :
+
+| Mot | Régime | Intérêt |
+|---|---|---|
+| *président* | fréquent, quasi-Poisson ($\hat r \approx 18$) | cas de référence, pics nets et interprétables |
+| *inflation* | rare, très surdispersé ($\hat r \approx 1$) | Poisson échoue ; niveau qui change durablement → *outlier* vs rupture |
+| *guerre* | rupture brutale (février 2022, $\hat r \approx 3{,}6$) | la fréquence change d'échelle sans jamais redescendre |
+
+Point important pour la suite : *guerre* ne déclenche que deux jours anormaux
+alors que sa série change complètement d'échelle en février 2022. La rupture
+durable « élargit » la NB ajustée, qui absorbe le choc au lieu de le signaler.
+**La détection de pics jour par jour ne voit pas les changements de régime** —
+c'est précisément ce qui motive le passage aux modèles de rupture (breakpoints),
+cœur de la phase suivante. *économie* et *climat* sont des régimes
+intermédiaires, redondants avec les trois retenus.
+
+### Outillage
+
+- Route API [`/fiche`](api/app.py) (`?mot=&corpus=&from=&to=`) : renvoie les
+  ajustements, les p-valeurs, les pics et les moments d'un mot ; nouvel onglet
+  « Fiche d'un mot » dans le front.
+- Skill `/fiche-mot` : génère à la demande la page PDF d'un nouveau mot (série +
+  pics, histogramme vs lois, p-valeurs, moments), sur le modèle du rapport.
