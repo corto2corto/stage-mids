@@ -6,7 +6,9 @@
 - 2 : scrapée avec succès
 - 3 : déjà couverte par le corpus historique (posé par le script de dédup, hors pipeline)
 - 4 : échec confirmé (retenté et re-échoué : plus jamais repris)
-- 5 : hors corpus (pages de service, média en pause…) — posé à la main, jamais scrapé
+- 5 : hors corpus / non-article (sous-domaines vidéo, galeries, sommaires, artefacts
+      de mapping…) — posé à la main, jamais scrapé. Règles par média et marquages :
+      exploration/regles_non_articles.md
 """
 
 import csv
