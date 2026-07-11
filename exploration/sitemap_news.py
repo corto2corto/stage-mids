@@ -31,7 +31,10 @@ NEWS = {
     # le_capital : sitemap/news.xml du robots = page html meta-refresh, la vraie :
     "le_capital": {"url": "https://www.capital.fr/sitemap/google-news.xml"},
     "le_nouvel_observateur": {"url": "https://www.nouvelobs.com/sitemap/sitemap-articles-news.xml"},
-    "le_monde":   {"url": "https://www.lemonde.fr/sitemap_news.xml"},
+    # le_monde : seuls les /article/ ont un corps ; la sitemap charrie aussi des
+    # lives, podcasts et pages resultats-* (58k échecs confirmés triés le 11/07).
+    "le_monde":   {"url": "https://www.lemonde.fr/sitemap_news.xml",
+                   "filtre": r"/article/"},
     # les_echos, le_telegramme, ouest_france, paris_normandie : le CDN bloque
     # l'empreinte TLS de python-requests (constaté au run du 07/07), curl passe.
     "les_echos":  {"url": "https://www.lesechos.fr/sitemap_news.xml", "via_curl": True},
