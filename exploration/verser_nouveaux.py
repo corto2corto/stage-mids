@@ -25,7 +25,7 @@ import csv
 import sys
 from pathlib import Path
 
-from exploration.collecte import url_article
+from exploration.collecte import est_non_article, url_article
 from scraping.medias import MEDIAS
 from scraping.stockage import DATA_DIR
 import sqlite3
@@ -50,22 +50,26 @@ for media in medias:
     if not chemin:
         print(f"{media:<24} aucun CSV : ignoré", flush=True)
         continue
-    urls, ignorees = [], 0
+    urls, ignorees, ecartees = [], 0, 0
     with open(chemin, newline="", encoding="utf-8") as f:
         r = csv.reader(f)
         next(r, None)  # en-tête (url ou sitemap,url)
         for champs in r:
             u = url_article(champs)
-            if u:
-                urls.append(u)
-            else:
+            if not u:
                 ignorees += 1
+            elif est_non_article(media, u):   # motifs sûrs (regles_non_articles.md)
+                ecartees += 1
+            else:
+                urls.append(u)
     avant = conn.total_changes
     with conn:  # une transaction par média
         conn.executemany("INSERT OR IGNORE INTO urls (media, url, etat) VALUES (?, ?, 0)",
                          [(media, u) for u in urls])
     inserees = conn.total_changes - avant
     suffixe = f", {ignorees} ignorées" if ignorees else ""
+    if ecartees:
+        suffixe += f", {ecartees} non-articles écartés"
     print(f"{media:<24} {len(urls):>8} au CSV{suffixe}, {inserees:>6} insérées", flush=True)
     total += inserees
 

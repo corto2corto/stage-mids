@@ -129,6 +129,37 @@ def url_article(champs):
     return None
 
 
+# Motifs sûrs de non-articles, validés sur échantillons le 11-12/07/2026
+# (cf exploration/regles_non_articles.md). Jamais de motif « mot dans le slug »
+# (video, rss, auteur… abondent dans des titres d'articles légitimes) :
+# uniquement sous-domaine, segment de chemin ou extension de fichier.
+EXTENSIONS_FICHIER = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf", ".mp3", ".mp4", ".xml")
+ARTEFACTS = ("image:media", "httpRequest", "%20http")
+SEGMENTS_EXCLUS = {
+    "le_monde": ("lemonde.fr/resultats-", "/live/", "/visuel/"),
+    "le_nouvel_observateur": ("/galeries-photos/",),
+    "les_echos": ("/internal/",),
+    "le_journal_du_dimanche": ("lejdd.fr/sommaire/",),
+}
+
+
+def est_non_article(media, url):
+    """Vrai si l'URL porte un motif sûr de non-article : à écarter avant la base."""
+    sans_requete = url.split("?")[0]
+    morceaux = sans_requete.split("/")           # ['https:', '', hôte, chemin...]
+    hote = morceaux[2] if len(morceaux) > 2 else ""
+    chemin = "/".join(morceaux[3:])
+    if not chemin.strip("/"):                    # racine du site seule
+        return True
+    if hote.startswith(("video.", "podcasts.")):
+        return True
+    if sans_requete.lower().rstrip("/").endswith(EXTENSIONS_FICHIER):
+        return True
+    if any(a in url for a in ARTEFACTS):
+        return True
+    return any(seg in sans_requete for seg in SEGMENTS_EXCLUS.get(media, ()))
+
+
 def lire_urls(chemin):
     """Ensemble des URLs d'articles d'un CSV, tous formats confondus."""
     urls = set()
