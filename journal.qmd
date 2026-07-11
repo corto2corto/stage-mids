@@ -288,7 +288,7 @@ Une seule table SQLite, quatre colonnes : `id`, `media`, `url`, `etat`. Chaque U
 | `2` | succès (article écrit dans le CSV) |
 | `3` | déjà disponible via regicid |
 
-La base ne stocke pas les articles, juste leur état d'avancement.
+La base ne stocke pas les articles, juste leur état d'avancement. *(Table d'époque : les états 4 et 5, ajoutés depuis, sont décrits dans « Les états d'une URL » de la section Pipeline v2.)*
 
 Avant de scraper, on retire ce qui existe déjà ailleurs. Une bonne partie de nos URLs sont déjà publiées, métadonnées comprises, dans un jeu de données public : [`regicid/press_metadata`](https://huggingface.co/datasets/regicid/press_metadata) (~11,17 M d'URLs de presse française). 
 On a un petit script qui met tous les articles déjà scrapés à l'état 3 :
@@ -612,7 +612,7 @@ Chaque URL de la base porte un état, qui raconte sa vie dans le pipeline :
 | 2 | scrapée avec succès | le pipeline |
 | 3 | déjà couverte par le corpus historique | le script de dédup (hors pipeline) — 6,5 M d'URLs pour le_monde/le_figaro/les_echos |
 | 4 | échec **confirmé** (retentée, re-échouée) | le pipeline |
-| 5 | hors corpus (pages de service, média en pause) | à la main |
+| 5 | **corrompue / non-article** (vidéo, galerie, artefact, page de service) | à la main |
 
 Le pipeline sert chaque média dans cet ordre : d'abord toutes les nouveautés
 (état 0), puis — quand il n'y en a plus — une **seconde chance** aux échecs
@@ -760,3 +760,27 @@ intermédiaires, redondants avec les trois retenus.
   « Fiche d'un mot » dans le front.
 - Skill `/fiche-mot` : génère à la demande la page PDF d'un nouveau mot (série +
   pics, histogramme vs lois, p-valeurs, moments), sur le modèle du rapport.
+
+## Nettoyage des URLs non-articles (2026-07-11)
+
+Le chargement des nouveaux médias a embarqué des URLs qui ne sont pas des
+articles. Découvert sur latribune : ~29 000 fragments Wayback
+(`width=1200`, `format=auto`, images `height=675/…jpg`, `&` final) que le site
+**résout vers l'article réel** — chaque fragment capturé écrivait donc un
+doublon dans le CSV (~13 % du fichier, certains articles en triple).
+
+- **latribune** : CSV dédoublonné par identifiant d'article (15 899 lignes
+  supprimées, 90 378 articles conservés, sauvegarde dans `data/backup/`) ;
+  29 228 URLs à fragments passées en état 4, purgées aussi du CSV d'URLs.
+- **Audit des 29 médias** (agent, lecture seule) : ~242 300 URLs non-articles,
+  toutes en état 0/1 — rien n'avait encore pollué les CSV. Le gros du stock :
+  le sous-domaine `video.lefigaro.fr` (~234 000 pages vidéo) et les
+  `/galeries-photos/` du Nouvel Obs (~8 150).
+- **le_figaro** : les 233 946 URLs `video.lefigaro.fr` passées en **état 5**,
+  dont le sens est précisé : *URL corrompue / non-article*, corpus de référence
+  pour construire les futurs filtres en amont du mapping.
+- Leçon de l'audit : les mots `video`, `podcast`, `rss`, `auteur`… abondent
+  dans des slugs d'articles légitimes (« jeu-video », « urssaf », « l-auteur »).
+  Un filtre fiable porte sur un **sous-domaine, un segment de chemin ou une
+  extension** — jamais sur la présence d'un mot. L'inspection média par média
+  qui en tirera une règle par média est notée dans les tâches en attente.
