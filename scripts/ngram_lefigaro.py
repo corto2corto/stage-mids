@@ -4,10 +4,11 @@
 import os
 os.environ["SQLITE_TMPDIR"] = "/data/elias/stage-mids/data"  # gros temp, pas /tmp
 
-import re
 import sqlite3
 from collections import Counter
 import pandas as pd
+
+from scripts.tokenisation import phrases
 
 conn = sqlite3.connect("/data/elias/stage-mids/data/corpus/lefigaro_ngram.db")
 conn.executescript("""
@@ -34,9 +35,7 @@ for chunk in reader:
         date = int(date)
         uni, bi, tri = Counter(), Counter(), Counter()
         for text in group["txt"]:
-            text = re.sub(r"(?<=[A-Z])\.", "", text).lower().replace("’", "'")
-            for sentence in re.split(r"""[!"#$%&\()*+,./:;<=>?@\[\\\]^_`{|}~\n]""", text):
-                tokens = re.findall(r"[a-zà-ÿ0-9']+", sentence)
+            for tokens in phrases(text):
                 uni.update(tokens)
                 bi.update(zip(tokens, tokens[1:]))
                 tri.update(zip(tokens, tokens[1:], tokens[2:]))
