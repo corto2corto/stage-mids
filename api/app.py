@@ -10,6 +10,8 @@ from flask import Flask, Response, jsonify, request, send_file
 from flask_cors import CORS
 import pandas as pd
 
+from scripts.tokenisation import tokeniser
+
 # NGRAM_DIR surchargeable pour tester en local sur une mini-base
 DOSSIER = os.environ.get("NGRAM_DIR", "/data/elias/stage-mids/data/corpus")
 CORPUS = {nom: f"{DOSSIER}/{nom}_ngram.db" for nom in ("lesechos", "lefigaro", "lemonde")}
@@ -27,12 +29,6 @@ def borne_date(texte, complement):
     if len(chiffres) == 6:
         return int(chiffres) * 100 + (1 if complement == 101 else 31)
     return int(chiffres) * 10000 + complement
-
-
-def tokeniser(gram):
-    # même normalisation qu'à la construction des bases (scripts/ngram_*.py)
-    gram = re.sub(r"(?<=[A-Z])\.", "", gram).lower().replace("’", "'")
-    return re.findall(r"[a-zà-ÿ0-9']+", gram)
 
 
 def serie(conn, tokens, date_min, date_max):

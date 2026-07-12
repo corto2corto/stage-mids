@@ -18,30 +18,10 @@ if os.path.isdir("/data/elias/stage-mids/data"):
     os.environ["SQLITE_TMPDIR"] = TMP
     os.environ["TMPDIR"] = TMP
 
+from scripts.tokenisation import MOTS_OUTILS
+
 corpus = sys.argv[1]
 dossier = sys.argv[2] if len(sys.argv) > 2 else "/data/elias/stage-mids/data/corpus"
-
-MOTS_OUTILS = """
-le la les l' un une des du de d' au aux ce cet cette ces sa son ses ma mon mes ta ton
-tes leur leurs notre nos votre vos quel quelle quels quelles quelque quelques chaque
-tout toute tous toutes autre autres même mêmes tel telle tels telles
-je tu il elle on nous vous ils elles me te se moi toi lui eux soi y en qui que quoi
-dont où celui celle ceux celles cela ça ceci rien chacun chacune
-à dans par pour sur avec sans sous entre vers chez depuis pendant avant après contre
-selon malgré parmi dès jusque jusqu'à envers auprès autour afin lors hors sauf via
-et ou mais donc or ni car si ne pas plus moins très trop aussi bien peu beaucoup
-assez encore déjà toujours jamais souvent parfois ensuite puis alors ainsi comme
-comment pourquoi quand lorsque tandis cependant pourtant néanmoins toutefois enfin
-surtout notamment également puisque parce non oui voici voilà entre deux trois
-est sont était étaient été être sera seront serait seraient suis es sommes êtes fut
-furent soit soient étant a ont avait avaient avoir aura auront aurait auraient ai as
-avons avez eu eut ayant fait faire faisait faisaient fera feront ferait font
-peut peuvent pouvait pourrait pourraient pu doit doivent devait devraient devrait va
-vont allait ira iront dit dire
-c'est c'était d'un d'une d'autres l'on n'est n'a n'ont n'était n'y qu'il qu'ils
-qu'elle qu'elles qu'on qu'un qu'une qu'à qu'en qu'au s'est s'il s'ils s'en j'ai d'en
-l'a l'ont d'être d'avoir n'en
-""".split()
 
 # uri=True sur la connexion principale : nécessaire pour que l'ATTACH ?mode=ro fonctionne
 conn = sqlite3.connect(f"file:{dossier}/{corpus}_top.db", uri=True)
