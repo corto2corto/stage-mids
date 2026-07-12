@@ -11,13 +11,13 @@ passages.
 
 ```sql par_jour
 select
-    cast(horodatage::timestamp as date) as jour,
+    strftime(cast(horodatage::timestamp as date), '%d/%m') as jour,
     case when extract(hour from horodatage::timestamp) < 12
          then 'Matin (5h40)' else 'Après-midi (17h40)' end as passage,
     sum(ajoutees) as ajoutees
 from suivi.sitemaps_journal
-group by jour, passage
-order by jour
+group by cast(horodatage::timestamp as date), passage
+order by cast(horodatage::timestamp as date)
 ```
 
 <BarChart
@@ -26,6 +26,7 @@ order by jour
     y=ajoutees
     series=passage
     type=stacked
+    sort=false
     seriesColors={{"Matin (5h40)": "#236aa4", "Après-midi (17h40)": "#d0782c"}}
     title="Nouvelles URLs trouvées par jour"
     yAxisTitle="URLs ajoutées"

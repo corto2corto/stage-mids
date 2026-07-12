@@ -9,8 +9,8 @@ Capture une tâche discutée dans la session courante, pour la reprendre plus ta
 
 ## Références fixes
 
-- **Source de vérité** : `.claude/taches.md`.
-- **Artifact dashboard** : `https://claude.ai/code/artifact/42437963-1ba0-47af-9c84-55fc80c2b424` — HTML `dashboard-stage-mids.html` dans le scratchpad (le récupérer via l'Étape 0 du skill /dashboard s'il n'est pas dans le scratchpad courant).
+- **Source de vérité des tâches** : `.claude/taches.md`.
+- **Dashboard** : fichier local versionné `site/static/dashboard.html` (dans le dépôt). Publié sur GitHub Pages à `https://corto2corto.github.io/stage-mids/dashboard.html` (Evidence copie `site/static/` à la racine du build). On l'édite directement, puis on push sur main pour publier. Plus d'artifact Claude (abandonné le 12/07/2026).
 
 ## Étape 1 — Comprendre la tâche depuis la conversation
 
@@ -40,15 +40,12 @@ Ajouter l'entrée AVANT la section « ## Faites », au format existant : `## <sl
 
 ## Étape 4 — Mettre à jour le dashboard
 
-1. Récupérer `dashboard-stage-mids.html` (Étape 0 du skill /dashboard).
-2. Ajouter une carte dans la section « Tâches en attente », sur le modèle de la carte existante : `carte-titre` (titre), `carte-sous` (date + branche), bouton `btn-prompt` avec `data-panneau="prompt-<slug>"`, `p.desc` (une phrase : constat + piste), panneau `panneau-prompt` d'id `prompt-<slug>` contenant le `<pre>` du prompt et un bouton `btn-copier` avec `data-copie="prompt-<slug>"`. Le `<script>` en bas de page gère déjà tous les boutons — ne rien y ajouter.
-3. Redéployer via l'outil Artifact (favicon 📊, `url` = l'artifact fixe ci-dessus).
-4. Recopier le HTML mis à jour sur les copies récentes des autres sessions (`find /private/tmp/claude-*/-Users-corto-Documents-stage-mids -name dashboard-stage-mids.html`), pour qu'une boucle /dashboard encore vivante ailleurs n'écrase pas la nouvelle carte au prochain rafraîchissement.
+Éditer directement `site/static/dashboard.html` (Edit, pas de récupération distante) : ajouter une carte dans la section « Tâches en attente », sur le modèle d'une carte existante — `carte-titre` (titre), `carte-sous` (date + branche), bouton `btn-prompt` avec `data-panneau="prompt-<slug>"`, `p.desc` (une phrase : constat + piste), panneau `panneau-prompt` d'id `prompt-<slug>` contenant le `<pre>` du prompt et un bouton `btn-copier` avec `data-copie="prompt-<slug>"`. Attention : dans le `<pre>`, échapper `<`, `>` et `&` en `&lt;`, `&gt;`, `&amp;`. Le `<script>` en bas de page gère déjà tous les boutons — ne rien y ajouter.
 
 ## Tâche terminée
 
-Si Corto dit qu'une tâche est faite : déplacer son entrée de taches.md vers « ## Faites » (garder la trace, on peut retirer le prompt), supprimer sa carte du dashboard, redéployer et recopier comme à l'Étape 4.
+Si Corto dit qu'une tâche est faite : déplacer son entrée de taches.md vers « ## Faites » (garder la trace, on peut retirer le prompt), et supprimer sa carte de `site/static/dashboard.html` (Edit).
 
 ## Étape 5 — Rendre compte
 
-Une ou deux lignes : la tâche notée, et rappel que le prompt de reprise est derrière le bouton « Prompt » du dashboard.
+Une ou deux lignes : la tâche notée, où (taches.md + dashboard local), et rappeler que la publication sur GitHub Pages se fait via un push sur main (`/github`). Ne pas push soi-même sans que Corto le demande.

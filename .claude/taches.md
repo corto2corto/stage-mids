@@ -28,31 +28,6 @@ Le filtre vient de scripts/top_ngram.py : la liste MOTS_OUTILS (ligne ~24) sert 
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
-## diagnostic-lemonde-pipeline — Diagnostiquer l'échec Le Monde dans le pipeline
-
-- Ajoutée : 2026-07-05
-- Branche : scraping
-
-**Contexte** : Le Monde échoue à chaque vague du pipeline depuis plusieurs cycles (motif stable), alors que la plupart des autres médias passent. Repris de la Feuille de route (branche 1).
-
-**Piste envisagée** : localiser l'étape qui casse — récupération des URLs (sitemap), chargement Firefox, extraction (`json_ld` / `.article__content`), ou détection paywall (bypass qui ne marche plus) — via `urls.db` et les logs, avant de proposer une correction.
-
-**Prompt** :
-
-```
-Le Monde échoue à chaque vague du pipeline de scraping depuis plusieurs cycles (motif stable, visible dans les récapitulatifs de vagues de la session tmux scrapping), alors que la plupart des autres médias passent. Objectif : un diagnostic, pas encore la correction.
-
-Configuration actuelle du média (scraping/medias.py, ligne 6) : moteur firefox, stratégie json_ld, corps ".article__content".
-
-Dans l'ordre :
-1. Regarder comment les échecs le_monde sont enregistrés dans urls.db sur gallica (statut / message d'erreur) — requêtes indexées + LIMIT seulement, jamais de scan complet.
-2. Croiser avec les logs de la session tmux scrapping pour identifier l'étape qui casse : URLs (sitemap), chargement Firefox, extraction (json_ld / .article__content), ou détection paywall (phrases-signal du bypass_checker — le bypass ne marche peut-être plus pour Le Monde).
-3. Si nécessaire, capturer UN article Le Monde à la main via navigateur.py sur le serveur et examiner le HTML réellement récupéré.
-
-Livrable : le point exact où ça casse, la cause probable, et la correction proposée — sans la lancer.
-Me demander avant de lancer quoi que ce soit sur le serveur.
-```
-
 ## bases-ngram-13-medias — Construire les bases n-grammes des 13 autres médias
 
 - Ajoutée : 2026-07-05
@@ -153,35 +128,25 @@ Deux défauts dans data/csv/francesoir.csv (435 Mo, sur gallica), constatés le 
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## Faites
+
 ## inspection-urls-non-articles — Inspection par média des URLs non-articles + état dédié en base
 
-- Ajoutée : 2026-07-11
+- Ajoutée : 2026-07-11 · Faite : 2026-07-12
 - Branche : main
 
-**Contexte** : l'audit du 11/07/2026 (agent Opus, rapport `rapport_motifs_urls.md` en scratchpad de session — synthèse reprise dans le prompt) a repéré ~242 300 URLs non-articles dans `urls.db`, toutes en etat 0/1 (rien dans les CSV) : `video.lefigaro.fr` (~233 900), galeries photos du Nouvel Obs (~8 150), petits artefacts laprovence, plus des cas à arbitrer (slugs à markup `span` du Télégramme, pages `video-` de gala/voici). Mais les filtres par mots-clés génèrent des faux positifs massifs dans les slugs (« jeu-video », « urssaf », « l-auteur »…) — décision : **pas de filtre appliqué à la va-vite**.
+**Contexte** : l'audit du 11/07/2026 avait repéré ~242 300 URLs non-articles dans `urls.db` (dont `video.lefigaro.fr` ~233 900), mais les filtres par mots-clés créaient des faux positifs massifs dans les slugs — d'où une inspection média par média pour établir des règles fiables (sous-domaine ou segment de chemin, jamais un mot seul).
 
-**Piste envisagée** : une grosse inspection média par média pour documenter le format d'URL de chacun et en tirer une règle de filtrage fiable (sous-domaine ou segment de chemin, jamais un mot seul), et marquer les URLs corrompues d'un **numéro d'état dédié** dans `urls.db` (proposer etat=5) qui servira de corpus de référence pour créer les filtres.
+**Résultat** : inspection des 29 médias terminée le 12/07 — 417 870 URLs marquées etat=5 (état « non-article » documenté dans `stockage.py`, commit e8e471a), règles par média dans `exploration/regles_non_articles.md`. Verdicts « on garde » : slugs à markup span du Télégramme (1,9 M de vrais articles) et pages `video-` de gala/voici. Filtre posé en amont au versement : `est_non_article` dans `collecte.py`, motifs sûrs seulement (commit e49c64f).
 
-**Prompt** :
+## diagnostic-lemonde-pipeline — Diagnostiquer l'échec Le Monde dans le pipeline
 
-```
-Objectif : pour chacun des 29 médias de urls.db (gallica, /data/elias/stage-mids/data/urls.db), définir une règle fiable d'identification des URLs non-articles, et marquer ces URLs d'un état dédié en base — corpus de référence pour construire les futurs filtres en amont.
+- Ajoutée : 2026-07-05 · Faite : 2026-07-12
+- Branche : main
 
-Acquis de l'audit du 11/07/2026 (rapport_motifs_urls.md, scratchpad de la session du 11/07 s'il existe encore) :
-- ~242 300 URLs non-articles nettes, toutes en etat 0/1, zéro dans les CSV : le_figaro sous-domaine video.lefigaro.fr (~233 900), le_nouvel_observateur /galeries-photos/ (~8 150), laprovence ~120 artefacts (motifs « image:media » et « httpRequest »).
-- Cas à arbitrer avec Corto : le_telegramme ~72 400 slugs à markup span (l'article se résout probablement — vérifier doublons avec le slug propre), pages video- de gala/voici.
-- Piège établi : les mots video, podcast, rss, auteur, diaporama… abondent dans des slugs d'articles légitimes. Toute règle doit porter sur le sous-domaine, un segment de chemin ou une extension — jamais la présence d'un mot — et être validée sur échantillons.
+**Contexte** : Le Monde échouait à chaque vague du pipeline (motif stable), alors que la plupart des autres médias passaient.
 
-À faire :
-1. Choisir le numéro d'état dédié « non-article » (proposer etat=5 après vérification que rien ne l'utilise : pipeline.py ne consomme que 0 et 1) et le documenter là où les états sont décrits.
-2. Média par média : documenter le format d'URL, établir la règle de filtrage exacte, la valider sur échantillons (requêtes indexées WHERE media=..., LIMIT), puis passer les URLs concernées à l'état dédié — UPDATE ciblés, scrapping en pause pendant les écritures.
-3. Migrer les 29 228 latribune actuellement en etat=4 (artefacts Wayback du nettoyage du 11/07 — tout l'etat=4 de ce média) vers l'état dédié, pour ne plus les confondre avec de vrais échecs.
-4. Livrable : un document des règles par média + comptes avant/après, base des futurs filtres à poser en amont (mapping / chargement).
-
-Me demander avant de lancer quoi que ce soit sur le serveur.
-```
-
-## Faites
+**Résultat** : problème réglé le 11/07 (cf mémoire [[project_le_monde_etat4]]) — faux positif `est_bloque` sur les encarts « Lire aussi », corps repris sur `p.article__paragraph` (commit 5c9b590). Rejeu effectué : 21 082 articles réussis (+1 831), 34 résiduels en etat=4.
 
 ## latribune-urls-poubelle — Dédoublonner latribune.csv (URLs Wayback à fragments)
 
