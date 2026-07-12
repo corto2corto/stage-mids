@@ -27,7 +27,7 @@ debut = time.time()
 conn = sqlite3.connect(base)
 conn.execute("PRAGMA busy_timeout = 30000")
 conn.execute("PRAGMA synchronous = NORMAL")
-conn.execute("PRAGMA cache_size = -2000000")  # ~2 Go : les upserts touchent des pages dispersées
+conn.execute("PRAGMA cache_size = -4000000")  # ~4 Go (serveur partagé : ne pas saturer la RAM)
 conn.execute("CREATE TABLE IF NOT EXISTS maj_articles (id INTEGER PRIMARY KEY)")
 deja = {r[0] for r in conn.execute("SELECT id FROM maj_articles")}
 
@@ -74,18 +74,20 @@ for chunk in pd.read_csv(chemin_csv, usecols=["id", "date", "titre", "contenu"],
             ids.update(conn.execute(
                 f"SELECT word, id FROM token WHERE word IN ({','.join('?' * len(tranche))})",
                 tranche))
+        # tri par clé : l'arbre d'index est parcouru dans l'ordre, chaque page
+        # n'est chargée qu'une fois par paquet (sinon, dates éparses = I/O aléatoires)
         conn.executemany(
             "INSERT INTO unigram VALUES (?,?,?) "
             "ON CONFLICT(w1, date) DO UPDATE SET n = n + excluded.n",
-            [(ids[w], j, n) for (w, j), n in uni.items()])
+            sorted((ids[w], j, n) for (w, j), n in uni.items()))
         conn.executemany(
             "INSERT INTO bigram VALUES (?,?,?,?) "
             "ON CONFLICT(w1, w2, date) DO UPDATE SET n = n + excluded.n",
-            [(ids[a], ids[b], j, n) for (a, b, j), n in bi.items()])
+            sorted((ids[a], ids[b], j, n) for (a, b, j), n in bi.items()))
         conn.executemany(
             "INSERT INTO trigram VALUES (?,?,?,?,?) "
             "ON CONFLICT(w1, w2, w3, date) DO UPDATE SET n = n + excluded.n",
-            [(ids[a], ids[b], ids[c], j, n) for (a, b, c, j), n in tri.items()])
+            sorted((ids[a], ids[b], ids[c], j, n) for (a, b, c, j), n in tri.items()))
         conn.executemany(
             "INSERT INTO total_unigram VALUES (?,?) "
             "ON CONFLICT(date) DO UPDATE SET total = total + excluded.total",
