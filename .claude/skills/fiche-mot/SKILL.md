@@ -1,11 +1,11 @@
 ---
 name: fiche-mot
-description: Génère la fiche statistique d'un mot dans Le Monde sur une période donnée (série avec pics détectés, histogramme vs lois Poisson/binomiale négative, p-valeurs, moments) — une page PDF comme celles de rapport.pdf. Utiliser quand Corto demande « la fiche de <mot> », « fais-moi la page de <mot> sur <période> », ou veut les mesures/plots d'un nouveau mot.
+description: Génère la fiche statistique d'un mot dans Le Monde sur une période donnée (série avec pics détectés, histogramme vs lois Poisson/binomiale négative, p-valeurs, test du χ², moments) — une page PDF comme celles de rapport.pdf. Utiliser quand Corto demande « la fiche de <mot> », « fais-moi la page de <mot> sur <période> », ou veut les mesures/plots d'un nouveau mot.
 ---
 
 # Skill /fiche-mot
 
-Produit `paper/donnees_maths/fiches/fiche_<slug>_<debut>_<fin>.pdf` : une page A4 portrait au **même rendu que les pages mot-par-mot de rapport.pdf** (Quarto→typst : série $f_t$ avec pics anormaux, histogramme de $X_t$ vs lois ajustées + p-valeurs, tableau des moments great_tables, légendes Fig./Tableau). Tout le calcul est dans `paper/donnees_maths/fiche.py` (qui réutilise les fonctions de `rapport_lib.py` puis compile via `quarto render` — ne modifier ni l'un ni l'autre sans demande).
+Produit `paper/donnees_maths/fiches/fiche_<slug>_<debut>_<fin>.pdf` : une page A4 portrait au **même rendu que les pages mot-par-mot de rapport.pdf** (Quarto→typst : série $f_t$ avec pics anormaux, histogramme de $X_t$ vs lois ajustées + p-valeurs, adéquation par test du χ² sur les résidus de Pearson — tableau χ²/ddl/p-valeur/verdict + histogrammes des $z_t$ vs N(0,1), même calcul que la route /fiche de l'API — tableau des moments great_tables, légendes Fig./Tableau). Tout le calcul est dans `paper/donnees_maths/fiche.py` (qui réutilise les fonctions de `rapport_lib.py` puis compile via `quarto render` — ne modifier ni l'un ni l'autre sans demande).
 
 ## Entrées
 
@@ -28,7 +28,7 @@ Produit `paper/donnees_maths/fiches/fiche_<slug>_<debut>_<fin>.pdf` : une page A
    source .venv/bin/activate
    python paper/donnees_maths/fiche.py <slug> [debut] [fin]
    ```
-   Le script imprime λ̂, μ̂, r̂, le nombre de pics et leurs dates.
+   Le script imprime λ̂, μ̂, r̂, le nombre de pics et leurs dates, puis les χ²/ddl et p-valeurs des deux lois.
 
 4. **Vérifier et rendre compte** : rasteriser le PDF (pymupdf, dans le scratchpad) et le regarder (axes, débordements) ; donner à Corto le chemin du PDF, les paramètres estimés et les pics datés (identifier l'événement si évident).
 
