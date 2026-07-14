@@ -144,7 +144,7 @@ for media in medias:
 if releves:
     nouveau = not JOURNAL.exists()
     with open(JOURNAL, "a", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         if nouveau:
             w.writerow(("horodatage", "media", "dans_sitemap", "ajoutees"))
         w.writerows(releves)
