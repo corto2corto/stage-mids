@@ -91,12 +91,11 @@ NEWS = {
     "latribune":  {"url": "https://www.latribune.fr/sitemap-actualites.xml"},  # plafond 100
     # liberation : plafond 100, fenêtre ~23 h -> interroger au moins 1x/jour
     "liberation": {"url": "https://www.liberation.fr/arc/outboundfeeds/sitemap_news.xml?outputType=xml"},
+    "20minutes":  {"url": "https://www.20minutes.fr/sitemap-news.xml"},  # ~48 h
 
     # --- sans entrée pour l'instant (reco 07/07/2026) ---
     # cnews : Cloudflare bloque curl ; via_cffi à essayer quand le média sera mappé.
     # francesoir : pas de sitemap news, sitemap classique paginé non trié par date.
-    # 20minutes : mapping en cours (session tmux du 07/07), à activer une fois le
-    #   CSV posé : {"url": "https://www.20minutes.fr/sitemap-news.xml"}
 }
 
 medias = sys.argv[1:] or list(NEWS)

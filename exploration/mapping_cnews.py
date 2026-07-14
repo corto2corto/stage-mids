@@ -10,9 +10,15 @@ constate lors du smoke test, le motif accepte donc la rubrique en optionnelle.
 robots.txt impose un Crawl-delay de 10s -> ~36 min pour les 215 pages
 (215 * 10s + temps requete).
 
+Reexecutable (rattrapage) : les URLs deja presentes dans le CSV sont chargees
+au demarrage et jamais reecrites, seules les nouvelles sont ajoutees a la fin
+-- necessite le re-balayage complet des pages, le sitemap n'etant pas trie
+par date.
+
     python -m exploration.mapping_cnews
 """
 import csv
+import os
 import re
 import time
 
@@ -27,8 +33,21 @@ MOTIF_ARTICLE = re.compile(
     r"^https://www\.cnews\.fr/(?:(?!videos/|podcast/|emission/|diaporamas/)[^/]+/)?\d{4}-\d{2}-\d{2}/[^/]+/?$"
 )
 
+deja = set()
+if os.path.exists(SORTIE):  # reprise/rattrapage : on complete le CSV, jamais de reecriture
+    with open(SORTIE, newline="", encoding="utf-8") as f:
+        deja.update(l[0] for l in list(csv.reader(f))[1:] if l)
+    print(f"{len(deja)} URLs deja presentes dans {SORTIE}")
+
+nouveau_fichier = not os.path.exists(SORTIE)
+sortie = open(SORTIE, "a", newline="", encoding="utf-8")
+w = csv.writer(sortie)
+if nouveau_fichier:
+    w.writerow(["url"])
+
 session = basic.ouvrir_session()
 urls = set()
+ajoutees = 0
 rejetees = 0
 pages_vides = 0
 
@@ -66,18 +85,21 @@ for page in range(1, MAX_PAGES + 1):
             rejetees += 1
 
     if page % 10 == 0:
-        print(f"page {page}/{MAX_PAGES} : {len(urls)} URLs cumulees, {rejetees} rejetees")
-        with open(SORTIE, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["url"])
-            for u in sorted(urls):
-                w.writerow([u])
+        nouvelles = urls - deja
+        for u in sorted(nouvelles):
+            w.writerow([u])
+        sortie.flush()  # checkpoint : reprise facile en cas d'interruption
+        deja.update(nouvelles)
+        ajoutees += len(nouvelles)
+        print(f"page {page}/{MAX_PAGES} : {len(urls)} URLs vues, {ajoutees} ajoutees, {rejetees} rejetees")
 
     time.sleep(ATTENTE)
 
-with open(SORTIE, "w", newline="", encoding="utf-8") as f:
-    w = csv.writer(f)
-    w.writerow(["url"])
-    for u in sorted(urls):
-        w.writerow([u])
-print(f"Termine : {len(urls)} URLs retenues, {rejetees} rejetees, ecrites dans {SORTIE}")
+nouvelles = urls - deja
+for u in sorted(nouvelles):
+    w.writerow([u])
+sortie.close()
+deja.update(nouvelles)
+ajoutees += len(nouvelles)
+print(f"Termine : {len(urls)} URLs vues, {ajoutees} ajoutees ({len(deja)} au total), "
+      f"{rejetees} rejetees, dans {SORTIE}")

@@ -11,23 +11,24 @@ https://www.20minutes.fr/<rubrique>[/<sous-rubrique>]/<ID>-<YYYYMMDD>-<slug>.
 2006 -> 2026 : ~7 400 pages-jour + 21 pages-annee, soit ~7 420 requetes a 1 s
 de politesse -> environ 3h de crawl.
 
-    python -m exploration.mapping_20minutes
+    python -m exploration.mapping_20minutes            # tout, 2006 -> 2026
+    python -m exploration.mapping_20minutes 2026       # rattrapage d'une annee
 
-Relancable par annee : editer la constante ANNEES pour ne refaire que les
-annees manquantes/interrompues -- le fichier de sortie est complete par
-ajout (pas ecrase), les URLs deja presentes sont chargees au demarrage et
-jamais reecrites.
+Relancable par annee : passer en argument les annees manquantes/interrompues
+(ou a rattraper) -- le fichier de sortie est complete par ajout (pas ecrase),
+les URLs deja presentes sont chargees au demarrage et jamais reecrites.
 """
 import csv
 import os
 import re
+import sys
 import time
 
 from tqdm import tqdm
 
 from scraping import basic
 
-ANNEES = range(2006, 2027)  # 2006 -> 2026 inclus
+ANNEES = [int(a) for a in sys.argv[1:]] or range(2006, 2027)  # 2006 -> 2026 inclus
 SORTIE = "exploration/20minutes_url.csv"
 MOTIF_JOUR = re.compile(r'href="https://www\.20minutes\.fr/archives/(\d{4})/(\d{2})-(\d{2})"')
 MOTIF_ARTICLE = re.compile(
