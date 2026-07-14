@@ -75,6 +75,15 @@ MEDIAS = {
     # liberation : EN PAUSE (07/07/2026) — archives tronquées côté serveur à ~240 mots
     # (cf exploration/rapport_test_nuit.md §4.1), reprise prévue avec un compte abonné (moteur log).
     "liberation":      {"moteur": "basic", "pause": True, "meta": {"strategie": "json_ld", "corps": "div[class*=TextElement__Container]"}},
+
+    # Prospection du 07/07/2026 (dossiers exploration/prospection/), branchés le 15/07/2026
+    # après rattrapage des URLs (07->14/07 + trou 2022-2025 de 20minutes) et audits
+    # (0 doublon, 100 % au format article, extraction validée sur articles frais).
+    # cnews : 100 % gratuit, json-ld stable 2012-2026.
+    "cnews":        {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-body"}},
+    # 20minutes : 100 % gratuit, json-ld stable 2006-2026, les « direct » (live)
+    # sortent vides -> échec propre automatique.
+    "20minutes":    {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
     # Écartés : lexpress (9/10 payant, aucun corps json-ld, pas de sélecteur validable),
     # lepoint (URLs Wayback mortes en masse, corps rendu en JS invisible en basic).
 }
