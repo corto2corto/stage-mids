@@ -865,7 +865,9 @@ Deux médias de la prospection du 07/07 entrent en production (dossiers dans
   INTO), puis `verser_nouveaux cnews 20minutes` : **1 197 913 URLs insérées**
   (357 990 + 839 923, zéro écartée), scrapping mis en pause pendant
   l'opération puis relancé.
-- 20minutes rejoint la collecte news quotidienne
-  ([`sitemap_news.py`](exploration/sitemap_news.py)) ; cnews n'a pas de
-  sitemap news exploitable → re-balayage périodique de son sitemap à prévoir
-  (~40 min, le mapping se relance tel quel).
+- Les deux rejoignent la collecte news quotidienne
+  ([`sitemap_news.py`](exploration/sitemap_news.py)) : 20minutes via son
+  `sitemap-news.xml` (~48 h), cnews via le `googlenews.xml` déclaré dans son
+  robots.txt (~5 jours, via_cffi car Cloudflare bloque curl — la reco du
+  07/07 l'avait raté pour ça, `/videos/` exclues). Plus aucun média branché
+  sans source de nouvelles URLs, sauf francesoir.

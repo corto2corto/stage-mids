@@ -92,9 +92,12 @@ NEWS = {
     # liberation : plafond 100, fenêtre ~23 h -> interroger au moins 1x/jour
     "liberation": {"url": "https://www.liberation.fr/arc/outboundfeeds/sitemap_news.xml?outputType=xml"},
     "20minutes":  {"url": "https://www.20minutes.fr/sitemap-news.xml"},  # ~48 h
+    # cnews : googlenews.xml déclaré au robots.txt (~100 URLs, ~5 jours), Cloudflare
+    # bloque curl -> via_cffi ; /videos/ exclues comme au mapping (sondé le 15/07).
+    "cnews":      {"url": "https://www.cnews.fr/googlenews.xml", "via_cffi": True,
+                   "anti_filtre": r"cnews\.fr/(videos|podcast|emission|diaporamas)/"},
 
     # --- sans entrée pour l'instant (reco 07/07/2026) ---
-    # cnews : Cloudflare bloque curl ; via_cffi à essayer quand le média sera mappé.
     # francesoir : pas de sitemap news, sitemap classique paginé non trié par date.
 }
 
