@@ -835,3 +835,37 @@ on garde — un faux article ne coûte qu'un échec de scraping, un vrai article
 - Référence : [`exploration/regles_non_articles.md`](exploration/regles_non_articles.md)
   (règles appliquées, règles écartées, motifs à bloquer en amont) ; l'état 5
   est documenté dans [`scraping/stockage.py`](scraping/stockage.py).
+
+## Branchement de cnews et 20minutes (2026-07-15)
+
+Deux médias de la prospection du 07/07 entrent en production (dossiers dans
+`exploration/prospection/`), tous deux 100 % gratuits en moteur basic :
+**cnews** (json-ld, corps `div.article-body`) et **20minutes** (corps json-ld).
+
+- **Rattrapage avant versement** — les mappings sont désormais relançables :
+  [`mapping_cnews.py`](exploration/mapping_cnews.py) passe en append+dédup
+  (re-balayage obligatoire, sitemap non trié par date) et
+  [`mapping_20minutes.py`](exploration/mapping_20minutes.py) prend les années
+  en argument. cnews : +562 URLs (fenêtre 07→14/07) → **357 990**. 20minutes :
+  +18 996 URLs 2026, puis un **trou 2022-2025 découvert par l'audit** (le
+  mapping du 07/07 s'était interrompu à 2021 sans le signaler) et comblé dans
+  la foulée (+140 560) → **839 923**, corpus continu 2006-2026.
+- **Audits par agents avant versement** (lecture seule) : 0 doublon et 100 %
+  au format article des deux côtés ; aucune fuite des exclusions
+  vidéo/podcast/émission/diaporama de cnews ; les rubriques d'apparence
+  douteuse (podcast, tv, guide-achat, horoscope, `videos` de 20minutes) sont
+  de vrais articles sondés (json-ld + corps). Reste un choix éditorial à
+  trancher un jour : le publi-rédactionnel (`le-corner-partenaires` cnews,
+  756 URLs ; `publicommunique` 20minutes, ~31) — gardé pour l'instant, même
+  logique que le `a-propos` du Progrès. ~1 700 `/index/` 2006-2007 de
+  20minutes sont mortes (redirection accueil) : échecs propres à prévoir.
+- **Extraction validée sur articles frais** : cnews 3/3 (362-488 mots),
+  20minutes 2/3 + 1 « direct » (`LiveBlogPosting`) vide → échec propre attendu.
+- **Versement** : sauvegarde `urls.db.bak-20260714-225135` (13,2 Go, VACUUM
+  INTO), puis `verser_nouveaux cnews 20minutes` : **1 197 913 URLs insérées**
+  (357 990 + 839 923, zéro écartée), scrapping mis en pause pendant
+  l'opération puis relancé.
+- 20minutes rejoint la collecte news quotidienne
+  ([`sitemap_news.py`](exploration/sitemap_news.py)) ; cnews n'a pas de
+  sitemap news exploitable → re-balayage périodique de son sitemap à prévoir
+  (~40 min, le mapping se relance tel quel).
