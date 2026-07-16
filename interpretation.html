@@ -79,213 +79,323 @@ window.Quarto = {
 
 
 
-<section id="interprétation-que-disent-les-40-fiches-et-quel-modèle-pour-les-rachats" class="level1">
-<h1>Interprétation — que disent les 40 fiches, et quel modèle pour les rachats ?</h1>
-<p><em>Prolonge <code>fiches_mots.pdf</code> (40 mots × Poisson/binomiale négative/χ², Le Monde 1944–2025). Les tests de rupture de la section 4 ont été refaits sur nos propres séries pour ce document.</em></p>
+<section id="interprétation-des-40-fiches-au-protocole-de-détection-des-ruptures-éditoriales" class="level1">
+<h1>Interprétation — des 40 fiches au protocole de détection des ruptures éditoriales</h1>
+<p><em>Ce document prolonge <code>fiches_mots.pdf</code> (40 mots, Le Monde 1944–2025 : ajustements Poisson/binomiale négative, tests du χ², jours anormaux). Il fait trois choses : tirer les leçons statistiques du recueil (§1), passer en revue les familles de modèles de détection de rupture et motiver un choix (§3), et soumettre ce choix à une batterie de tests sur nos propres données — y compris les objections qu’un jury ferait : dépendance temporelle, faux positifs, puissance, facteurs de confusion (§4–§7). Tous les chiffres cités ont été calculés sur nos propres séries (Le Monde 1944–2025, Le Figaro 2005–2023) ; les protocoles de calcul sont décrits en place.</em></p>
 <hr>
+<section id="résumé-en-six-points" class="level2">
+<h2 class="anchored" data-anchor-id="résumé-en-six-points">Résumé en six points</h2>
+<ol type="1">
+<li>Les comptages de mots sont <strong>surdispersés partout</strong> (rafales d’actualité) ; la binomiale négative (NB) est le bon modèle <em>de bruit</em>, pas la Poisson.</li>
+<li>Un <strong>test d’adéquation ne détecte pas les ruptures</strong> : sur <em>macron</em>, le χ²/ddl global vaut 0,98 (« tout va bien ») alors que la fréquence triple en mai 2017 (LRT = 2 574). L’adéquation valide la forme des comptages, pas leur stabilité.</li>
+<li>Le bon outil est la <strong>NB segmentée</strong> : test de rapport de vraisemblance (LRT) avant/après une date — connue (le rachat) ou inconnue (scan) — avec seuil <strong>calibré par simulation</strong>, jamais par la table du χ².</li>
+<li><strong>Objection majeure, vérifiée sur nos données</strong> : les résidus sont fortement autocorrélés (ACF(1) ≈ 0,6–0,9) parce qu’un sujet d’actualité persiste plusieurs jours ou semaines. Un scan quotidien calibré comme si les jours étaient indépendants rejette à tort dans 26 à 51 % des cas au lieu de 5 %. L’agrégation hebdomadaire et la calibration sous dépendance corrigent l’essentiel.</li>
+<li><strong>La solution structurelle, c’est la comparaison entre journaux</strong> : la part d’un journal dans le total des occurrences (modèle bêta-binomial) neutralise l’actualité commune. Vérifié sur <em>ukraine</em> : ruptures marginales énormes dans chaque journal en février 2022, part Monde/Figaro quasi inchangée (0,44 → 0,45). C’est le design différence-de-différences du mémoire.</li>
+<li>La <strong>puissance</strong> est au rendez-vous pour des effets réalistes (§7) : avec ±1 à ±2 ans de données hebdomadaires, des déplacements de couverture de 20–30 % sur des mots de fréquence moyenne sont détectables — c’est l’ordre de grandeur des effets documentés dans la littérature sur les rachats (Martin &amp; McCrain 2019 : ±25 % ; Cagé et al.&nbsp;2022 : ×3 sur dix ans).</li>
+</ol>
+<hr>
+</section>
 <section id="ce-que-les-40-fiches-montrent" class="level2">
 <h2 class="anchored" data-anchor-id="ce-que-les-40-fiches-montrent">1. Ce que les 40 fiches montrent</h2>
-<p><strong>La loi de Poisson est rejetée partout, et ce n’est pas un accident.</strong> Si chaque occurrence d’un mot était un tirage indépendant parmi les <span class="math inline">\(N_t\)</span> mots du jour, les comptages <span class="math inline">\(X_t\)</span> suivraient une loi de Poisson (variance = moyenne). Or nos Var/Moy observés vont de ~2 à plus de 50 (<em>confinement</em> : 52). La raison est linguistique avant d’être statistique : un mot n’apparaît pas indépendamment de lui-même. Un attentat, une élection, une loi en débat déclenchent <em>plusieurs</em> articles qui répètent le mot des dizaines de fois — les occurrences arrivent en <strong>rafales</strong> (<em>burstiness</em>). C’est un fait établi depuis longtemps en statistique textuelle : Church &amp; Gale (1995) et Katz (1996) ont montré que les mots « à contenu » violent systématiquement Poisson et qu’un mélange de Poisson — dont la binomiale négative est le cas le plus courant — est le bon point de départ. Nos fiches redécouvrent ce résultat sur 80 ans du <em>Monde</em>.</p>
-<p><strong>La binomiale négative encaisse les rafales, et le paramètre r̂ les mesure.</strong> La NB, c’est une Poisson dont l’intensité varie d’un jour à l’autre selon une loi Gamma : les jours ne sont plus interchangeables, certains sont « chauds ». Petit r̂ = très bursty, grand r̂ = presque Poisson. La hiérarchie des r̂ du recueil est parlante :</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>r̂</th>
-<th>mots</th>
-<th>lecture</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>&lt; 0,5</td>
-<td>zemmour (0,28), gaza (0,32), vaccin (0,35), immigration (0,44), islam (0,46)</td>
-<td>mots-événements : silence, puis rafales</td>
-</tr>
-<tr class="even">
-<td>≈ 1</td>
-<td>euro, internet, nucléaire, covid, macron, jeux</td>
-<td>régime mixte</td>
-</tr>
-<tr class="odd">
-<td>&gt; 2</td>
-<td>guerre (3,87), europe (4,96), milliards (3,84), crise (3,13)</td>
-<td>vocabulaire de fond, présent chaque jour</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Le χ²/ddl est une échelle de lecture, pas un simple verdict.</strong> La colonne χ²/ddl (NB) du sommaire va de 0,49 à 4,19. Autour de 1 : la NB décrit bien les comptages jour par jour (8 mots non rejetés : <em>algérie</em>, <em>francs</em>, <em>internet</em>, <em>covid</em>, <em>vaccin</em>, <em>ukraine</em>, <em>gaza</em>, <em>intelligence artificielle</em>). Nettement au-dessus de 1 : la série mélange des <strong>régimes</strong> que la NB unique ne peut pas concilier. Les pires ajustements sont les noms de présidents observés sur des fenêtres qui enjambent leur élection — chirac 4,19, mitterrand 3,44, hollande 2,05 — et <em>attentats</em> (2,90). Ce n’est pas la loi qui est mauvaise : c’est l’hypothèse « mêmes paramètres du premier au dernier jour » qui est fausse. Autrement dit, <strong>le χ²/ddl élevé est déjà un détecteur de rupture rudimentaire.</strong></p>
-<p><strong>Attention au piège inverse — c’est le résultat le plus important du recueil.</strong> Le non-rejet ne prouve <em>pas</em> l’absence de rupture. La fiche <em>macron</em> 2014–2025 affiche un χ²/ddl de 1,05, adéquation quasi parfaite… alors que la série contient une rupture énorme (section 4 : la fréquence triple en mai 2017). Comment est-ce possible ? Parce qu’un <strong>mélange de deux NB ressemble à une NB</strong> : le test d’adéquation regarde l’histogramme global des comptages, pas leur ordre dans le temps. Il valide la <em>forme</em> de la distribution, pas sa <em>stabilité</em>. Pour détecter un changement, il faut un modèle qui compare explicitement avant et après. D’où la section suivante.</p>
+<p><strong>La Poisson est rejetée partout, et c’est un fait de langue, pas un artefact.</strong> Si chaque occurrence était un tirage indépendant parmi les <span class="math inline">\(N_t\)</span> mots du jour, <span class="math inline">\(X_t\)</span> serait Poisson (variance = moyenne). Nos Var/Moy vont de ~2 à plus de 50 (<em>confinement</em> : 52). La raison : un mot ne s’utilise pas indépendamment de lui-même — un attentat, une élection déclenchent des rafales d’articles qui le répètent. Cette <strong>burstiness</strong> est documentée depuis Church &amp; Gale (1995) et Katz (1996) : pour les mots « à contenu », il faut un mélange de Poisson, dont la NB (mélange Poisson-Gamma) est le cas canonique. Nos 80 ans du <em>Monde</em> le confirment mot après mot.</p>
+<p><strong>r̂ mesure la burstiness.</strong> Petit r̂ = rafales ; grand r̂ = présence régulière : <em>zemmour</em> 0,28, <em>gaza</em> 0,32, <em>vaccin</em> 0,35 (mots-événements) contre <em>guerre</em> 3,87, <em>europe</em> 4,96, <em>milliards</em> 3,84 (vocabulaire de fond). C’est une statistique descriptive utile en soi pour caractériser le « régime médiatique » d’un thème.</p>
+<p><strong>Le χ²/ddl est une échelle de lecture.</strong> Autour de 1, la NB décrit correctement les comptages (8 mots non rejetés : <em>algérie</em>, <em>francs</em>, <em>internet</em>, <em>covid</em>, <em>vaccin</em>, <em>ukraine</em>, <em>gaza</em>, <em>intelligence artificielle</em>). Nettement au-dessus, la fenêtre mélange des <strong>régimes</strong> : les pires cas sont les présidents observés à cheval sur leur élection (<em>chirac</em> 4,19, <em>mitterrand</em> 3,44) et <em>attentats</em> (2,90). Un χ²/ddl élevé est donc déjà un indice de rupture — mais un indice seulement.</p>
+<p><strong>Le piège est dans l’autre sens.</strong> <em>macron</em> 2014–2025 : χ²/ddl = 0,98, adéquation parfaite… alors que la série contient l’une des plus grosses ruptures du corpus (§4). Un mélange de deux NB ressemble à une NB : le test d’adéquation regarde l’histogramme des comptages, <strong>pas leur ordre temporel</strong>. Retenir : <em>l’adéquation est un diagnostic de forme, jamais un test de stabilité.</em></p>
 <hr>
 </section>
-<section id="le-lien-avec-le-mémoire" class="level2">
-<h2 class="anchored" data-anchor-id="le-lien-avec-le-mémoire">2. Le lien avec le mémoire</h2>
-<p>Notre question : <em>les rachats de journaux modifient-ils la couverture thématique ?</em> Traduite dans le langage des fiches : <strong>après la date du rachat, les paramètres (μ, r) de certains mots changent-ils ?</strong> Un thème qu’on étouffe, c’est μ qui baisse ; un thème qu’on pousse, c’est μ qui monte ; une ligne éditoriale qui se « militantise » peut aussi se voir sur r (couverture continue au lieu de réactive).</p>
-<p>C’est exactement un problème de <strong>détection de rupture</strong> (<em>change point detection</em>), un domaine bien balisé : voir la revue de Truong, Oudre &amp; Vayatis (2020) et l’algorithme PELT (Killick et al., 2012) pour le cas général, et Kulkarni et al.&nbsp;(2015) pour l’application aux séries de fréquences de mots. Et le résultat empirique de référence en économie des médias — Cagé et al.&nbsp;sur le rachat de Canal+/CNews par Bolloré en 2015 — montre deux choses qui calibrent nos attentes : les effets d’un rachat sont <strong>réels et mesurables</strong> (la part d’invités d’extrême droite passe de 7 % à ~22 % sur CNews), mais <strong>progressifs</strong> — le basculement s’étale sur plusieurs années, il ne date pas du jour de la signature. Il nous faut donc les deux outils : le test à date connue (le rachat) <em>et</em> la détection à date inconnue (le vrai basculement éditorial).</p>
+<section id="la-question-du-mémoire-et-ce-que-la-littérature-médias-fait-attendre" class="level2">
+<h2 class="anchored" data-anchor-id="la-question-du-mémoire-et-ce-que-la-littérature-médias-fait-attendre">2. La question du mémoire, et ce que la littérature médias fait attendre</h2>
+<p>Notre question — <em>les rachats de journaux modifient-ils la couverture ?</em> — se formalise ainsi : après un rachat, les paramètres (μ = fréquence moyenne, r = régularité) de certains mots changent-ils, <strong>au-delà de ce que l’actualité impose à tous les journaux</strong> ? Trois études de référence calibrent nos attentes :</p>
+<ul>
+<li><strong>Martin &amp; McCrain (2019, APSR)</strong> : les stations de télé locales rachetées par Sinclair augmentent d’environ 25 % leur couverture de politique nationale au détriment du local, avec glissement idéologique — mesuré en différence-de-différences contre les stations non rachetées des mêmes marchés. C’est le design que nous transposerons.</li>
+<li><strong>Cagé, Hengel, Hervé &amp; Urvoy (2022)</strong> : après le rachat de Canal+/CNews par Bolloré (2015), la part d’antenne de l’extrême droite triple — mais l’effet met <strong>des années</strong> à se déployer. Il faut donc tester la date du rachat <em>et</em> rechercher la vraie date de basculement.</li>
+<li><strong>Garz &amp; Ots (2025, J. of Communication)</strong> : 108 journaux suédois, 2 M d’articles ; la consolidation homogénéise le contenu (moins de local, plus de contenu partagé) — des effets de <em>composition</em> thématique, précisément ce que mesurent nos fréquences de mots.</li>
+</ul>
+<p>Conclusion d’étape : les effets existent, sont de l’ordre de quelques dizaines de pourcents sur la composition, sont progressifs, et ne s’identifient proprement que <strong>par comparaison à des témoins</strong>.</p>
 <hr>
 </section>
-<section id="le-modèle-testé-la-binomiale-négative-par-morceaux" class="level2">
-<h2 class="anchored" data-anchor-id="le-modèle-testé-la-binomiale-négative-par-morceaux">3. Le modèle testé : la binomiale négative par morceaux</h2>
-<p>Le modèle le plus simple qui prenne au sérieux à la fois la burstiness (section 1) et la question du mémoire (section 2) :</p>
-<p><span class="math display">\[X_t \sim \text{NB}(\mu_k N_t,\ r_k) \quad \text{sur chaque segment } k\]</span></p>
-<p>même loi que dans les fiches, mais dont les paramètres peuvent changer à des dates de rupture. Trois situations, de la plus simple à la plus réaliste :</p>
-<p><strong>(A) La date de rupture est connue</strong> — c’est le design « rachat ». On ajuste une NB sur toute la période (2 paramètres), puis une NB avant et une après la date (4 paramètres), et on compare les log-vraisemblances : <span class="math inline">\(LRT = 2(\ell_{avant} +
-\ell_{après} - \ell_{unique})\)</span>. Sous l’hypothèse « rien n’a changé », ce LRT suit un χ² à 2 degrés de liberté : on rejette à 5 % dès que LRT &gt; 5,99. C’est un test simple, puissant, et qui dit <em>quoi</em> a changé (μ ? r ? les deux ?).</p>
-<p><strong>(B) La date est inconnue</strong> — on calcule le LRT pour <em>toutes</em> les coupures possibles (chez nous : chaque début de mois) et on garde le max. Attention, piège classique : le max de centaines de tests ne suit plus un χ²(2). Prendre 5,99 comme seuil, c’est s’assurer de « détecter » des ruptures dans du bruit — c’est le problème des <strong>tests multiples</strong>. La parade : simuler. On génère des séries sous l’hypothèse nulle (NB unique, avec les paramètres estimés et les <em>vrais</em> <span class="math inline">\(N_t\)</span>), on refait le scan sur chacune, et on regarde la distribution du max obtenu. Le quantile 95 % de cette distribution est le bon seuil. Nos simulations (section 4) le confirment : sous H0 le max <em>médian</em> vaut déjà ~6,5 — au-dessus du seuil naïf de 5,99.</p>
-<p><strong>(C) Plusieurs ruptures</strong> — on coupe au max du scan, puis on recommence dans chaque moitié (segmentation binaire), en n’acceptant une coupure que si elle « paie » sa complexité : seuil de type BIC, <span class="math inline">\(3\log n\)</span> (trois paramètres en plus par rupture : μ, r et la date). Pour un vrai passage à l’échelle (des milliers de séries), on remplacera la segmentation binaire par PELT via le package <code>ruptures</code> — même logique, optimisation exacte et rapide.</p>
-<p><em>Note technique : pour rendre les milliers d’ajustements du scan et des simulations abordables, μ est estimé par quasi-vraisemblance (ΣX/ΣN) et r par profil de vraisemblance — les valeurs diffèrent donc légèrement des fiches (statsmodels), sans changer les conclusions.</em></p>
+<section id="panorama-des-modèles-de-rupture-et-choix-motivé" class="level2">
+<h2 class="anchored" data-anchor-id="panorama-des-modèles-de-rupture-et-choix-motivé">3. Panorama des modèles de rupture, et choix motivé</h2>
+<p>Quatre familles dominent la littérature (revue générale : Truong, Oudre &amp; Vayatis 2020).</p>
+<p><strong>3.1 Économétrie des ruptures structurelles.</strong> Le test de Chow (1960) compare avant/après une date <em>connue</em> — c’est notre situation « rachat », et notre LRT en est la version comptage. Quand la date est <em>inconnue</em>, <strong>Andrews (1993)</strong> montre que le max des statistiques de test sur toutes les dates (sup-Wald/sup-LR) ne suit plus un χ² mais une loi non standard (fonctionnelle de ponts browniens), tabulée avec un rognage des bords — d’où, chez nous, la calibration par simulation, qui joue le même rôle sans asymptotique. <strong>Bai &amp; Perron (1998, 2003)</strong> généralisent aux ruptures multiples : estimation des dates par programmation dynamique, test séquentiel « ℓ contre ℓ+1 ruptures ». Notre segmentation binaire en est la version simple ; leur cadre justifie aussi l’usage d’un critère type BIC.</p>
+<p><strong>3.2 Segmentation en traitement du signal.</strong> Le CUSUM de Page (1954) cumule les écarts à la moyenne ; la segmentation binaire coupe au max puis récurse ; <strong>WBS</strong> (Fryzlewicz 2014) et <strong>NOT</strong> (Baranowski et al.&nbsp;2019) tirent des sous-intervalles aléatoires pour ne pas rater les ruptures rapprochées ; la <strong>seeded binary segmentation</strong> (Kovács et al.&nbsp;2023) rend cela déterministe et rapide ; <strong>PELT</strong> (Killick et al.&nbsp;2012) trouve l’optimum global d’un coût pénalisé en temps linéaire. Tout cela est implémenté dans le package Python <code>ruptures</code> — c’est l’outil industriel quand on passera à des milliers de séries, à condition de lui donner un <strong>coût adapté aux comptages</strong> (log-vraisemblance NB avec exposition <span class="math inline">\(N_t\)</span>), pas un coût gaussien sur <span class="math inline">\(f_t\)</span>.</p>
+<p><strong>3.3 Séries temporelles de comptage.</strong> Notre famille naturelle : les modèles INGARCH/autorégression Poisson (Fokianos et al.) font dépendre l’intensité du jour des comptages passés, et la littérature de rupture associée (Franke, Kirch &amp; Tadjuidje Kamgaing 2012 ; tests CUSUM sur résidus ou scores, QMLE Poisson/NB — revue : Lee &amp; Kim 2020) teste les changements de paramètres <em>en tenant compte de la dépendance</em>. C’est la réponse « lourde » au problème d’autocorrélation du §5 ; nous lui préférons d’abord un correctif plus simple (agrégation + calibration sous dépendance), quitte à y revenir si nécessaire.</p>
+<p><strong>3.4 Bayésien en ligne.</strong> BOCPD (Adams &amp; MacKay 2007) maintient à chaque instant la loi a posteriori du « temps écoulé depuis la dernière rupture ». Idéal pour du monitoring en flux (notre pipeline quotidien pourrait l’utiliser un jour pour alerter), moins pour l’inférence rétrospective contrôlée dont le mémoire a besoin.</p>
+<p><strong>3.5 Et les ruptures <em>sémantiques</em> ?</strong> Kulkarni et al.&nbsp;(2015) détectent les changements d’usage d’un mot en construisant trois séries temporelles — fréquence, syntaxe, voisinage distributionnel (embeddings) — puis en y appliquant un test de rupture avec bootstrap. Hamilton et al.&nbsp;(2016) et la campagne SemEval 2020 (Schlechtweg et al.) fournissent lois empiriques et cadre d’évaluation. Nos fréquences sont donc <em>la première</em> des séries de Kulkarni : la machinerie de rupture qu’on valide ici resservira telle quelle sur des séries d’embeddings.</p>
+<p><strong>Choix pour le mémoire.</strong> Modèle de bruit : NB avec exposition <span class="math inline">\(N_t\)</span> (imposé par §1). Test : LRT segmenté — à date connue (rachat) puis scanné (date de basculement réelle) — soit exactement le sup-LR d’Andrews en version comptage ; ruptures multiples par segmentation binaire aujourd’hui, PELT+coût NB à l’échelle. Seuils : <strong>toujours par simulation</strong> (asymptotiques non standard + dépendance, §5). Identification causale : <strong>par comparaison entre journaux</strong> (§6), à la Martin &amp; McCrain.</p>
 <hr>
 </section>
-<section id="résultats-des-tests" class="level2">
-<h2 class="anchored" data-anchor-id="résultats-des-tests">4. Résultats des tests</h2>
-<section id="a-rupture-à-date-connue-macron-coupure-au-7-mai-2017-élection" class="level3">
-<h3 class="anchored" data-anchor-id="a-rupture-à-date-connue-macron-coupure-au-7-mai-2017-élection">(A) Rupture à date connue — <em>macron</em>, coupure au 7 mai 2017 (élection)</h3>
+<section id="premiers-tests-sur-nos-données-le-modèle-marche" class="level2">
+<h2 class="anchored" data-anchor-id="premiers-tests-sur-nos-données-le-modèle-marche">4. Premiers tests sur nos données : le modèle marche</h2>
+<p><em>(Scan sur coupures mensuelles ; seuils = quantile 95 % du max sous H0, simulé ; estimation μ par quasi-vraisemblance et r par profil — valeurs légèrement différentes des fiches, conclusions identiques.)</em></p>
+<p><strong>(A) Date connue — <em>macron</em>, élection du 7 mai 2017.</strong> LRT = <strong>2 574</strong> (seuil χ²(2) à 5 % : 5,99 ; p ≈ 0). μ passe de 13,7 à 39,8 pour 10⁵ (×3) et r de 0,35 à 2,49 (×7) : le candidat couvert par rafales devient un président couvert en continu. La rupture porte sur les <em>deux</em> paramètres — μ dit « combien », r dit « comment ».</p>
+<p><strong>(B) Date inconnue — scan calibré.</strong> Sur <em>chirac</em> 1986–2007 : rupture au <strong>1ᵉʳ septembre 1994</strong> (M = 494 contre q95 simulé = 11,8) — la rentrée de pré-campagne, pas l’élection : la couverture bascule avant l’événement institutionnel. Sur <em>covid</em> 2020–2024 (NB « non rejetée » par le χ², 0 jour anormal) : rupture au <strong>1ᵉʳ mars 2022</strong> (M = 1 728, q95 = 10,7), la fréquence divisée par 5 quand l’invasion de l’Ukraine chasse l’épidémie de l’agenda — deuxième démonstration que l’adéquation ne teste pas la stabilité. Détail instructif : sous H0, le max <em>médian</em> du scan vaut déjà ~6,5, au-dessus du seuil naïf de 5,99 — quiconque scanne sans corriger la multiplicité des dates fabrique des découvertes.</p>
+<p><strong>(C) Ruptures multiples — <em>terrorisme</em> 1970–2024</strong> (segmentation binaire, seuil BIC ≈ 29,5) : sept ruptures, toutes avec LRT de 65 à 1 630 :</p>
 <table class="caption-top table">
-<thead>
-<tr class="header">
-<th></th>
-<th>μ̂ (pour 10⁵)</th>
-<th>r̂</th>
-<th>χ²/ddl</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>2014 → 06/05/2017</td>
-<td>13,7</td>
-<td>0,35</td>
-<td>1,46</td>
-</tr>
-<tr class="even">
-<td>07/05/2017 → 2025</td>
-<td>39,8</td>
-<td>2,49</td>
-<td>1,50</td>
-</tr>
-<tr class="odd">
-<td>période entière</td>
-<td>32,8</td>
-<td>0,98</td>
-<td><strong>0,98</strong></td>
-</tr>
-</tbody>
-</table>
-<p><strong>LRT = 2 574</strong> contre un seuil de 5,99 : la rupture est écrasante, p ≈ 0. La fréquence triple (13,7 → 39,8) et r est multiplié par 7 : avant l’élection, <em>macron</em> apparaît en rafales (candidat = couverture événementielle) ; après, c’est un mot de fond quotidien (président = couverture institutionnelle). <strong>Et pourtant le χ²/ddl de la période entière vaut 0,98</strong> — adéquation parfaite. C’est la démonstration chiffrée du piège de la section 1 : si on avait utilisé le test d’adéquation comme détecteur de rupture, on aurait conclu « rien à signaler ». Pour le mémoire, la conclusion méthodologique est nette : <strong>le test avant/après est l’outil, le χ² d’adéquation n’est qu’un diagnostic de forme.</strong></p>
-</section>
-<section id="b-rupture-à-date-inconnue-scan-calibré-par-simulation" class="level3">
-<h3 class="anchored" data-anchor-id="b-rupture-à-date-inconnue-scan-calibré-par-simulation">(B) Rupture à date inconnue — scan calibré par simulation</h3>
-<p><strong>chirac 1986–2007</strong> (le pire χ²/ddl du recueil, 4,19) : le scan détecte la rupture au <strong>1er septembre 1994</strong> avec M = 494. Sous H0 (100 simulations) : max médian 6,5, quantile 95 % = <strong>11,8</strong>. Le signal est 40 fois au-dessus du seuil. La date est instructive : pas mai 1995 (l’élection) mais la rentrée politique 1994, quand la candidature Chirac se lance face à Balladur — <strong>la couverture bascule avant l’événement institutionnel</strong>. Même segmentée, la série garde des χ²/ddl ≈ 3 : vingt ans de vie politique contiennent plus de deux régimes (une seule coupure ne suffit pas ; il en faudrait plusieurs, cf.&nbsp;(C)).</p>
-<p><strong>covid 2020–2024</strong> (fiche : χ²/ddl 1,02, NB <em>non rejetée</em>, 0 jour anormal) : le scan détecte une rupture au <strong>1er mars 2022</strong>, avec M = 1 728 contre un quantile 95 % simulé de 10,7. La fréquence s’effondre de 82,6 à 16,7 pour 10⁵ — divisée par cinq — au moment précis où la fin de la vague Omicron et l’invasion de l’Ukraine (24 février 2022) chassent l’épidémie de l’agenda. Deuxième démonstration du piège de la section 1 : la NB unique était statistiquement irréprochable, alors que la série contient l’un des effondrements de couverture les plus violents du corpus. <strong>L’adéquation regarde la forme des comptages, le scan regarde leur ordre dans le temps.</strong></p>
-</section>
-<section id="c-ruptures-multiples-terrorisme-19702024" class="level3">
-<h3 class="anchored" data-anchor-id="c-ruptures-multiples-terrorisme-19702024">(C) Ruptures multiples — <em>terrorisme</em> 1970–2024</h3>
-<p>Segmentation binaire, coupures sur grille trimestrielle, seuil BIC = 3 log n ≈ 29,5. Sept ruptures sont retenues (toutes avec LRT de 65 à 1 630, très au-dessus du seuil) :</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-</colgroup>
 <thead>
 <tr class="header">
 <th>segment</th>
-<th>μ̂ (pour 10⁵)</th>
-<th>r̂</th>
-<th>χ²/ddl</th>
-<th>lecture historique</th>
+<th>μ̂ (10⁵)</th>
+<th>lecture</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>1970 → 06/1972</td>
 <td>1,4</td>
-<td>1,01</td>
-<td>1,16</td>
 <td>avant Munich</td>
 </tr>
 <tr class="even">
 <td>07/1972 → 09/1977</td>
 <td>2,4</td>
-<td>0,67</td>
-<td>1,29</td>
-<td>Munich 1972, années de plomb</td>
+<td>Munich, années de plomb</td>
 </tr>
 <tr class="odd">
 <td>10/1977 → 09/1987</td>
 <td>6,5</td>
-<td>0,88</td>
-<td>1,64</td>
-<td>automne allemand 1977, vague d’attentats de Paris 1985–86</td>
+<td>automne allemand, vague de Paris 1985–86</td>
 </tr>
 <tr class="even">
 <td>10/1987 → 06/2001</td>
 <td>3,2</td>
-<td>1,17</td>
-<td>1,41</td>
 <td>reflux des années 1990</td>
 </tr>
 <tr class="odd">
 <td>07/2001 → 12/2001</td>
 <td><strong>31,2</strong></td>
-<td>0,86</td>
-<td>0,60</td>
-<td>11-Septembre : ×10 en six mois</td>
+<td>11-Septembre (×10)</td>
 </tr>
 <tr class="even">
 <td>2002 → 09/2006</td>
 <td>12,6</td>
-<td>2,13</td>
-<td>1,31</td>
 <td>après-11-Septembre, Irak</td>
 </tr>
 <tr class="odd">
 <td>10/2006 → 03/2018</td>
 <td>6,9</td>
-<td>1,26</td>
-<td>1,49</td>
-<td>dont la vague 2015–2016 (Charlie, Bataclan)</td>
+<td>dont la vague 2015–2016</td>
 </tr>
 <tr class="even">
 <td>04/2018 → 2024</td>
 <td>4,4</td>
-<td>1,75</td>
-<td>1,12</td>
 <td>reflux post-Daech</td>
 </tr>
 </tbody>
 </table>
-<p>La machine ne connaît ni Munich ni le Bataclan : elle ne voit que des comptages, et retrouve pourtant la chronologie du terrorisme telle que l’écrirait un historien des médias — y compris le fait que la vague 1977–1987 pèse plus lourd, en couverture de fond, que les années 1990. Deux réserves de lecture : les dates sont arrondies au trimestre (grille), et une rupture de <em>fréquence</em> peut être un changement du monde (il y a plus d’attentats) autant qu’un changement de <em>ligne éditoriale</em> — sur un seul journal, rien ne permet de les distinguer. C’est exactement pour cela que le protocole du mémoire comparera plusieurs journaux (section 5, point 4).</p>
+<p>La machine ne connaît ni Munich ni le Bataclan et retrouve pourtant la chronologie qu’écrirait un historien des médias. Mais attention : sur un seul journal, une rupture de fréquence peut refléter le <em>monde</em> (plus d’attentats) autant que la <em>ligne éditoriale</em>. D’où le §6.</p>
 <hr>
 </section>
+<section id="lobjection-sérieuse-les-jours-ne-sont-pas-indépendants" class="level2">
+<h2 class="anchored" data-anchor-id="lobjection-sérieuse-les-jours-ne-sont-pas-indépendants">5. L’objection sérieuse : les jours ne sont pas indépendants</h2>
+<p>Tout ce qui précède calibre les seuils en simulant des jours <strong>indépendants</strong>. Or un sujet chaud reste chaud : si <em>retraites</em> sature le journal lundi, il le sature encore mardi. Cette persistance viole l’hypothèse et, si on l’ignore, <strong>gonfle les faux positifs</strong> — le scan prend une vague d’actualité pour une rupture.</p>
+<p><strong>T1 — mesure du problème.</strong> ACF(1) = corrélation des résidus de Pearson d’un jour au suivant, sur des segments <em>sans</em> rupture détectée :</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>segment</th>
+<th>ACF(1) jour</th>
+<th>ACF(1) hebdo</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>macron avant 05/2017</td>
+<td>0,79</td>
+<td>0,81</td>
+</tr>
+<tr class="even">
+<td>macron après 05/2017</td>
+<td>0,63</td>
+<td>0,73</td>
+</tr>
+<tr class="odd">
+<td>covid avant 03/2022</td>
+<td>0,79</td>
+<td>0,92</td>
+</tr>
+<tr class="even">
+<td>covid après 03/2022</td>
+<td>0,50</td>
+<td>0,83</td>
+</tr>
+<tr class="odd">
+<td>terrorisme 2006–2018</td>
+<td>0,50</td>
+<td>0,64</td>
+</tr>
+<tr class="even">
+<td>europe 2010–2019</td>
+<td>0,21</td>
+<td>0,49</td>
+</tr>
+<tr class="odd">
+<td>milliards 2010–2019</td>
+<td>0,34</td>
+<td>0,69</td>
+</tr>
+</tbody>
+</table>
+<p>La dépendance est forte, et sur les mots « à vagues » (covid, macron) elle <strong>survit à l’agrégation hebdomadaire</strong> : ce ne sont pas des rafales de deux jours mais des cycles d’agenda de plusieurs semaines. (Cycles que modélisent précisément les INGARCH du §3.3.)</p>
+<p><strong>T2 — conséquence quantifiée.</strong> On simule des séries <em>sans aucune rupture</em> mais avec une intensité persistante (log-AR(1)), calées sur un mot réel, et on les fait passer au scan quotidien calibré iid : au lieu de 5 % de fausses détections, on en obtient <strong>26 %</strong> avec une persistance modérée (ACF(1) ≈ 0,22) et <strong>51 %</strong> avec ACF(1) ≈ 0,39 — et nos ACF réelles sont <em>au-dessus</em>. Verdict sans appel : <strong>le scan quotidien calibré iid est inutilisable tel quel</strong> ; nos M gigantesques (494, 1 728) y survivent, mais des M de l’ordre de 20–50 ne prouveraient rien.</p>
+<p><strong>T3 — correctifs.</strong> (i) <em>Agrégation hebdomadaire</em> : la dépendance courte s’évanouit — sous persistance quotidienne φ = 0,5, la taille du scan hebdo calibré iid retombe à <strong>8 %</strong> (contre 51 % en quotidien). Et le signal survit : sur <em>covid</em> hebdo, M = 354 contre q95 = 11,7. (ii) Pour la dépendance <em>longue</em> des mots à vagues, l’agrégation ne suffit pas : il faut calibrer les seuils en simulant une intensité persistante estimée (comme en T2) ou par bootstrap de blocs (Künsch 1989), les blocs devant couvrir la durée d’un cycle d’agenda (plusieurs semaines). (iii) La parade la plus robuste est structurelle : passer à la <em>part</em> entre journaux, car la persistance d’agenda est <strong>commune</strong> aux journaux et s’annule dans la comparaison — §6. Nota : la date estimée peut dépendre du grain (covid : 03/2022 en quotidien, 02/2023 en hebdo) — quand une série contient plusieurs ruptures, un modèle à une seule coupure choisit le meilleur compromis ; la segmentation multiple lève l’ambiguïté.</p>
+<hr>
 </section>
-<section id="ce-quon-en-retient-pour-le-protocole-rachats" class="level2">
-<h2 class="anchored" data-anchor-id="ce-quon-en-retient-pour-le-protocole-rachats">5. Ce qu’on en retient pour le protocole « rachats »</h2>
+<section id="le-design-décisif-la-part-entre-journaux-diff-in-diff" class="level2">
+<h2 class="anchored" data-anchor-id="le-design-décisif-la-part-entre-journaux-diff-in-diff">6. Le design décisif : la part entre journaux (diff-in-diff)</h2>
+<p><strong>L’idée.</strong> Conditionnellement au total des occurrences des deux journaux une semaine donnée (<span class="math inline">\(n_w = x^{Monde}_w + x^{Figaro}_w\)</span>), si les deux suivent la même actualité avec des « appétits » constants, la part du Monde <span class="math inline">\(x^{Monde}_w \sim\)</span> Binomiale<span class="math inline">\((n_w, p)\)</span> avec <span class="math inline">\(p\)</span> <strong>constant</strong> — quelle que soit la violence des vagues d’actualité, qui n’affectent que <span class="math inline">\(n_w\)</span>. Une rupture sur <span class="math inline">\(p\)</span> est donc un déplacement <strong>relatif</strong> d’agenda : exactement la signature d’un changement éditorial, purgée de l’actualité commune. (Surdispersion résiduelle : bêta-binomiale segmentée, scan LRT calibré par simulation, données hebdomadaires.) C’est la transposition à nos comptages du design de Martin &amp; McCrain.</p>
+<p><strong>Validation sur un choc d’actualité pur — <em>ukraine</em> 2021–2023.</strong> Chaque journal pris séparément explose en février 2022 (M marginaux : 247 pour Le Monde, 211 pour Le Figaro). La part, elle, bouge à peine : <strong>0,44 → 0,45</strong>. Le design fait exactement ce qu’on attend : il <strong>absorbe l’invasion</strong>. (Le scan de la part reste formellement significatif — M = 51 &gt; q95 = 10,8 — mais pour un déplacement d’un point : avec des dizaines de milliers d’occurrences, tout est « significatif » ; c’est l’<em>ampleur</em> qui doit porter l’interprétation. Le mémoire rapportera systématiquement taille d’effet et intervalle, pas seulement la p-valeur.)</p>
+<p><strong>Les cinq tests (part = part du Monde ; « volumes » = part du Monde dans le total des mots publiés, avant → après la date détectée) :</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>mot, fenêtre</th>
+<th>part avant → après</th>
+<th>date détectée</th>
+<th>M / q95</th>
+<th>volumes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ukraine 2021–23</td>
+<td>0,44 → 0,45</td>
+<td>26/09/2022</td>
+<td>51 / 10,8</td>
+<td>0,43 → 0,41 ✓</td>
+</tr>
+<tr class="even">
+<td>retraites 2022–23</td>
+<td>0,40 → 0,43</td>
+<td><em>(2023-02)</em></td>
+<td><strong>8 / 8,3 : non significatif</strong></td>
+<td>0,45 → 0,41</td>
+</tr>
+<tr class="odd">
+<td>climat 2005–23 (brut)</td>
+<td>0,89 → 0,53</td>
+<td>06/03/2006</td>
+<td>675 / 13,7</td>
+<td><strong>0,91 → 0,43 ⚠</strong></td>
+</tr>
+<tr class="even">
+<td>climat 2007–23 (purgé)</td>
+<td>0,52 → 0,57</td>
+<td>09/08/2021</td>
+<td>22 / 11,9</td>
+<td>0,42 → 0,43 ✓</td>
+</tr>
+<tr class="odd">
+<td>immigration 2007–23</td>
+<td><strong>0,52 → 0,36</strong></td>
+<td>04/08/2014</td>
+<td>125 / 9,7</td>
+<td>0,43 → 0,42 ✓</td>
+</tr>
+</tbody>
+</table>
+<p>Quatre enseignements :</p>
 <ol type="1">
-<li><strong>Le bon objet statistique est le couple (μ, r) par segment</strong>, pas l’adéquation globale. Le test central du mémoire sera le LRT avant/après à la date du rachat (design (A)), mot par mot.</li>
-<li><strong>Compléter par le scan (B)</strong> : Cagé et al.&nbsp;montrent que les effets d’un rachat sont progressifs. La date détectée par le scan, comparée à la date du rachat, est une information en soi (basculement immédiat ? différé ? antérieur — changement de direction avant la vente ?).</li>
-<li><strong>Toujours calibrer par simulation.</strong> Nos maxima sous H0 dépassent le seuil naïf du χ²(2) : sans calibration, on fabriquerait des découvertes. Et quand on testera des centaines de mots × journaux, il faudra en plus une correction de multiplicité entre mots (type FDR/Benjamini-Hochberg).</li>
-<li><strong>Le point de comparaison, c’est les autres journaux.</strong> Une rupture sur <em>retraites</em> en 2023 dans un journal racheté ne prouve rien : tout le monde a couvert la réforme. Le signal éditorial, c’est une rupture qui apparaît <strong>dans le journal racheté et pas chez les témoins</strong> à la même date — un raisonnement en différence de différences. Notre corpus à trois journaux (et bientôt plus) est construit pour ça.</li>
-<li><strong>Limites à garder en tête.</strong> (i) On détecte des ruptures de <em>fréquence</em>, pas de <em>sens</em> : un journal peut parler autant d’immigration en changeant complètement de vocabulaire autour — l’étape suivante, ce sont les ruptures dans les représentations (embeddings diachroniques, Kulkarni et al.&nbsp;2015). (ii) La polysémie brouille certains mots (<em>hollande</em>, <em>jeux</em>, <em>dissolution</em>). (iii) Les graphies OCR sont sommées mais pas parfaites. (iv) <span class="math inline">\(N_t\)</span> change de nature sur 80 ans (pagination, suppléments) : la normalisation par <span class="math inline">\(N_t\)</span> absorbe le niveau, pas les changements de rubriquage — d’où l’intérêt de fenêtres de ±2-3 ans autour des rachats plutôt que de très longues périodes.</li>
+<li><strong><em>retraites</em> est le placebo réussi</strong> : pendant la réforme de 2023, chaque journal explose (M marginaux 61 et 53) mais la part ne bouge pas significativement (M = 8 &lt; q95). Le design absorbe le plus gros choc d’actualité sociale de la période — c’est exactement ce qu’on lui demande.</li>
+<li><strong><em>climat</em> brut illustre le garde-fou des volumes</strong> : la « rupture » géante de mars 2006 (part 0,89 → 0,53) coïncide avec un effondrement de la part de <em>volume</em> (0,91 → 0,43) : c’est la montée en charge du corpus Figaro, un artefact de collecte, pas un fait éditorial. Sans le contrôle, on aurait publié un faux résultat. Toute rupture de part devra passer ce filtre.</li>
+<li><strong><em>climat</em> purgé (2007–2023)</strong> : petite rupture robuste au <strong>9 août 2021 — le jour de la publication du 6ᵉ rapport du GIEC</strong> : Le Monde gagne ~5 points de part, volumes stables. Un déplacement relatif d’agenda, modeste mais daté au jour près sur un événement identifiable : le niveau de finesse dont le mémoire a besoin.</li>
+<li><strong><em>immigration</em> est le cas d’école du signal éditorial différentiel</strong> : à l’été 2014, la part du Monde passe de 0,52 à <strong>0,36</strong> (−16 points, M = 125, volumes stables) — le Figaro investit massivement le thème, en termes <em>relatifs</em>, avant même la crise migratoire de 2015 (contexte : lancement de FigaroVox début 2014). Le quantitatif localise et mesure ; l’attribution causale (stratégie éditoriale ? nouveau format opinions ?) relèvera de l’histoire des médias — même division du travail pour les rachats.</li>
 </ol>
+<p><strong>Garde-fous du design.</strong> (i) Contrôler que la rupture de part ne coïncide pas avec un changement de <em>volume</em> d’un des journaux (pagination, panne de collecte) — colonne « volume » ci-dessus : la part des volumes <span class="math inline">\(N^{Monde}/(N^{Monde}+N^{Figaro})\)</span> doit rester stable au voisinage de la date détectée. (ii) Utiliser plusieurs témoins (Échos aujourd’hui, autres médias demain) plutôt qu’un seul. (iii) Sur des centaines de mots testés, corriger la multiplicité (Benjamini-Hochberg).</p>
+<hr>
+</section>
+<section id="dimensionner-le-protocole-la-puissance" class="level2">
+<h2 class="anchored" data-anchor-id="dimensionner-le-protocole-la-puissance">7. Dimensionner le protocole : la puissance</h2>
+<p>Simulation du test à date connue (design rachat), données hebdomadaires, rupture au milieu de la fenêtre, mot de fréquence moyenne (μ = 10/10⁵, soit ~14 occ./jour dans Le Monde actuel) :</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>fenêtre</th>
+<th>burstiness hebdo</th>
+<th>+10 %</th>
+<th>+20 %</th>
+<th>+30 %</th>
+<th>+50 %</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>±1 an (104 sem.)</td>
+<td>forte (r = 3)</td>
+<td>13 %</td>
+<td>30 %</td>
+<td>50 %</td>
+<td>86 %</td>
+</tr>
+<tr class="even">
+<td>±1 an (104 sem.)</td>
+<td>faible (r = 10)</td>
+<td>25 %</td>
+<td>68 %</td>
+<td>95 %</td>
+<td>100 %</td>
+</tr>
+<tr class="odd">
+<td>±2 ans (208 sem.)</td>
+<td>forte (r = 3)</td>
+<td>14 %</td>
+<td>52 %</td>
+<td>81 %</td>
+<td>100 %</td>
+</tr>
+<tr class="even">
+<td>±2 ans (208 sem.)</td>
+<td>faible (r = 10)</td>
+<td>42 %</td>
+<td>96 %</td>
+<td>100 %</td>
+<td>100 %</td>
+</tr>
+</tbody>
+</table>
+<p>Trois conclusions de dimensionnement. (i) <strong>Un déplacement de 10 % est hors de portée</strong> au niveau d’un mot isolé (13–42 % de puissance) : inutile d’espérer détecter des inflexions subtiles mot par mot. (ii) <strong>Les effets de l’ordre documenté par la littérature (20–30 %) sont détectables avec ±2 ans de données</strong>, surtout si la burstiness est modérée (52–100 %). (iii) <strong>La burstiness coûte très cher</strong> (à +20 % : 96 % de puissance si r = 10, 52 % si r = 3) : d’où l’intérêt d’agréger les mots en <em>paniers thématiques</em> (la somme de comptages de mots liés lisse les rafales individuelles et augmente la fréquence totale) — c’est ainsi qu’on gagnera la puissance qui manque aux mots isolés.</p>
+<hr>
+</section>
+<section id="protocole-recommandé-pour-le-mémoire" class="level2">
+<h2 class="anchored" data-anchor-id="protocole-recommandé-pour-le-mémoire">8. Protocole recommandé pour le mémoire</h2>
+<ol type="1">
+<li><strong>Grain hebdomadaire</strong>, fenêtres de ±1 à ±3 ans autour de chaque rachat (compromis puissance / risque d’autres ruptures dans la fenêtre).</li>
+<li><strong>Panier de mots par rachat</strong> : mots à enjeu éditorial (politiques, sociétaux)
+<ul>
+<li>mots de contrôle « neutres » ; fréquence minimale ~2/10⁵ (puissance, §7).</li>
+</ul></li>
+<li><strong>Trois tests par mot</strong>, du plus au moins identifié : (a) rupture de <strong>part</strong> vs journaux témoins à la date du rachat (LRT bêta-binomial) — le test principal ;
+<ol start="2" type="a">
+<li>scan de la part (date de basculement réel, cf.&nbsp;effets progressifs de Cagé et al.) ; (c) NB marginale en appoint descriptif (μ, r par segment).</li>
+</ol></li>
+<li><strong>Seuils par simulation</strong> systématiquement ; sous dépendance résiduelle, bootstrap de blocs ; <strong>Benjamini-Hochberg</strong> sur l’ensemble mots × rachats.</li>
+<li><strong>Rapporter les ampleurs</strong> (Δ part, Δμ en %, avec intervalles bootstrap), pas seulement les p-valeurs.</li>
+<li>Garde-fous : contrôle des volumes, placebo temporel (fausses dates de rachat sur les témoins → taux de détection ≈ taille nominale), placebo lexical (mots neutres).</li>
+<li>À l’échelle (tous les mots du vocabulaire) : PELT avec coût NB/bêta-binomial via <code>ruptures</code>, puis tri des découvertes par FDR et ampleur.</li>
+</ol>
+</section>
+<section id="limites-et-suite" class="level2">
+<h2 class="anchored" data-anchor-id="limites-et-suite">9. Limites et suite</h2>
+<ul>
+<li><strong>Fréquence ≠ sens</strong> : un journal peut parler autant d’un thème en en parlant autrement. Étape suivante : les trois séries de Kulkarni et al.&nbsp;(fréquence, syntaxe, embeddings) sur nos corpus — la machinerie de test validée ici s’y applique inchangée.</li>
+<li><strong>Polysémie et OCR</strong> : <em>hollande</em>, <em>jeux</em>, graphies à sommer — le niveau bigramme (« réforme des retraites ») réduit l’ambiguïté au prix de la fréquence.</li>
+<li><strong><span class="math inline">\(N_t\)</span> change de nature</strong> sur longue période (pagination, suppléments, web) : la part entre journaux y est plus robuste que la fréquence marginale, mais le contrôle des volumes reste obligatoire.</li>
+<li><strong>Une rupture n’a pas de cause inscrite dedans</strong> : même en DiD, il faudra documenter qualitativement chaque rachat (changement de direction, de rédaction en chef) pour l’attribution — le quantitatif localise et mesure, l’histoire des médias explique.</li>
+</ul>
 <hr>
 </section>
 <section id="références" class="level2">
 <h2 class="anchored" data-anchor-id="références">Références</h2>
-<ul>
-<li>Church, K. &amp; Gale, W. (1995). <em>Poisson mixtures</em>. Natural Language Engineering, 1(2), 163–190. — pourquoi Poisson échoue sur les mots à contenu. <a href="https://www.cambridge.org/core/journals/natural-language-engineering/article/abs/poisson-mixtures/52E7F9429D0EC03EEC6674E071727B64" class="uri">https://www.cambridge.org/core/journals/natural-language-engineering/article/abs/poisson-mixtures/52E7F9429D0EC03EEC6674E071727B64</a></li>
-<li>Katz, S. (1996). <em>Distribution of content words and phrases in text and language modelling</em>. Natural Language Engineering, 2(1), 15–59. — la burstiness.</li>
-<li>Killick, R., Fearnhead, P. &amp; Eckley, I. (2012). <em>Optimal detection of changepoints with a linear computational cost</em>. JASA, 107, 1590–1598. — PELT. <a href="https://arxiv.org/abs/1101.1438" class="uri">https://arxiv.org/abs/1101.1438</a></li>
-<li>Truong, C., Oudre, L. &amp; Vayatis, N. (2020). <em>Selective review of offline change point detection methods</em>. Signal Processing, 167. — la revue de référence + le package Python <code>ruptures</code>. <a href="https://arxiv.org/abs/1801.00718" class="uri">https://arxiv.org/abs/1801.00718</a></li>
-<li>Kulkarni, V., Al-Rfou, R., Perozzi, B. &amp; Skiena, S. (2015). <em>Statistically Significant Detection of Linguistic Change</em>. WWW 2015. — détection de ruptures sur des séries de mots (fréquence, syntaxe, embeddings). <a href="https://arxiv.org/abs/1411.3315" class="uri">https://arxiv.org/abs/1411.3315</a></li>
-<li>Cagé, J., Hengel, M., Hervé, N. &amp; Urvoy, C. (2022). <em>Hosting Media Bias: Evidence from the Universe of French Broadcasts, 2002–2020</em>. — l’effet Bolloré/CNews, réel et progressif. <a href="https://juliacage.com/wp-content/uploads/2022/02/Hosting-Media-Bias-Cage%CC%81-Hengel-Herve%CC%81-Urvoy-2022_02_16.pdf" class="uri">https://juliacage.com/wp-content/uploads/2022/02/Hosting-Media-Bias-Cage%CC%81-Hengel-Herve%CC%81-Urvoy-2022_02_16.pdf</a></li>
-<li>Azoulay, B. &amp; de Courson, B. (2023). <em>Gallicagram : les archives de presse sous les rotatives de la statistique textuelle</em>. Corpus, 24. — le cousin de notre API ngram. <a href="https://journals.openedition.org/corpus/7944" class="uri">https://journals.openedition.org/corpus/7944</a></li>
-</ul>
+<p><strong>Statistique des ruptures.</strong> Page (1954), <em>Continuous inspection schemes</em>, Biometrika 41 · Chow (1960), Econometrica 28 · Andrews (1993), <em>Tests for parameter instability with unknown change point</em>, Econometrica 61(4) · Bai &amp; Perron (1998), <em>Estimating and testing linear models with multiple structural changes</em>, Econometrica 66(1) ; (2003) J. Applied Econometrics 18 · Killick, Fearnhead &amp; Eckley (2012), <em>Optimal detection of changepoints with a linear computational cost</em>, JASA 107 — <a href="https://arxiv.org/abs/1101.1438">arXiv:1101.1438</a> · Fryzlewicz (2014), <em>Wild binary segmentation</em>, Ann. Statist. 42 · Baranowski, Chen &amp; Fryzlewicz (2019), <em>Narrowest-over-threshold detection</em>, JRSS-B 81 · Kovács, Bühlmann, Li &amp; Munk (2023), <em>Seeded binary segmentation</em>, Biometrika 110 — <a href="https://arxiv.org/abs/2002.06633">arXiv:2002.06633</a> · Truong, Oudre &amp; Vayatis (2020), <em>Selective review of offline change point detection methods</em>, Signal Processing 167 — <a href="https://arxiv.org/abs/1801.00718">arXiv:1801.00718</a> · Adams &amp; MacKay (2007), <em>Bayesian online changepoint detection</em> — <a href="https://arxiv.org/abs/0710.3742">arXiv:0710.3742</a> · Künsch (1989), <em>The jackknife and the bootstrap for general stationary observations</em>, Ann. Statist. 17.</p>
+<p><strong>Séries de comptage.</strong> Franke, Kirch &amp; Tadjuidje Kamgaing (2012), <em>Changepoints in times series of counts</em>, J. Time Series Analysis 33 · Fokianos et al., modèles INGARCH/autorégression Poisson · Lee &amp; Kim (2020), <em>Recent progress in parameter change test for integer-valued time series models</em>, J. Korean Statist. Soc. 49 — <a href="https://link.springer.com/article/10.1007/s42952-020-00102-4">lien</a> · Diop &amp; Kengne (2021), <em>Poisson QMLE for change-point detection in general integer-valued time series</em>, Metrika — <a href="https://arxiv.org/pdf/2007.13858">arXiv:2007.13858</a>.</p>
+<p><strong>Statistique textuelle.</strong> Church &amp; Gale (1995), <em>Poisson mixtures</em>, Natural Language Engineering 1(2) — <a href="https://www.cambridge.org/core/journals/natural-language-engineering/article/abs/poisson-mixtures/52E7F9429D0EC03EEC6674E071727B64">lien</a> · Katz (1996), <em>Distribution of content words and phrases…</em>, NLE 2(1) · Kulkarni, Al-Rfou, Perozzi &amp; Skiena (2015), <em>Statistically significant detection of linguistic change</em>, WWW — <a href="https://arxiv.org/abs/1411.3315">arXiv:1411.3315</a> · Hamilton, Leskovec &amp; Jurafsky (2016), <em>Diachronic word embeddings reveal statistical laws of semantic change</em>, ACL — <a href="https://arxiv.org/abs/1605.09096">arXiv:1605.09096</a> · Schlechtweg et al.&nbsp;(2020), <em>SemEval-2020 Task 1: Unsupervised lexical semantic change detection</em> — <a href="https://arxiv.org/abs/2007.11464">arXiv:2007.11464</a> · Azoulay &amp; de Courson (2023), <em>Gallicagram</em>, Corpus 24 — <a href="https://journals.openedition.org/corpus/7944">lien</a>.</p>
+<p><strong>Économie des médias.</strong> Martin &amp; McCrain (2019), <em>Local news and national politics</em>, American Political Science Review 113(2) — <a href="https://ideas.repec.org/a/cup/apsrev/v113y2019i02p372-384_00.html">lien</a> · Cagé, Hengel, Hervé &amp; Urvoy (2022), <em>Hosting media bias: evidence from the universe of French broadcasts 2002–2020</em> — <a href="https://juliacage.com/wp-content/uploads/2022/02/Hosting-Media-Bias-Cage%CC%81-Hengel-Herve%CC%81-Urvoy-2022_02_16.pdf">PDF</a> · Garz &amp; Ots (2025), <em>Media consolidation and news content quality</em>, Journal of Communication 75(3) — <a href="https://academic.oup.com/joc/article/75/3/195/7978978">lien</a>.</p>
 </section>
 </section>
 
