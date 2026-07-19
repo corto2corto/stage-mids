@@ -9,6 +9,11 @@
 *.synctex.gz
 *.toc
 
+# sorties quarto preview
+/*.html
+/*_files/
+.quarto/
+
 # dossiers de build (figures/tableaux regenerables par les scripts)
 donnees_maths/build_*/
 donnees_maths/.quarto/
