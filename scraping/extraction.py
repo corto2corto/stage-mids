@@ -51,6 +51,24 @@ def meta_json_ld(soup):
         "free":    free}
 
 
+MOIS_FR = {"janvier": "01", "février": "02", "mars": "03", "avril": "04",
+           "mai": "05", "juin": "06", "juillet": "07", "août": "08",
+           "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12"}
+
+
+def date_francesoir(texte):
+    """« Publié le 30 septembre 2022 - 14:20 » → « 2022-09-30T14:20:00 ».
+
+    Francesoir n'expose aucune date en métadonnées (ni json-ld, ni balise meta,
+    ni attribut datetime) : la date affichée est la seule source. Si le texte ne
+    matche pas le motif, on le rend tel quel plutôt que de deviner."""
+    m = re.match(r"Publié le (\d{1,2}|1er) (\S+) (\d{4}) - (\d{2}):(\d{2})$", texte)
+    if not m or m.group(2) not in MOIS_FR:
+        return texte
+    jour = 1 if m.group(1) == "1er" else int(m.group(1))
+    return f"{m.group(3)}-{MOIS_FR[m.group(2)]}-{jour:02d}T{m.group(4)}:{m.group(5)}:00"
+
+
 def meta_balises(soup, meta):
     """Extraction des métadonnées directement dans les balises HTML (cas sans json_ld)."""
     titre = soup.select_one(meta["titre"])
@@ -92,6 +110,8 @@ def extraire(media, html):
     meta = MEDIAS[media]["meta"]
 
     infos = meta_json_ld(soup) if meta["strategie"] == "json_ld" else meta_balises(soup, meta)
+    if media == "francesoir":
+        infos["date"] = date_francesoir(infos["date"])
     # Repli : certains gabarits (bfmtv, atlantico) n'ont pas de json-ld complet,
     # on va chercher dans les balises les champs restés vides.
     for champ, selecteur in meta.get("secours", {}).items():

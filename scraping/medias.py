@@ -62,7 +62,9 @@ MEDIAS = {
     "leparisien":   {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "section.content"}},
     "la_croix":     {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "div.article-content"}},
     "laprovence":   {"moteur": "basic", "meta": {"strategie": "json_ld", "corps": "json_ld"}},
-    "francesoir":   {"moteur": "basic", "meta": {"strategie": "balises", "corps": "div.field--name-body", "titre": "h1", "auteur": "a[rel=author]", "date": "div.field--name-field-date.me-3"}},
+    # corps : la classe field--name-body est partagée par les blocs dons/newsletter/manifeste
+    # du site (Drupal), seul le div sous node__content est l'article.
+    "francesoir":   {"moteur": "basic", "meta": {"strategie": "balises", "corps": "div.node__content div.field--name-body", "titre": "h1", "auteur": "a[rel=author]", "date": "div.field--name-field-date.me-3"}},
 
     # Batch du 06/07/2026, 2e partie (corps validés sur les html_v2 du test bypass).
     # Paywalls non contournables : seuls les articles gratuits sortent complets,
