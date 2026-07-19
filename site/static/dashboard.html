@@ -189,17 +189,17 @@
 <div class="wrap">
   <header class="top">
     <h1>Suivi stage MIDS</h1>
-    <span class="maj">Mise à jour : <strong>12 juillet 2026, 11 h 24</strong> · état serveur relevé en direct par Claude (ssh, lecture seule)</span>
+    <span class="maj">Mise à jour : <strong>19 juillet 2026, 15 h 54</strong> · état serveur relevé en direct par Claude (ssh, lecture seule)</span>
   </header>
   <p class="sous-titre">Mémoire — impact des rachats de journaux français sur le contenu éditorial. Serveur gallica (157.136.252.194).</p>
 
   <h2>En ce moment</h2>
   <div class="carte">
     <ul class="encemoment">
-      <li><strong>Scraping en production, actif</strong> — la v2 (une boucle par média, 30 médias configurés) tourne dans la session tmux <span style="font-family: var(--mono)">scrapping</span>. <span style="font-family: var(--mono)">urls.db</span> écrit en continu (11 h 24). Corpus : <strong>4 165 775 articles collectés</strong> — +408 000 depuis le 11 au soir. API en ligne.</li>
-      <li><strong>File d'attente passée à 22,0 M d'URLs</strong> — le rattrapage des anciens sitemaps (chantier sitemaps) a versé en base l'historique des médias. C'est voulu : le pipeline a maintenant des mois de collecte devant lui. La file du 11 juillet (105 000) ne concernait que le flux quotidien.</li>
-      <li><strong>Inspection des URLs non-articles terminée</strong> — les 29 médias passés en revue : <strong>417 870 URLs marquées état 5</strong> (hors corpus : vidéos, galeries, artefacts…), règles par média dans <span style="font-family: var(--mono)">exploration/regles_non_articles.md</span>. Un filtre au versement (<span style="font-family: var(--mono)">est_non_article</span>) écarte désormais ces URLs dès la collecte des sitemaps — visible dans le cycle de ce matin.</li>
-      <li><strong>Collecte quotidienne des sitemaps « news »</strong> — cron 2×/jour (07 h 40 et 19 h 40) : dernier cycle terminé à 07 h 58, <strong>1 324 URLs insérées</strong> et 372 093 non-articles écartés (surtout l'historique <span style="font-family: var(--mono)">video.lefigaro.fr</span> présent dans les CSV d'URLs).</li>
+      <li><strong>Scraping en production, actif</strong> — la v2 (une boucle par média, 32 médias configurés) tourne dans la session tmux <span style="font-family: var(--mono)">scrapping</span>. <span style="font-family: var(--mono)">urls.db</span> écrit en continu (15 h 54). Corpus : <strong>8 436 789 articles collectés</strong> — +4,3 M depuis le 12 juillet. Dernier cycle de 4 h terminé à 15 h 54 : 106 043 URLs traitées, relance auto aussitôt. File d'attente : 18,6 M d'URLs.</li>
+      <li><strong>Deux nouveaux médias branchés</strong> — <strong>cnews</strong> et <strong>20minutes</strong> ont rejoint le registre cette semaine (rattrapages, audits et versement faits) : 32 médias configurés, 31 actifs (liberation en pause).</li>
+      <li><strong>Chantier MAJ quotidienne des n-grammes en cours</strong> — la base Échos <em>sans filtre</em> a été reconstruite pour mesurer l'inflation (<strong>13 Go contre 8,3 Go</strong>, ×1,6 — le sans-filtre est acté) ; <span style="font-family: var(--mono)">scripts/maj_ngram.py</span> est en test par paquets de 10 000 articles dans la session tmux <span style="font-family: var(--mono)">build</span>.</li>
+      <li><strong>Collecte quotidienne des sitemaps « news »</strong> — cron 2×/jour : dernier cycle terminé ce matin à 07 h 47, <strong>1 369 URLs insérées</strong> (cnews et 20minutes inclus dans la tournée).</li>
     </ul>
   </div>
 
@@ -210,17 +210,17 @@
       <li>
         <span class="etape-nom">Scraping — collecte du corpus</span>
         <span class="pastille p-cours">En cours</span>
-        <span class="etape-note">Pipeline v2 en production (30 médias, une boucle par média), <strong>4 165 775 articles collectés</strong> au 12 juillet (+408 000 depuis le 11 au soir). Rattrapage des anciens sitemaps versé en base : 22,0 M d'URLs en file, des mois de collecte devant. Inspection des non-articles terminée (417 870 URLs marquées état 5, filtre au versement en place). <strong>→ Ensuite :</strong> laisser tourner la collecte.</span>
+        <span class="etape-note">Pipeline v2 en production (32 médias, une boucle par média), <strong>8 436 789 articles collectés</strong> au 19 juillet (+4,3 M en une semaine). 18,6 M d'URLs en file — des mois de collecte devant. cnews et 20minutes branchés cette semaine. <strong>→ Ensuite :</strong> laisser tourner la collecte.</span>
       </li>
       <li>
         <span class="etape-nom">Bases n-grammes</span>
         <span class="pastille p-cours">En cours</span>
-        <span class="etape-note">Les 3 bases construites (Le Monde 1944-2025, Figaro, Échos) ; <strong>tops des 3 journaux terminés</strong> (uni/bi/trigrammes × jour/mois/année) et branchés sur le front. <strong>→ Ensuite :</strong> corriger les stop words résiduels dans les tops (« t il », « nc mpf »…), puis MAJ incrémentale.</span>
+        <span class="etape-note">Les 3 bases construites (Le Monde 1944-2025, Figaro, Échos) ; <strong>tops des 3 journaux terminés</strong> (uni/bi/trigrammes × jour/mois/année) et branchés sur le front. Chantier MAJ quotidienne lancé : base Échos sans filtre reconstruite (×1,6, acté), <span style="font-family: var(--mono)">maj_ngram.py</span> en test. <strong>→ Ensuite :</strong> finir les tests de la MAJ incrémentale ; corriger les stop words résiduels dans les tops (« t il », « nc mpf »…).</span>
       </li>
       <li>
         <span class="etape-nom">API &amp; sites de suivi</span>
         <span class="pastille p-cours">En ligne</span>
-        <span class="etape-note">API type Gallicagram + front 3 onglets + site Evidence (tops des 3 journaux servis au front). La session tmux <span style="font-family: var(--mono)">api</span> a été relancée le 10 juillet : le front répond de nouveau. Site Evidence en ligne.</span>
+        <span class="etape-note">API type Gallicagram + front 3 onglets + site Evidence (tops des 3 journaux servis au front). L'API tourne sans interruption depuis le 11 juillet. Site Evidence en ligne.</span>
       </li>
       <li>
         <span class="etape-nom">Analyse — détection de ruptures</span>
@@ -369,14 +369,14 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
       </div>
       <dl class="infos">
         <dt>Commande</dt><dd>python -u -m scraping.pipeline (via lancer.sh)</dd>
-        <dt>Médias</dt><dd>30 configurés · 29 actifs (liberation en pause)</dd>
-        <dt>Articles</dt><dd>4 165 775 · 22,0 M en file (sitemaps historiques versés)</dd>
+        <dt>Médias</dt><dd>32 configurés · 31 actifs (liberation en pause)</dd>
+        <dt>Articles</dt><dd>8 436 789 · 18,6 M en file</dd>
       </dl>
-      <div class="journal">nice_matin   etat=2 (succès en 4.3s)
-le_figaro    etat=2 (succès en 5.0s)
-sud_ouest    etat=2 (succès en 4.5s)
-la_depeche   etat=2 (succès en 1.6s)</div>
-      <p class="desc">Une boucle par média (sessions de 4 h, relance auto). urls.db écrit en continu (11 h 24). Le pane ne montre que des succès ce matin, Le Figaro compris.</p>
+      <div class="journal">[bilan] laprovence : 16626 URLs en 239.6 min (69.4 URLs/min)
+[bilan] leparisien :  8082 URLs en 239.6 min (33.7 URLs/min)
+[bilan] le_figaro  :  2913 URLs en 239.7 min (12.2 URLs/min)
+106043 URLs traitées en 14406.2s.</div>
+      <p class="desc">Une boucle par média (sessions de 4 h, relance auto). urls.db écrit en continu (15 h 54). Dernier cycle de 4 h terminé à 15 h 54 : 106 043 URLs traitées, relance immédiate.</p>
     </div>
 
     <div class="carte">
@@ -389,8 +389,8 @@ la_depeche   etat=2 (succès en 1.6s)</div>
       </div>
       <dl class="infos">
         <dt>Commande</dt><dd>scripts/cron_sitemaps.sh (flock)</dd>
-        <dt>Cycle</dt><dd>sitemap_news → verser_nouveaux (~18 min)</dd>
-        <dt>Dernier</dt><dd>07 h 58 — 1 324 URLs versées</dd>
+        <dt>Cycle</dt><dd>sitemap_news → verser_nouveaux</dd>
+        <dt>Dernier</dt><dd>19 juil. 07 h 47 — 1 369 URLs versées</dd>
       </dl>
       <p class="desc">Lit les sitemaps news des médias et n'insère que les URLs manquantes (INSERT OR IGNORE sur l'index unique), en écartant désormais les non-articles (<span style="font-family: var(--mono)">est_non_article</span>). Le corpus se met à jour tout seul chaque jour.</p>
     </div>
@@ -406,9 +406,25 @@ la_depeche   etat=2 (succès en 1.6s)</div>
       <dl class="infos">
         <dt>Commande</dt><dd>.venv/bin/python -m api.app</dd>
         <dt>Port</dt><dd>8501 (tunnel ssh)</dd>
-        <dt>État</dt><dd>relancée le 11 juillet, 19 h 00</dd>
+        <dt>État</dt><dd>en ligne depuis le 11 juillet (8 jours)</dd>
       </dl>
-      <p class="desc">La session tmux <span style="font-family: var(--mono)">api</span> tourne depuis sa relance du 11 juillet (après l'incident tmux). La collecte automatique <span style="font-family: var(--mono)">statut</span> (état du serveur) reste à l'arrêt depuis le reboot du 7 juillet — ce dashboard est relevé en direct par ssh.</p>
+      <p class="desc">La session tmux <span style="font-family: var(--mono)">api</span> tourne sans interruption depuis le 11 juillet. Pas de requête récente dans le pane — normal hors des sessions de travail sur le front.</p>
+    </div>
+
+    <div class="carte">
+      <div class="carte-tete">
+        <div>
+          <div class="carte-titre">MAJ quotidienne n-grammes (tests)</div>
+          <div class="carte-sous">tmux : build</div>
+        </div>
+        <span class="pastille p-neutre">En test</span>
+      </div>
+      <dl class="infos">
+        <dt>Commande</dt><dd>python -u -m scripts.maj_ngram les_echos</dd>
+        <dt>Base d'essai</dt><dd>lesechos_ngram_sans_filtre.db (13 Go)</dd>
+        <dt>Dernier essai</dt><dd>29 754 articles par paquets de 10 000</dd>
+      </dl>
+      <p class="desc">Tests manuels du chantier MAJ quotidienne sur la base Échos sans filtre : insertion par paquets, dernier essai arrêté à la main puis checkpoint WAL. Rien ne tourne en ce moment dans cette session.</p>
     </div>
   </div>
 
@@ -425,13 +441,14 @@ la_depeche   etat=2 (succès en 1.6s)</div>
         <tr><th>Base</th><th class="num">Taille</th><th>Dernière écriture</th><th>État</th></tr>
       </thead>
       <tbody>
-        <tr><td>urls.db (scraping)</td><td class="num">13 Go</td><td>11 h 24 (en continu)</td><td><span class="pastille p-cours">Écrit en continu</span></td></tr>
+        <tr><td>urls.db (scraping)</td><td class="num">14 Go</td><td>15 h 54 (en continu)</td><td><span class="pastille p-cours">Écrit en continu</span></td></tr>
         <tr><td>lemonde_ngram.db</td><td class="num">59 Go</td><td>3 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
         <tr><td>lefigaro_ngram.db</td><td class="num">11 Go</td><td>2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
         <tr><td>lesechos_ngram.db</td><td class="num">8,3 Go</td><td>2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
+        <tr><td>lesechos_ngram_sans_filtre.db</td><td class="num">13 Go</td><td>12 juillet</td><td><span class="pastille p-neutre">Mesure + tests MAJ</span></td></tr>
         <tr><td>lefigaro_top.db</td><td class="num">318 Mo</td><td>4 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
         <tr><td>lesechos_top.db</td><td class="num">503 Mo</td><td>4 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
-        <tr><td>lemonde_top.db</td><td class="num">1,3 Go</td><td>11 h 48 (5 juil.)</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>lemonde_top.db</td><td class="num">1,3 Go</td><td>5 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -457,7 +474,7 @@ la_depeche   etat=2 (succès en 1.6s)</div>
         <div class="carte-titre">Serveur gallica</div>
         <span class="pastille p-cours">Accessible</span>
       </div>
-      <p class="desc">157.136.252.194 (alias ssh <span style="font-family: var(--mono)">gallica</span>). Sessions tmux actives : <span style="font-family: var(--mono)">scrapping</span> (pipeline v2) et <span style="font-family: var(--mono)">api</span>, relancées le 11 juillet (19 h 00 et 22 h 35). La session <span style="font-family: var(--mono)">statut</span> (collecte de l'état pour ce dashboard) n'a pas été relancée depuis le reboot du 7 juillet. Disque /data à 39 % (3,1 To libres).</p>
+      <p class="desc">157.136.252.194 (alias ssh <span style="font-family: var(--mono)">gallica</span>). Sessions tmux actives : <span style="font-family: var(--mono)">scrapping</span> (pipeline v2), <span style="font-family: var(--mono)">api</span> et <span style="font-family: var(--mono)">build</span> (tests MAJ n-grammes). La session <span style="font-family: var(--mono)">statut</span> n'existe plus — ce dashboard est relevé en direct par ssh. Disque /data à 39 % (3,1 To libres).</p>
     </div>
   </div>
 
