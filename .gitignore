@@ -89,3 +89,6 @@ extensions/chrome-linux-profile
 
 # Dashboard local, hors suivi git
 site/static/dashboard.html
+
+# Sorties regenerables de rupture/ (fenetres, planches)
+rupture/sorties/

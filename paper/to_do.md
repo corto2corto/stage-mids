@@ -32,6 +32,8 @@ $$\mathbb{P}(X = k) = \frac{\Gamma(k + r)}{\Gamma(k + 1) \Gamma(r)} \left(\frac{
 
 Diagnostics pour la qualité de l'ajustement ? Je ne sais pas. Vérifier peut-être la moyenne, la variance, l'asymétrie (skewness) et l'aplatissement (kurtosis) ?
 
+**MAJ 20/07/2026** : le fit bascule vers un mélange Bernoulli × NB décalée (les jours à zéro cassent le fit) — voir « 2. Passer au mélange Bernoulli × NB » en Phase 2.
+
 ### Étape 2 : détecter les pics
 
 Une fois un modèle ajusté, disons $\mu_*, r_*$, on peut détecter les valeurs aberrantes (outliers) dans les données. Notons $P_t$ la densité de probabilité de $\mathrm{NB}(\mu_* N_t, r_*)$. On pose
@@ -85,6 +87,8 @@ Cette section rassemble les pistes issues des échanges les plus récents, class
   - transposer un critère d'outlier type distance de Cook, en l'adaptant aux données discrètes (comptages) ;
   - construire un test statistique : estimer la loi *en éliminant* les outliers, puis tester si les occurrences suspectes sont « naturelles » sous cette loi.
 
+  **Tranché (échange Simon, 20/07/2026)** : le nombre de pics variable selon les mots (guerre 148, chirac 25 au seuil $10^{-4}$) n'est pas un problème — c'est by design, et c'est objectif là où une règle de proportion type « max 5 % » serait arbitraire. Benjamini–Hochberg : bonne idée, mais pas nécessaire pour le moment. Le double fit (retirer les outliers évidents puis réajuster, troisième piste ci-dessus) est validé.
+
 - **Cadrer outliers vs breakpoints.** Distinction à garder claire : pour l'instant on cherche des *outliers* (périodes courtes d'activité anormale : un jour, une semaine, un mois — typiquement le Covid), car c'est le plus simple et probablement déjà très significatif. La question des *breakpoints* (changement total et définitif de toute la distribution, typiquement un rachat comme Bolloré → JDD) viendra dans un second temps.
 
 ### Difficile
@@ -103,7 +107,7 @@ Cette section rassemble les pistes issues des échanges les plus récents, class
 
 Décision de Simon : arrêter de raffiner la détection de pics et avancer vite vers un POC de classification des sauts, qu'on raffinera ensuite. Les tâches ci-dessous sont dans l'ordre où les faire.
 
-### 1. Corriger le plotting des points rouges — élucidé le 17/07/2026
+### 1. Corriger le plotting des points rouges — terminé (élucidé le 17/07/2026)
 
 Sur certaines séries (ex. « chomage »), des pics au-dessus du seuil ne sont pas coloriés en rouge (années 88–90). Hypothèse : le plotting affiche un nombre fixe de points rouges (environ 21) au lieu de tous les points au-dessus du seuil.
 
@@ -112,7 +116,22 @@ Sur certaines séries (ex. « chomage »), des pics au-dessus du seuil ne sont p
 - [x] Expliquer les pics 88–90 non rouges : **la figure montre $f_t$ mais la détection opère sur $(X_t, N_t)$**. Les pics visibles de 1988–90 sur chomage sont de deux sortes : des jours à corpus quasi vide ($N_t$ = 252 à 1 100 mots, 1 occurrence suffit à faire $f_t \approx 400$ pour 100 000, mais $p_t \approx 3 \times 10^{-2}$ — pas surprenant du tout sous la loi du jour) et des pics réels modérés ($X_t \approx 30$, $p_t \approx 4 \times 10^{-3}$) au-dessus du seuil $10^{-4}$. Ce n'est ni un artefact ni un bug : rien à corriger dans le code.
 - [ ] (option, à discuter avec Simon) Rendre le seuil lisible sur la figure : tracer la fréquence critique du jour (quantile $10^{-4}$ de $\mathrm{NB}(\mu N_t, r)$ ramené en fréquence) et/ou signaler les jours à $N_t$ minuscule, pour que les pics non marqués s'expliquent d'eux-mêmes.
 
-### 2. Construire le dataset de sauts
+### 2. Passer au mélange Bernoulli × NB décalée (échange Simon, 20/07/2026)
+
+Constat (vocal de Simon) : les jours à zéro occurrence sont très fréquents et ce sont souvent eux qui cassent le fit (visible sur les histogrammes) — « on aurait dû faire ça dès le début ». Cas extrême mesuré : covid sur 1944–2025 a 92 % de jours à zéro, le fit donne $\hat r = 0{,}02$, queue si lourde qu'aucune $p$-valeur ne descend sous $10^{-3}$ : zéro pic détecté. Ce modèle remplace la piste « restreindre à la période d'activité » : les zéros structurels sont portés par la Bernoulli au lieu d'être découpés.
+
+Forme paramétrique : $p\,\delta_0 + (1-p)\,(\mathrm{NB} + 1)$, avec $p$ la probabilité de zéro occurrence.
+
+- [ ] Séparer les jours à $X_t = 0$ des jours à $X_t \geq 1$ ; estimer $p$ = part des jours à zéro (Bernoulli).
+- [ ] Fiter la NB uniquement sur les jours à $X_t \geq 1$, sur $Y_t = X_t - 1$ (la NB commence à 0), toujours avec l'exposure $N_t$.
+- [ ] Ne **pas** supprimer purement les jours à zéro : ils restent dans le modèle via la Bernoulli (confirmé par Simon).
+- [ ] Y ajouter le double fit validé : retirer les outliers évidents (par ex. $p_t < 10^{-6}$), réajuster sur le reste.
+- [ ] Recalculer les $p$-valeurs des jours à $X_t \geq 1$ : sous le mélange, $p_t = (1-p)\,\mathbb{P}(\mathrm{NB} \geq X_t - 1)$ — à trancher avec Simon : surprise sous le mélange ou sous la NB conditionnelle aux jours actifs.
+- [ ] Vérifier sur les mots tests : covid doit enfin produire des pics ; les comptages des autres (guerre, mitterrand, chirac…) doivent rester du même ordre.
+
+Le seuil reste $10^{-4}$ fixe (cf. arbitrage dans « Nouveautés / Moyen »).
+
+### 3. Construire le dataset de sauts
 
 Objectif : une matrice $N \times D$ de fenêtres centrées sur les sauts, avec $N \approx 100\,000$ attendu.
 
@@ -121,7 +140,7 @@ Objectif : une matrice $N \times D$ de fenêtres centrées sur les sauts, avec $
 - [ ] Pour chaque saut, extraire la fenêtre de la série sur $\pm d$ jours autour de la date, avec $d = 15$, soit une dimension $D = 1 + 2d = 31$.
 - [ ] Garder pour chaque ligne les métadonnées (mot, date, fréquence, $p$-valeur) à côté de la matrice.
 
-### 3. Dédoublonner les pics rapprochés (NMS)
+### 4. Dédoublonner les pics rapprochés (NMS)
 
 Si un mot a plusieurs pics à moins de $d$ jours d'écart, les fenêtres se recouvrent et les mêmes données entrent plusieurs fois dans la matrice.
 
@@ -129,7 +148,7 @@ Si un mot a plusieurs pics à moins de $d$ jours d'écart, les fenêtres se reco
 - [ ] Appliquer une suppression de type *non-maximal suppression* (NMS) : dans chaque groupe, ne garder que le pic de surprise maximale.
 - [ ] Documenter les choix faits (taille du voisinage, critère de conservation) : Simon prévient qu'il y aura des arbitrages.
 
-### 4. Normaliser les fenêtres avant la PCA
+### 5. Normaliser les fenêtres avant la PCA
 
 Ne pas faire la PCA sur les occurrences ni les fréquences brutes : elle détecterait juste que certains mots sont plus fréquents que d'autres.
 
@@ -137,7 +156,7 @@ Ne pas faire la PCA sur les occurrences ni les fréquences brutes : elle détect
 - [ ] Alternative à tester : normalisation de chaque fenêtre sur $[0,1]$.
 - [ ] Vérifier ce que fait l'option de normalisation intégrée des fonctions de PCA (remarque de Benoît) : elle standardise colonne par colonne, ce qui n'est pas la même chose que normaliser chaque fenêtre.
 
-### 5. PCA : le modèle zéro
+### 6. PCA : le modèle zéro
 
 Faire une PCA sur la matrice $N \times D$, sans ondelette ni autre transformation.
 
@@ -145,7 +164,7 @@ Faire une PCA sur la matrice $N \times D$, sans ondelette ni autre transformatio
 - [ ] Visualiser les premières composantes comme des profils temporels. Attendu (Simon) : des directions simples et peu informatives, genre « activité déjà forte avant le saut et qui continue après » ou « activité nulle avant, forte après », pas trop loin de Sornette.
 - [ ] Consigner les résultats comme *modèle zéro* : analyse à l'aveugle, les mots ne sont que des séries temporelles (on oublie l'identité des mots et les dates). Important pour l'article à venir.
 
-### 6. CSV des pics pour Simon
+### 7. CSV des pics pour Simon
 
 - [ ] Extraire un petit CSV avec les colonnes (mot, date, fréquence du pic, $p$-valeur du pic) et l'envoyer à Simon.
 
