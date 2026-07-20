@@ -268,68 +268,58 @@ def fiche():
         stat = float(((X - m) ** 2 / v).sum())
         ddl = len(X) - k_estimes
         adequation[nom] = {"chi2": stat, "ddl": ddl, "p": float(loi_chi2.sf(stat, ddl))}
-    if bnb_ok:                                       # chi² du mélange sur tous les jours (3 paramètres : p0, mu_b, r_b)
-        m_b = mu_b * N
-        v_nb = m_b + m_b ** 2 / r_b                  # variance du NB décalé jour par jour
-        E = (1 - p0) * (1 + m_b)                      # espérance et variance du mélange
-        V = (1 - p0) * (v_nb + (1 + m_b) ** 2) - E ** 2
-        stat = float(((X - E) ** 2 / V).sum())
-        adequation["bnb"] = {"chi2": stat, "ddl": len(X) - 3,
-                             "p": float(loi_chi2.sf(stat, len(X) - 3))}
-    else:
-        adequation["bnb"] = None
+    # chi² du mélange sur tous les jours (3 paramètres : p0, mu_b, r_b)
+    m_b = mu_b * N
+    v_nb = m_b + m_b ** 2 / r_b                      # variance du NB décalé jour par jour
+    E = (1 - p0) * (1 + m_b)                          # espérance et variance du mélange
+    V = (1 - p0) * (v_nb + (1 + m_b) ** 2) - E ** 2
+    stat = float(((X - E) ** 2 / V).sum())
+    adequation["bnb"] = {"chi2": stat, "ddl": len(X) - 3,
+                         "p": float(loi_chi2.sf(stat, len(X) - 3))}
 
     p = nbinom.sf(X - 1, r, r / (r + mu * N))        # p_t = P(X >= X_t) sous la loi du jour
     pics = df[p < seuil]
-    if bnb_ok:                                       # p-valeur du jour sous le mélange (1.0 les jours à zéro)
-        p_bnb = np.where(actifs, (1 - p0) * nbinom.sf(X - 2, r_b, r_b / (r_b + mu_b * N)), 1.0)
-        pics_bnb = df[p_bnb < seuil]
+    # p-valeur du jour sous le mélange (1.0 les jours à zéro)
+    p_bnb = np.where(actifs, (1 - p0) * nbinom.sf(X - 2, r_b, r_b / (r_b + mu_b * N)), 1.0)
+    pics_bnb = df[p_bnb < seuil]
 
     # densités-mélange (moyenne des pmf sur les vrais N_t), par blocs pour borner la mémoire
     k0 = 0 if X.max() < 3000 else max(0, int(X.min() * 0.6))
     k1 = min(int(X.max() * 1.3) + 6, k0 + 30000)
     k = np.arange(k0, k1)
-    pois_mix, nb_mix = np.empty(len(k)), np.empty(len(k))
-    if bnb_ok:
-        bnb_mix = np.empty(len(k))
+    pois_mix, nb_mix, bnb_mix = np.empty(len(k)), np.empty(len(k)), np.empty(len(k))
     for debut in range(0, len(k), 2000):
         bloc = k[debut:debut + 2000, None]
         pois_mix[debut:debut + 2000] = poisson.pmf(bloc, (lam * N)[None, :]).mean(1)
         nb_mix[debut:debut + 2000] = nbinom.pmf(bloc, r, (r / (r + mu * N))[None, :]).mean(1)
-        if bnb_ok:                                   # k == 0 -> p0 ; k >= 1 -> (1-p0)*NB(k-1) moyennée sur les N_t
-            dens = (1 - p0) * nbinom.pmf(bloc - 1, r_b, (r_b / (r_b + mu_b * N))[None, :]).mean(1)
-            bnb_mix[debut:debut + 2000] = np.where(k[debut:debut + 2000] == 0, p0, dens)
+        # k == 0 -> p0 ; k >= 1 -> (1-p0)*NB(k-1) moyennée sur les N_t
+        dens = (1 - p0) * nbinom.pmf(bloc - 1, r_b, (r_b / (r_b + mu_b * N))[None, :]).mean(1)
+        bnb_mix[debut:debut + 2000] = np.where(k[debut:debut + 2000] == 0, p0, dens)
 
     pas = max(1, len(k) // 800)                      # ~800 points suffisent pour le tracé
-    reponse = {
+    return jsonify({
         "mot": gram, "corpus": corpus, "de": int(date_min), "a": int(date_max),
         "jours": len(df), "seuil": seuil,
-        "params": {"lambda": lam, "mu": mu, "r": r, "p0": p0},
+        "params": {"lambda": lam, "mu": mu, "r": r,
+                   "p0": p0, "mu_bnb": mu_b, "r_bnb": r_b},
         "adequation": adequation,
         "serie": {"date": df["date"].tolist(), "x": df["n"].tolist(),
-                  "total": df["total"].tolist(), "p": np.round(p, 8).tolist()},
+                  "total": df["total"].tolist(), "p": np.round(p, 8).tolist(),
+                  "p_bnb": np.round(p_bnb, 8).tolist()},
         "pics": [{"date": int(d), "x": int(x), "p": float(pv)}
                  for d, x, pv in zip(pics["date"], pics["n"], p[p < seuil])],
+        "pics_bnb": [{"date": int(d), "x": int(x), "p": float(pv)}
+                     for d, x, pv in zip(pics_bnb["date"], pics_bnb["n"], p_bnb[p_bnb < seuil])],
         "hist": {"k": k[::pas].tolist(), "poisson": pois_mix[::pas].tolist(),
-                 "nb": nb_mix[::pas].tolist()},
+                 "nb": nb_mix[::pas].tolist(), "bnb": bnb_mix[::pas].tolist()},
         "moments": {
             "observe": [float(X.mean()), float(X.std()), float(X.var() / X.mean()),
                         float(skew(X)), float(kurtosis(X))],
             "poisson": moments_grille(pois_mix, k),
             "nb": moments_grille(nb_mix, k),
+            "bnb": moments_grille(bnb_mix, k),
         },
-    }
-    if bnb_ok:                                       # sorties du mélange, toutes additives
-        reponse["params"]["mu_bnb"] = mu_b
-        reponse["params"]["r_bnb"] = r_b
-        reponse["serie"]["p_bnb"] = np.round(p_bnb, 8).tolist()
-        reponse["pics_bnb"] = [{"date": int(d), "x": int(x), "p": float(pv)}
-                               for d, x, pv in zip(pics_bnb["date"], pics_bnb["n"], p_bnb[p_bnb < seuil])]
-        reponse["hist"]["bnb"] = bnb_mix[::pas].tolist()
-        reponse["moments"]["bnb"] = moments_grille(bnb_mix, k)
-    else:                                            # période presque toujours à zéro : pas de mélange fiable
-        reponse["bnb_note"] = "moins de 30 jours actifs"
-    return jsonify(reponse)
+    })
 
 
 if __name__ == "__main__":
