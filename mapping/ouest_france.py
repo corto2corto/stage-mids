@@ -5,7 +5,7 @@ plusieurs millions au total). Particularite reperee lors de la reco : le site
 recoivent la home a la place. On passe donc par le Firefox headless du projet
 (scraping.navigateur), une page XML a la fois.
 
-    python -m exploration.mapping_ouest_france
+    python -m mapping.ouest_france
 
 MAPPING_LIMITE=N (env) : ne parcourt que les N derniers sitemaps (smoke test).
 """

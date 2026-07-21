@@ -1,14 +1,16 @@
 """Construit la liste des URLs d'articles d'un media, a partir de sa fiche
-dans exploration.medias. Remplace les 14 anciens scripts mapping_<media>.py :
+dans mapping.catalogue. Couvre les cas standard (sitemaps, pagination) :
 la structure propre a chaque media vit dans le catalogue, la plomberie commune
-(requetes, ecriture CSV, checkpoints, MAPPING_LIMITE) est ici.
+(requetes, ecriture CSV, checkpoints, MAPPING_LIMITE) est ici. Les medias
+irreductibles (CDX Wayback, Selenium, archives par jour...) gardent leur
+script dedie dans mapping/.
 
-    python -m exploration.mapping gala
-    python -m exploration.mapping bfmtv
+    python -m mapping.generique gala
+    python -m mapping.generique bfmtv
 
 MAPPING_LIMITE=N (env) : mode echantillon (smoke test) -- ne parcourt que N
 sitemaps / pages / jours, ou 1 rubrique et N pages pour les medias par
-rubrique. Sert aussi a exploration.verifier_mappings.
+rubrique. Sert aussi a mapping.verifier.
 """
 import csv
 import gzip
@@ -23,7 +25,7 @@ from datetime import date, timedelta
 import requests
 from tqdm import tqdm
 
-from exploration.medias import CATALOGUE, IndexSitemap, SitemapPagine, PaginationHtml
+from mapping.catalogue import CATALOGUE, IndexSitemap, SitemapPagine, PaginationHtml
 
 MOTIF_LOC = re.compile(r"<loc>([^<]+)</loc>")
 PAUSE = 0.5  # politesse envers le serveur
@@ -228,7 +230,7 @@ COLLECTEURS = {
 
 
 if len(sys.argv) != 2 or sys.argv[1] not in CATALOGUE:
-    print(f"usage : python -m exploration.mapping <media>\nmedias : {', '.join(CATALOGUE)}")
+    print(f"usage : python -m mapping.generique <media>\nmedias : {', '.join(CATALOGUE)}")
     sys.exit(2)
 
 media = sys.argv[1]

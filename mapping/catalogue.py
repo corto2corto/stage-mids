@@ -1,7 +1,7 @@
 """Catalogue des medias a mapper : une entree = un media, decrite par la
 methode de collecte de ses URLs d'articles et ses particularites (motif,
 options). La plomberie (requetes, ecriture CSV, checkpoints, MAPPING_LIMITE)
-vit dans exploration.mapping ; ici, rien que la config.
+vit dans mapping.generique ; ici, rien que la config.
 
 Trois methodes, selon la structure du site (reperee lors de la reco) :
 

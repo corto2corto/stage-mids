@@ -18,7 +18,7 @@ Profondeur 2018 -> 2026 (avant 2018 : rien, anciennes URLs renvoient 410).
 ~3 100 pages-jour (365/366 jours x 9 ans, dont 2026 partielle) a 1.5s de
 politesse -> environ 2s/page tout compris -> environ 1h45 de crawl.
 
-    python -m exploration.mapping_leprogres
+    python -m mapping.leprogres
 
 Relancable par annee : editer la constante ANNEES pour ne refaire que les
 annees manquantes/interrompues -- le fichier de sortie est complete par

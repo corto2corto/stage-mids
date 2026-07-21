@@ -95,10 +95,10 @@ Me demander avant de lancer quoi que ce soit sur le serveur.
 Objectif : enrichir le registre MEDIAS avec de nouveaux médias français, en priorisant ceux qui passent en moteur « basic » (simple requête HTTP, le moins coûteux et le plus rapide). Tout se passe sur la branche scrapping_v2 (scraping/medias.py, scraping/basic.py) — ne pas toucher main, et lire la branche via git show plutôt qu'en switchant le dépôt principal.
 
 Organiser une équipe d'agents (outil Agent), un média candidat à la fois :
-1. Agent mapping : trouve la source d'URLs du média (sitemap, archives, pagination — s'inspirer des exploration/mapping_*.py existants) et en tire un échantillon d'une dizaine d'URLs d'articles variées, gratuits ET payants.
+1. Agent mapping : trouve la source d'URLs du média (sitemap, archives, pagination — s'inspirer du module mapping/ : generique.py + catalogue.py pour les cas standard, scripts par média pour les cas spéciaux) et en tire un échantillon d'une dizaine d'URLs d'articles variées, gratuits ET payants.
 2. Agent scrapper : récupère le HTML de l'échantillon en basic — sur gallica uniquement, jamais de curl/fetch sur le Mac — et juge le contenu : payants complets, gratuits seuls exploitables, ou tronqués.
 3. Agent explorateur : fouille les HTML pour localiser titre/auteur/date/corps (stratégie json_ld en priorité, sinon balises — cf exploration/lister_balises.py et exploration/detail_metadonnees.md).
-4. Agent manager : croise les trois rapports et tranche : ajoutable en basic complet, ajoutable en gratuits seuls (filtre via la colonne free), ou écarté — règle absolue : jamais d'articles tronqués en base. Si ajoutable : faire écrire le script de mapping complet (exploration/mapping_<media>.py + passage dans exploration/verifier_mappings.py) et préparer l'entrée medias.py pour le branchement au pipeline — SANS brancher : présenter le dossier complet à Corto et attendre sa validation explicite.
+4. Agent manager : croise les trois rapports et tranche : ajoutable en basic complet, ajoutable en gratuits seuls (filtre via la colonne free), ou écarté — règle absolue : jamais d'articles tronqués en base. Si ajoutable : faire écrire le mapping complet (fiche dans mapping/catalogue.py si standard, sinon mapping/<media>.py + passage dans mapping/verifier.py ou verifier_speciaux.py) et préparer l'entrée medias.py pour le branchement au pipeline — SANS brancher : présenter le dossier complet à Corto et attendre sa validation explicite.
 
 Commencer par proposer à Corto une liste de médias candidats (hors MEDIAS actuels de scrapping_v2 et hors écartés : lexpress, lepoint) et la faire valider avant de lancer les agents.
 Me demander avant de lancer quoi que ce soit sur le serveur.
@@ -126,6 +126,31 @@ Deux défauts dans data/csv/francesoir.csv (435 Mo, sur gallica), constatés le 
 3. Vérifier sur les 5 derniers articles : date ISO, plus de pied de page, contenu intact.
 
 Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
+## exposer-api-publique — Rendre l'API ngram accessible depuis l'extérieur
+
+- Ajoutée : 2026-07-21
+- Branche : main
+
+**Contexte** : le front React de Benoît (statique) pourrait être publié sur GitHub Pages, mais GitHub Pages ne sert que du statique et ne peut pas exécuter l'API Flask ni héberger les bases SQLite. Aujourd'hui l'API (`api/app.py`) n'est joignable que via un tunnel SSH privé (localhost:8501). Pour qu'un front public puisse l'appeler, il faut exposer l'API sur `gallica` derrière une URL publique et stable.
+
+**Piste envisagée** : garder l'API + les bases sur `gallica` (les bases sont trop lourdes pour bouger, ça n'a pas de sens de séparer), et l'exposer publiquement — reverse proxy + HTTPS + éventuellement une authentification, à la place du tunnel SSH. Le front statique appelle alors cette URL publique depuis GitHub Pages.
+
+**Prompt** :
+
+```
+Objectif : rendre l'API ngram (api/app.py, Flask) accessible depuis l'extérieur, pour qu'un front statique publié sur GitHub Pages (le front React de Benoît) puisse l'appeler.
+
+Contrainte de fond : GitHub Pages ne sert que du statique — il ne peut ni exécuter Flask ni héberger les bases SQLite ngram. L'API et les bases doivent donc rester sur gallica ; seul le front part sur Pages. Aujourd'hui l'API n'est joignable que via un tunnel SSH privé (localhost:8501), ce qui ne convient pas à un front public.
+
+À faire, dans l'ordre :
+1. Regarder comment l'API est lancée et exposée aujourd'hui sur gallica (session tmux, port 8501, tunnel SSH) — cf mémoire API ngram et reference_serveur_ssh.
+2. Choisir et décrire l'exposition publique : reverse proxy (nginx ?) devant Flask, HTTPS (nom de domaine ou service type Cloudflare Tunnel), et une authentification si l'API ne doit pas être ouverte à tous. Peser les options avec Corto avant d'installer quoi que ce soit — gallica est un serveur partagé (user ubuntu commun), ne rien toucher de partagé sans accord.
+3. Adapter le front (URL de l'API en dur → URL publique) et gérer le CORS côté Flask pour autoriser l'origine GitHub Pages.
+4. Vérifier de bout en bout : le front sur Pages interroge l'API publique et affiche les résultats.
+
+Me demander avant de lancer ou d'installer quoi que ce soit sur le serveur.
 ```
 
 ## Faites

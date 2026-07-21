@@ -15,7 +15,7 @@ au demarrage et jamais reecrites, seules les nouvelles sont ajoutees a la fin
 -- necessite le re-balayage complet des pages, le sitemap n'etant pas trie
 par date.
 
-    python -m exploration.mapping_cnews
+    python -m mapping.cnews
 """
 import csv
 import os
