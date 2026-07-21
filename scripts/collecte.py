@@ -1,5 +1,5 @@
-"""Plomberie commune aux collectes par sitemap (exploration.sitemap_news,
-exploration.rattrapage_sitemaps) : requêtes, parsing des sitemaps, ajout
+"""Plomberie commune aux collectes par sitemap (scripts.sitemap_news,
+scripts.rattrapage_sitemaps) : requêtes, parsing des sitemaps, ajout
 incrémental aux CSV d'URLs.
 
 Les CSV d'URLs (data/urls/<media>_url.csv pour les anciens médias,

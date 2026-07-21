@@ -14,8 +14,8 @@ Config issue de la reco des sitemaps du 07/07/2026 (robots.txt des 32 médias,
 détail dans le journal). Médias sans entrée : voir les commentaires en fin de
 config.
 
-    python -m exploration.sitemap_news              # tous les médias
-    python -m exploration.sitemap_news le_figaro    # un seul
+    python -m scripts.sitemap_news              # tous les médias
+    python -m scripts.sitemap_news le_figaro    # un seul
 
 À lancer depuis la racine du dépôt.
 """
@@ -24,9 +24,9 @@ import sys
 import time
 from datetime import datetime
 
-from exploration.collecte import (PAUSE, UA_FIREFOX, ajouter, filtrer, locs,
-                                  recuperer, sous_sitemaps, trouver_csv,
-                                  urls_connues)
+from scripts.collecte import (PAUSE, UA_FIREFOX, ajouter, filtrer, locs,
+                              recuperer, sous_sitemaps, trouver_csv,
+                              urls_connues)
 from scraping.stockage import DATA_DIR
 
 JOURNAL = DATA_DIR / "suivi_sitemaps.csv"

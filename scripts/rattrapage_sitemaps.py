@@ -6,8 +6,8 @@ sous-sitemap, sinon on télécharge dans le doute), puis on ajoute au CSV du
 média les URLs qui y manquent. Réexécutable (déduplication contre le CSV,
 jamais de réécriture) ; la base n'est pas touchée.
 
-    python -m exploration.rattrapage_sitemaps                # tous les médias
-    python -m exploration.rattrapage_sitemaps le_figaro      # un seul
+    python -m scripts.rattrapage_sitemaps                # tous les médias
+    python -m scripts.rattrapage_sitemaps le_figaro      # un seul
 
 À lancer depuis la racine du dépôt.
 """
@@ -17,9 +17,9 @@ import time
 
 from tqdm import tqdm
 
-from exploration.collecte import (PAUSE, UA, ajouter, filtrer, locs,
-                                  recuperer, sous_sitemaps, trouver_csv,
-                                  urls_connues)
+from scripts.collecte import (PAUSE, UA, ajouter, filtrer, locs,
+                              recuperer, sous_sitemaps, trouver_csv,
+                              urls_connues)
 
 BORNE = "2026-03"  # on remonte jusqu'à mars 2026 (marge sur le trou réel, fin mai)
 MOTIF_DATE_URL = re.compile(r"(20\d{2})[-/_.]?(\d{2})")
