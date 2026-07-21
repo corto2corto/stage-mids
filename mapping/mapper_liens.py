@@ -1,7 +1,7 @@
 """Agent qui explore un site (sans sitemap exploitable) pour construire la liste
 de ses URLs d'articles, page par page a partir de l'accueil.
 
-    python -m exploration.mapper_liens blast https://www.blast-info.fr
+    python -m mapping.mapper_liens blast https://www.blast-info.fr
 
 Le motif de reconnaissance des articles est trouve par l'agent (regex), puis
 applique par du code classique a tous les liens vus -- l'agent ne juge jamais

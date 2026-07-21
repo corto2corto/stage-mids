@@ -1,7 +1,7 @@
 """Verifie les scripts de mapping des nouveaux medias. A lancer sur le
 serveur depuis la racine du depot :
 
-    python -m exploration.verifier_mappings
+    python -m mapping.verifier
 
 Cas nominaux : smoke-run reel de chaque script en mode echantillon
 (MAPPING_LIMITE=3, quelques requetes seulement), puis controle du CSV
@@ -48,7 +48,7 @@ for media, motif in MEDIAS.items():
     nom = f"smoke {media}"
     try:
         p = subprocess.run(
-            [sys.executable, "-m", "exploration.mapping", media],
+            [sys.executable, "-m", "mapping.generique", media],
             env=env, capture_output=True, text=True, timeout=300,
         )
     except subprocess.TimeoutExpired:

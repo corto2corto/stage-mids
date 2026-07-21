@@ -1,12 +1,16 @@
-"""Construit la liste des URLs d'articles La Tribune via l'API CDX de la
-Wayback Machine. Choix impose par la reco : le site refondu (Next.js) rend
-ses listings uniquement cote client, la route page-N repond "Page non
-trouvee", aucune donnee dans le HTML ni endpoint API identifiable, et les
-pages depassent 60 s de chargement en Selenium. Fenetre from=2018 (rachat
-CMA CGM en 2023, +/- large). Deux formats d'articles : ancien
-slug-ID.html et nouveau /article/....
+"""Complete liberation_url.csv (limite aux ~10k articles recents du sitemap
+Arc, cf mapping.generique liberation) avec l'historique via l'API CDX de la Wayback
+Machine. Choix impose par la reco : les pages /archives/ de liberation.fr
+refusent curl/requests (403 sans meme poser de cookie DataDome) et depassent
+60 s de rendu en Selenium. Fenetre to=2025 (la suite est couverte par le
+sitemap). Deux formats d'articles : ancien /rubrique/YYYY/MM/DD/slug_ID/ et
+nouveau slug-YYYYMMDD_HASH/.
 
-    python -m exploration.mapping_latribune
+FUSIONNE le resultat avec le liberation_url.csv existant (union) -- si
+le mapping generique de liberation est relance apres coup, il ecrase le
+fichier et ce script est a relancer.
+
+    python -m mapping.liberation_archives
 
 MAPPING_LIMITE=N (env) : ne parcourt que 3xN pages d'index reparties (smoke test).
 """
@@ -19,11 +23,18 @@ import requests
 from tqdm import tqdm
 
 CDX = "http://web.archive.org/cdx/search/cdx"
-DOMAINE = "www.latribune.fr"
-PERIODE = {"from": "2018"}
-SORTIE = "exploration/latribune_url.csv"
+DOMAINE = "www.liberation.fr"
+PERIODE = {"to": "2025"}
+SORTIE = "exploration/liberation_url.csv"
 ENTETES = {"User-Agent": "Mozilla/5.0 (recherche academique, mapping-agent)"}
-MOTIF_ARTICLE = re.compile(r"^https://www\.latribune\.fr/(?:.+-\d{6,}\.html|article/.+)$")
+MOTIF_ARTICLE = re.compile(
+    r"^https://www\.liberation\.fr/(?:.+/\d{4}/\d{2}/\d{2}/[^/]+_\d+/?|[^?]+-\d{8}_[A-Z0-9]+/?)$")
+
+urls = set()
+if os.path.exists(SORTIE):  # union avec le mapping sitemap deja fait
+    with open(SORTIE, newline="", encoding="utf-8") as f:
+        urls.update(l[0] for l in list(csv.reader(f))[1:] if l)
+    print(f"{len(urls)} URLs deja presentes dans {SORTIE}")
 
 r = requests.get(CDX, params={"url": DOMAINE, "matchType": "host", "showNumPages": "true", "pageSize": "5"},
                  headers=ENTETES, timeout=60)
@@ -36,7 +47,6 @@ if limite:
     pages = pages[::max(1, nb_pages // (3 * limite))][:3 * limite]
 print(f"{nb_pages} pages d'index CDX a parcourir")
 
-urls = set()
 for i, page in enumerate(tqdm(pages), 1):
     texte = ""
     for tentative in range(3):

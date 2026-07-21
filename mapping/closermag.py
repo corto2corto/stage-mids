@@ -12,7 +12,7 @@ le datePublished json-ld dans la page fait foi.
 
 ~221 requetes (1 index + ~220 post-sitemaps) a 1.5s de politesse -> ~7 min.
 
-    python -m exploration.mapping_closermag
+    python -m mapping.closermag
 
 Relancable : le fichier de sortie est complete par ajout (pas ecrase), les
 URLs deja presentes sont chargees au demarrage et jamais redemandees.

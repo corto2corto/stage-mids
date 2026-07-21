@@ -3,7 +3,7 @@ La Provence via pagination page-N, Le Point / La Tribune / archives
 Liberation via l'API CDX de la Wayback Machine). A lancer sur le serveur
 depuis la racine du depot :
 
-    python -m exploration.verifier_mappings_phase2
+    python -m mapping.verifier_speciaux
 
 Cas nominaux : smoke-run reel de chaque script (MAPPING_LIMITE=4, sondes
 reparties sur l'index pour les scripts CDX) puis
@@ -43,7 +43,7 @@ for media, motif in MEDIAS.items():
     nom = f"smoke {media}"
     try:
         p = subprocess.run(
-            [sys.executable, "-m", f"exploration.mapping_{media}"],
+            [sys.executable, "-m", f"mapping.{media}"],
             env=env, capture_output=True, text=True, timeout=600,
         )
     except subprocess.TimeoutExpired:

@@ -11,8 +11,8 @@ https://www.20minutes.fr/<rubrique>[/<sous-rubrique>]/<ID>-<YYYYMMDD>-<slug>.
 2006 -> 2026 : ~7 400 pages-jour + 21 pages-annee, soit ~7 420 requetes a 1 s
 de politesse -> environ 3h de crawl.
 
-    python -m exploration.mapping_20minutes            # tout, 2006 -> 2026
-    python -m exploration.mapping_20minutes 2026       # rattrapage d'une annee
+    python -m mapping.vingt_minutes            # tout, 2006 -> 2026
+    python -m mapping.vingt_minutes 2026       # rattrapage d'une annee
 
 Relancable par annee : passer en argument les annees manquantes/interrompues
 (ou a rattraper) -- le fichier de sortie est complete par ajout (pas ecrase),

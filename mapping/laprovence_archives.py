@@ -1,11 +1,17 @@
-"""Construit la liste des URLs d'articles Le Point via l'API CDX de la
-Wayback Machine (web.archive.org). Choix impose par la reco : DataDome
-bloque robots.txt, /archives/ et les pages de rubriques meme en Firefox
-headless (interstitiel), et le site n'expose aucun sitemap -- le CDX liste
-toutes les captures archivees sans toucher lepoint.fr. Fenetre from=2010
-(temoin long). Motif article : ...-JJ-MM-AAAA-ID_NN.php.
+"""Complete laprovence_url.csv (limite au recent : la pagination page-N ne
+sert que ~5-7 pages par rubrique avant de re-servir la page 1, cf
+mapping/laprovence.py -- ~12k URLs) avec l'historique via l'API CDX de la
+Wayback Machine. Deux formats d'articles au fil des refontes :
+- /article/<rubrique>/<id>/<slug> (ancien avec .html, nouveau sans),
+- /actu/en-direct/<id>/<slug>.html (anciennes breves, vraies pages) ;
+le wrapper moderne /actu/en-direct/<id>/article/... est exclu (doublon du
+canonique /article/...).
 
-    python -m exploration.mapping_lepoint
+FUSIONNE le resultat avec le laprovence_url.csv existant (union) -- si
+mapping.laprovence est relance apres coup, il ecrase le fichier et ce
+script est a relancer.
+
+    python -m mapping.laprovence_archives
 
 MAPPING_LIMITE=N (env) : ne parcourt que 3xN pages d'index reparties (smoke test).
 """
@@ -18,11 +24,17 @@ import requests
 from tqdm import tqdm
 
 CDX = "http://web.archive.org/cdx/search/cdx"
-DOMAINE = "www.lepoint.fr"
-PERIODE = {"from": "2010"}
-SORTIE = "exploration/lepoint_url.csv"
+DOMAINE = "www.laprovence.com"
+SORTIE = "exploration/laprovence_url.csv"
 ENTETES = {"User-Agent": "Mozilla/5.0 (recherche academique, mapping-agent)"}
-MOTIF_ARTICLE = re.compile(r"^https://www\.lepoint\.fr/.+-\d{2}-\d{2}-\d{4}-\d+_\d+\.php$")
+MOTIF_ARTICLE = re.compile(
+    r"^https://www\.laprovence\.com/(?:article/.+|actu/en-direct/\d+/[^/]+\.html)$")
+
+urls = set()
+if os.path.exists(SORTIE):  # union avec le mapping pagination deja fait
+    with open(SORTIE, newline="", encoding="utf-8") as f:
+        urls.update(l[0] for l in list(csv.reader(f))[1:] if l)
+    print(f"{len(urls)} URLs deja presentes dans {SORTIE}")
 
 r = requests.get(CDX, params={"url": DOMAINE, "matchType": "host", "showNumPages": "true", "pageSize": "5"},
                  headers=ENTETES, timeout=60)
@@ -35,14 +47,13 @@ if limite:
     pages = pages[::max(1, nb_pages // (3 * limite))][:3 * limite]
 print(f"{nb_pages} pages d'index CDX a parcourir")
 
-urls = set()
 for i, page in enumerate(tqdm(pages), 1):
     texte = ""
     for tentative in range(3):
         try:
             r = requests.get(CDX, params={"url": DOMAINE, "matchType": "host", "page": page, "pageSize": "5",
                                           "fl": "original", "filter": ["statuscode:200", "mimetype:text/html"],
-                                          "collapse": "urlkey", **PERIODE},
+                                          "collapse": "urlkey"},
                              headers=ENTETES, timeout=180)
             r.raise_for_status()
             texte = r.text

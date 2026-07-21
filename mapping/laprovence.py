@@ -5,7 +5,7 @@ ignores, /page-N pagine vraiment ; ~48 liens /article/ par page). Arret
 d'une rubrique apres 2 pages consecutives sans nouvelle URL, garde-fou a
 3000 pages (france-monde annonce ~84k articles soit ~2100 pages).
 
-    python -m exploration.mapping_laprovence
+    python -m mapping.laprovence
 
 MAPPING_LIMITE=N (env) : 1 rubrique et N pages max (smoke test).
 """
