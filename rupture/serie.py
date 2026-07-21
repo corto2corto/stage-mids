@@ -1,29 +1,22 @@
-"""Brique 1 : charger la serie quotidienne (date, X_t, N_t) d'un mot.
+"""Brique 1 : charger la serie quotidienne d'un mot (extraction a la demande).
 
-Meme source que /fiche-mot : paper/donnees_maths/<slug>_lemonde.csv,
-grille complete avec zeros extraite du serveur (voir extraire.sh).
+La donnee vient de rupture/extraire (bases ngram du serveur, cache local).
 """
-import os
-import sys
 import pandas as pd
 
-RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DONNEES = f"{RACINE}/paper/donnees_maths"
+from rupture import extraire
 
 
-def charger(slug, d1=0, d2=99999999):
-    """Serie du mot sur [d1, d2] (defaut : tout le CSV) : (date, X_t, N_t, dt, f_t)."""
-    chemin = f"{DONNEES}/{slug}_lemonde.csv"
-    if not os.path.exists(chemin):
-        sys.exit(f"{chemin} introuvable : extraire le CSV d'abord "
-                 "(skill /fiche-mot ou paper/donnees_maths/extraire.sh)")
-    d = pd.read_csv(chemin)
+def charger(mot, media="lemonde", d1=0, d2=99999999):
+    """Serie du mot sur [d1, d2] (defaut : tout) : (date, X_t, N_t, dt, f_t)."""
+    d = extraire.serie(mot, media)
     d = d[(d["date"] >= d1) & (d["date"] <= d2)].reset_index(drop=True)
+    if not len(d):
+        raise ValueError(f"{mot} ({media}) : aucun jour sur [{d1}, {d2}]")
     d["dt"] = pd.to_datetime(d["date"], format="%Y%m%d")
     d["f_t"] = 1e5 * d["X_t"] / d["N_t"]
-    # la grille = les jours de parution presents en base ; il manque des jours
-    # calendaires (pas de journal ce jour-la), les fenetres (brique 3) se
-    # comptent donc en jours de parution
+    # la grille = les jours de parution presents en base ; les fenetres
+    # (brique 3) se comptent donc en jours de parution
     if not d["date"].is_unique:
-        sys.exit(f"{slug} : dates en double dans le CSV")
+        raise ValueError(f"{mot} ({media}) : dates en double dans la serie")
     return d

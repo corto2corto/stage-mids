@@ -83,6 +83,10 @@ extensions/chrome-linux-profile
 # Le .gitignore interne de site/ (fourni par Evidence) ignore déjà
 # node_modules/, build/, .svelte-kit/, static/data/, etc.
 
+# Rupture — cache d'extraction et sorties regenerables
+rupture/cache/
+rupture/sorties/
+
 # Claude Code — fichiers locaux/session
 .claude/settings.local.json
 .claude/scheduled_tasks.lock

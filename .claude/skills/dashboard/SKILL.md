@@ -23,7 +23,9 @@ Met à jour le dashboard local depuis l'état frais du serveur, puis l'ouvre dan
 
 Lancer depuis la racine du dépôt : `python3 -m scripts.maj_dashboard`
 
-Le script fait le ssh, met à jour tout le mécanique dans le HTML (heure de Paris, barre disque, tailles et dernières écritures des bases — via les marqueurs `id="maj-heure"`, `id="disque-*"`, `data-taille=` / `data-ecriture=`), et imprime un résumé : sessions tmux, process python, derniers panes `scrapping` et `build`. Ne PAS refaire ces éditions à la main ; signaler si le script affiche des ATTENTION.
+Le script fait le ssh, met à jour tout le mécanique dans le HTML (heure de Paris, barre disque, tailles et dernières écritures des bases, **nombre d'articles collectés et file d'attente** — via les marqueurs `id="maj-heure"`, `id="disque-*"`, `data-taille=` / `data-ecriture=`, `data-articles` / `data-file`), et imprime un résumé : sessions tmux, process python, derniers panes `scrapping` et `build`. Ne PAS refaire ces éditions à la main ; signaler si le script affiche des ATTENTION.
+
+Le nombre d'articles (`data-articles`) et la file (`data-file`) viennent de `site/sources/suivi/avancement.csv` sur le serveur — **la même source que le site Evidence** (somme des `reussis` / des `restants`), régénérée chaque jour à 4 h par le cron `maj_csv_suivi.sh`. Les deux marqueurs sont présents en 3 endroits du HTML (« En ce moment », « Avancement du mémoire », carte « Runs ») ; ne pas écrire ces chiffres à la main dans la passe éditoriale.
 
 ## Étape 2 — Passe éditoriale (seulement si nécessaire)
 

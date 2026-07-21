@@ -5,7 +5,6 @@
 import os
 import re
 import sqlite3
-import unicodedata
 from flask import Flask, Response, jsonify, request, send_file
 from flask_cors import CORS
 import pandas as pd
@@ -174,45 +173,18 @@ def evolution():
     return Response(df.to_csv(index=False), mimetype="text/plain")
 
 
-def sans_accents(texte):
-    return unicodedata.normalize("NFD", texte).encode("ascii", "ignore").decode()
-
-
-def serie_sommee(conn, gram, date_min, date_max):
-    # somme les graphies avec/sans accents (l'OCR a créé des doublons type "président"/"president")
-    morceaux = []
-    for forme in {gram, sans_accents(gram)}:
-        tokens = tokeniser(forme)
-        if 1 <= len(tokens) <= 3:
-            df = serie(conn, tokens, date_min, date_max)
-            if len(df):
-                morceaux.append(df)
-    if not morceaux:
-        return pd.DataFrame({"date": [], "n": []})
-    return pd.concat(morceaux).groupby("date", as_index=False)["n"].sum()
-
-
-def moments_grille(pmf, k):
-    # moyenne, écart-type, Var/Moy, skewness, kurtosis (excès) d'une loi discrète (pmf sur k)
-    m = float((k * pmf).sum())
-    v = float(((k - m) ** 2 * pmf).sum())
-    return [m, v ** 0.5, v / m if m else None,
-            float(((k - m) ** 3 * pmf).sum()) / v ** 1.5 if v else None,
-            float(((k - m) ** 4 * pmf).sum()) / v ** 2 - 3 if v else None]
-
-
 @app.route("/fiche")
 def fiche():
     # fiche statistique d'un mot : ajustements Poisson(lambda*N_t), NB(mu*N_t, r) et
     # mélange Bernoulli × NB décalée (« bnb »), p-valeurs, pics, moments et densités-mélange.
+    # Calculs délégués au module rupture (extraction unique + fonctions sur tableaux).
     # /fiche?mot=guerre&corpus=lemonde&from=2020&to=2024[&seuil=1e-4]
     import numpy as np
-    from scipy.stats import poisson, nbinom, skew, kurtosis, chi2 as loi_chi2
+    from scipy.stats import skew, kurtosis
     try:
-        from statsmodels.discrete.discrete_model import NegativeBinomial
+        from rupture import extraire as rext, pics as rp   # importe statsmodels (via rupture.pics)
     except ImportError:
         return "statsmodels manquant : pip install statsmodels dans le venv de l'API", 500
-    import warnings
 
     corpus = request.args.get("corpus", "lemonde")
     if corpus not in CORPUS:
@@ -226,15 +198,14 @@ def fiche():
     date_max = borne_date(request.args.get("to") or "2024", 1231)
     seuil = float(request.args.get("seuil", 1e-4))
 
-    conn = sqlite3.connect(f"file:{CORPUS[corpus]}?mode=ro", uri=True)
-    n_tokens = len(tokeniser(gram))
-    totaux = pd.read_sql_query(
-        f"SELECT date, total FROM total_{TABLE[n_tokens]} WHERE date BETWEEN ? AND ?",
-        conn, params=[date_min, date_max])
-    df = totaux.merge(serie_sommee(conn, gram, date_min, date_max), on="date", how="left")
-    conn.close()
-    df["n"] = df["n"].fillna(0).astype(int)
-    df = df[df["total"] > 0].sort_values("date")  # jours sans publication : hors modèle
+    # extraction unique via rupture (cache=False : bases MAJ chaque jour, l'API lit frais)
+    try:
+        d = rext.serie(gram, corpus, cache=False)
+    except ValueError as e:
+        return str(e), 404 if "inconnu de la base" in str(e) else 400
+    # fenêtre demandée puis jours de parution seulement (N_t = 0 : hors modèle)
+    d = d[(d["date"] >= date_min) & (d["date"] <= date_max)]
+    df = d[d["N_t"] > 0].sort_values("date").rename(columns={"X_t": "n", "N_t": "total"})
 
     if len(df) < 60:
         return f"période trop courte ({len(df)} jours avec publication) : fit trop fragile", 400
@@ -243,71 +214,39 @@ def fiche():
     if X.sum() == 0:
         return f"« {gram} » : aucune occurrence dans {corpus} sur la période", 404
 
-    lam = X.sum() / N.sum()                          # MLE Poisson (forme fermée)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        res = NegativeBinomial(X, np.ones((len(X), 1)), exposure=N).fit(disp=0, maxiter=300)
-    mu, r = float(np.exp(res.params[0])), float(1.0 / res.params[1])
+    # ajustements (fits=1 : comportement API inchangé) ; ajuster renvoie aussi les p-valeurs du jour
+    params_p, p_pois, _ = rp.ajuster(X, N, "poisson")   # -> lam
+    params_nb, p_nb, _ = rp.ajuster(X, N, "nb")         # -> mu, r
+    params_b, p_bnb, _ = rp.ajuster(X, N, "bnb")        # -> p0, mu_b, r_b
 
-    # troisième ajustement : mélange Bernoulli × binomiale négative décalée (« bnb »)
-    # X = 0 avec proba p0, sinon X = 1 + Z avec Z ~ NB(mu_b*N_t, r_b) (décision Simon, 20/07/2026)
-    p0 = float((X == 0).mean())
-    actifs = X >= 1                                  # jours à X >= 1 (le NB décalé porte sur ceux-là)
-    Ya, Na = X[actifs] - 1, N[actifs]
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        res_b = NegativeBinomial(Ya, np.ones((len(Ya), 1)), exposure=Na).fit(disp=0, maxiter=300)
-    mu_b, r_b = float(np.exp(res_b.params[0])), float(1.0 / res_b.params[1])
-
-    # test d'adéquation du chi² sur les résidus de Pearson : chaque jour est comparé
-    # à sa propre loi (N_t varie, impossible de binner un histogramme commun) ;
-    # ddl = jours - paramètres estimés (1 pour Poisson : lambda ; 2 pour la NB : mu, r)
+    # adéquation du chi² (résidus de Pearson, chaque jour comparé à sa propre loi) : on
+    # ne garde que chi2/ddl/p pour le JSON (ratio et z internes à rupture sont écartés)
     adequation = {}
-    for nom, m, v, k_estimes in (("poisson", lam * N, lam * N, 1),
-                                 ("nb", mu * N, mu * N + (mu * N) ** 2 / r, 2)):
-        stat = float(((X - m) ** 2 / v).sum())
-        ddl = len(X) - k_estimes
-        adequation[nom] = {"chi2": stat, "ddl": ddl, "p": float(loi_chi2.sf(stat, ddl))}
-    # chi² du mélange sur tous les jours (3 paramètres : p0, mu_b, r_b)
-    m_b = mu_b * N
-    v_nb = m_b + m_b ** 2 / r_b                      # variance du NB décalé jour par jour
-    E = (1 - p0) * (1 + m_b)                          # espérance et variance du mélange
-    V = (1 - p0) * (v_nb + (1 + m_b) ** 2) - E ** 2
-    stat = float(((X - E) ** 2 / V).sum())
-    adequation["bnb"] = {"chi2": stat, "ddl": len(X) - 3,
-                         "p": float(loi_chi2.sf(stat, len(X) - 3))}
+    for nom, params in (("poisson", params_p), ("nb", params_nb), ("bnb", params_b)):
+        a = rp.adequation(X, N, nom, params)
+        adequation[nom] = {"chi2": a["chi2"], "ddl": a["ddl"], "p": a["p"]}
 
-    p = nbinom.sf(X - 1, r, r / (r + mu * N))        # p_t = P(X >= X_t) sous la loi du jour
-    pics = df[p < seuil]
-    # p-valeur du jour sous le mélange (1.0 les jours à zéro)
-    p_bnb = np.where(actifs, (1 - p0) * nbinom.sf(X - 2, r_b, r_b / (r_b + mu_b * N)), 1.0)
+    # pics : jours dont p_t < seuil (série sous la NB pour « pics », sous le mélange pour « pics_bnb »)
+    pics = df[p_nb < seuil]
     pics_bnb = df[p_bnb < seuil]
 
-    # densités-mélange (moyenne des pmf sur les vrais N_t), par blocs pour borner la mémoire
-    k0 = 0 if X.max() < 3000 else max(0, int(X.min() * 0.6))
-    k1 = min(int(X.max() * 1.3) + 6, k0 + 30000)
-    k = np.arange(k0, k1)
-    pois_mix, nb_mix, bnb_mix = np.empty(len(k)), np.empty(len(k)), np.empty(len(k))
-    for debut in range(0, len(k), 2000):
-        bloc = k[debut:debut + 2000, None]
-        pois_mix[debut:debut + 2000] = poisson.pmf(bloc, (lam * N)[None, :]).mean(1)
-        nb_mix[debut:debut + 2000] = nbinom.pmf(bloc, r, (r / (r + mu * N))[None, :]).mean(1)
-        # k == 0 -> p0 ; k >= 1 -> (1-p0)*NB(k-1) moyennée sur les N_t
-        dens = (1 - p0) * nbinom.pmf(bloc - 1, r_b, (r_b / (r_b + mu_b * N))[None, :]).mean(1)
-        bnb_mix[debut:debut + 2000] = np.where(k[debut:debut + 2000] == 0, p0, dens)
+    # densités-mélange (moyenne des pmf sur les vrais N_t) ; même grille k pour les 3 lois
+    k, pois_mix = rp.densite(X, N, "poisson", params_p)
+    _, nb_mix = rp.densite(X, N, "nb", params_nb)
+    _, bnb_mix = rp.densite(X, N, "bnb", params_b)
 
     pas = max(1, len(k) // 800)                      # ~800 points suffisent pour le tracé
     return jsonify({
         "mot": gram, "corpus": corpus, "de": int(date_min), "a": int(date_max),
         "jours": len(df), "seuil": seuil,
-        "params": {"lambda": lam, "mu": mu, "r": r,
-                   "p0": p0, "mu_bnb": mu_b, "r_bnb": r_b},
+        "params": {"lambda": params_p["lam"], "mu": params_nb["mu"], "r": params_nb["r"],
+                   "p0": params_b["p0"], "mu_bnb": params_b["mu_b"], "r_bnb": params_b["r_b"]},
         "adequation": adequation,
         "serie": {"date": df["date"].tolist(), "x": df["n"].tolist(),
-                  "total": df["total"].tolist(), "p": np.round(p, 8).tolist(),
+                  "total": df["total"].tolist(), "p": np.round(p_nb, 8).tolist(),
                   "p_bnb": np.round(p_bnb, 8).tolist()},
         "pics": [{"date": int(d), "x": int(x), "p": float(pv)}
-                 for d, x, pv in zip(pics["date"], pics["n"], p[p < seuil])],
+                 for d, x, pv in zip(pics["date"], pics["n"], p_nb[p_nb < seuil])],
         "pics_bnb": [{"date": int(d), "x": int(x), "p": float(pv)}
                      for d, x, pv in zip(pics_bnb["date"], pics_bnb["n"], p_bnb[p_bnb < seuil])],
         "hist": {"k": k[::pas].tolist(), "poisson": pois_mix[::pas].tolist(),
@@ -315,9 +254,9 @@ def fiche():
         "moments": {
             "observe": [float(X.mean()), float(X.std()), float(X.var() / X.mean()),
                         float(skew(X)), float(kurtosis(X))],
-            "poisson": moments_grille(pois_mix, k),
-            "nb": moments_grille(nb_mix, k),
-            "bnb": moments_grille(bnb_mix, k),
+            "poisson": rp.moments_pmf(k, pois_mix),
+            "nb": rp.moments_pmf(k, nb_mix),
+            "bnb": rp.moments_pmf(k, bnb_mix),
         },
     })
 

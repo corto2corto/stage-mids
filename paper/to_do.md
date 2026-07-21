@@ -122,14 +122,14 @@ Constat (vocal de Simon) : les jours à zéro occurrence sont très fréquents e
 
 Forme paramétrique : $p\,\delta_0 + (1-p)\,(\mathrm{NB} + 1)$, avec $p$ la probabilité de zéro occurrence.
 
-- [ ] Séparer les jours à $X_t = 0$ des jours à $X_t \geq 1$ ; estimer $p$ = part des jours à zéro (Bernoulli).
-- [ ] Fiter la NB uniquement sur les jours à $X_t \geq 1$, sur $Y_t = X_t - 1$ (la NB commence à 0), toujours avec l'exposure $N_t$.
-- [ ] Ne **pas** supprimer purement les jours à zéro : ils restent dans le modèle via la Bernoulli (confirmé par Simon).
-- [ ] Y ajouter le double fit validé : retirer les outliers évidents (par ex. $p_t < 10^{-6}$), réajuster sur le reste.
-- [ ] Recalculer les $p$-valeurs des jours à $X_t \geq 1$ : sous le mélange, $p_t = (1-p)\,\mathbb{P}(\mathrm{NB} \geq X_t - 1)$ — à trancher avec Simon : surprise sous le mélange ou sous la NB conditionnelle aux jours actifs.
-- [ ] Vérifier sur les mots tests : covid doit enfin produire des pics ; les comptages des autres (guerre, mitterrand, chirac…) doivent rester du même ordre.
+- [x] Séparer les jours à $X_t = 0$ des jours à $X_t \geq 1$ ; estimer $p$ = part des jours à zéro (Bernoulli). **Fait** (`rupture/pics.py`, route `/fiche`).
+- [x] Fiter la NB uniquement sur les jours à $X_t \geq 1$, sur $Y_t = X_t - 1$ (la NB commence à 0), toujours avec l'exposure $N_t$. **Fait.**
+- [x] Ne **pas** supprimer purement les jours à zéro : ils restent dans le modèle via la Bernoulli (confirmé par Simon). **Fait.**
+- [x] Y ajouter le double fit validé : retirer les outliers évidents puis réajuster. **Fait et testé** (campagne du 20/07, `double_fit.pdf` : +54 pics, tous des événements réels).
+- [x] Recalculer les $p$-valeurs des jours à $X_t \geq 1$ : sous le mélange, $p_t = (1-p)\,\mathbb{P}(\mathrm{NB} \geq X_t - 1)$. **Tranché (21/07/2026)** : convention du mélange conservée ; seuil de détection $10^{-4}$ par défaut, outliers évidents à $10^{-6}$ par défaut pour le refit.
+- [x] Vérifier sur les mots tests : **fait** (fiches_bnb.pdf, 20 mots) — χ²/ddl amélioré ou égal presque partout, internet débloqué (4 → 24 pics) ; covid reste à 0 pic (sa vie active est une vague unique : relève de l'étape 4), les autres comptages restent du même ordre.
 
-Le seuil reste $10^{-4}$ fixe (cf. arbitrage dans « Nouveautés / Moyen »).
+Pipeline final câblé dans `rupture/` (21/07/2026) : `extraire` (mécanisme unique, aussi utilisé par l'API) → `serie` → `pics` (loi et nombre de fits paramétrables) → `fenetres`.
 
 ### 3. Construire le dataset de sauts
 
