@@ -1,13 +1,15 @@
 """Construction initiale des listes d'URLs d'articles (une par media, CSV).
 
-- generique.py : moteur des cas standard, pilote par les fiches de catalogue.py
+- generique.py : le moteur — 5 methodes de collecte (IndexSitemap,
+  SitemapPagine, PaginationHtml, ArchivesParJour, CdxWayback), sortie CSV
+  en append+dedup (jamais d'ecrasement)
     python -m mapping.generique <media>
-- <media>.py : scripts dedies aux sites irreductibles (CDX Wayback, Selenium,
-  archives par jour, pagination par rubrique)
-    python -m mapping.cnews, mapping.ouest_france, ...
-- mapper_liens.py : agent pour les sites sans sitemap exploitable
-- lancer.sh / lancer_speciaux.sh : enchainements serveur (tmux dedie)
-- verifier.py / verifier_speciaux.py : smoke tests des mappings
+- catalogue.py : une fiche de config par media (23 medias)
+- mapper_liens.py : agent pour les sites sans sitemap exploitable (a part)
+- lancer.sh : enchainement serveur (tmux dedie)
+    bash mapping/lancer.sh gala bfmtv cnews ...
+- verifier.py : controles a sec (--sec, sans reseau) + smoke tests dans un
+  dossier temporaire (les CSV de prod ne sont jamais touches)
 
 Les CSV produits restent dans exploration/<media>_url.csv (donnees, hors git).
 La mise a jour QUOTIDIENNE des CSV (sitemaps news) vit dans scripts/ :
