@@ -14,8 +14,7 @@ stage-mids/
 ├── scripts/        # scripts serveur : init de la base (1 à 4), bases ngram, suivi, lancer.sh
 ├── api/            # API Flask type Gallicagram (courbes ngram) + front
 ├── site/           # dashboard de suivi Evidence, publié sur GitHub Pages
-├── exploration/    # prototypes, diagnostics, détail des métadonnées par média
-├── notebooks/      # notebooks d'analyse
+├── exploration/    # prototypes, diagnostics, détail des métadonnées par média (dont notebooks/)
 └── extensions/     # extensions Firefox (.xpi) — présentes sur le serveur
 ```
 

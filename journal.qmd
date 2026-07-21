@@ -672,7 +672,7 @@ jours. On branche donc une collecte quotidienne qui alimente `urls.db` toute
 seule, sans reconstruction. Deux briques, chacune réexécutable sans risque
 (déduplication, jamais de réécriture) :
 
-- [`sitemap_news.py`](exploration/sitemap_news.py) : chaque média expose un
+- [`sitemap_news.py`](scripts/sitemap_news.py) : chaque média expose un
   *sitemap news* qui ne liste que ses articles récents (fenêtre ~48 h). On le
   lit et on ajoute au CSV d'URLs du média les liens qui y manquent. La config
   vient de la reco des `robots.txt` des médias (07/07) ; quelques cas
@@ -680,7 +680,7 @@ seule, sans reconstruction. Deux briques, chacune réexécutable sans risque
   bloque l'empreinte TLS de `requests` → `curl` (les_echos, le_telegramme),
   anti-bots stricts → empreinte Chrome de `curl_cffi` (nice_matin, jdd,
   sud_ouest).
-- [`verser_nouveaux.py`](exploration/verser_nouveaux.py) : verse ces URLs en
+- [`verser_nouveaux.py`](scripts/verser_nouveaux.py) : verse ces URLs en
   base en `INSERT OR IGNORE`, l'index unique `(media, url)` écartant les déjà
   connues. Idempotent : reverser deux fois ne crée aucun doublon.
 
@@ -692,7 +692,7 @@ la fenêtre news fait ~48 h, un cycle raté est rattrapé le lendemain.
 
 Les médias cartographiés en mai-juin puis mis en pause avaient un trou entre la
 fin de leur mapping et le branchement de la collecte news.
-[`rattrapage_sitemaps.py`](exploration/rattrapage_sitemaps.py) le comble en
+[`rattrapage_sitemaps.py`](scripts/rattrapage_sitemaps.py) le comble en
 one-shot : il reparcourt les sitemaps d'articles de chaque média mais ne
 télécharge que les sous-sitemaps susceptibles de couvrir mars 2026 →
 aujourd'hui (via le `lastmod` de l'index, sinon la date dans l'URL du
@@ -791,7 +791,7 @@ Le site de suivi gagne une page **Collecte des sitemaps** : une barre par
 jour (bleu = passage du matin 5h40 UTC, orange = après-midi 17h40, empilés)
 des nouvelles URLs trouvées, et un tableau du détail par passage.
 
-- [`sitemap_news.py`](exploration/sitemap_news.py) consigne désormais chaque
+- [`sitemap_news.py`](scripts/sitemap_news.py) consigne désormais chaque
   passage dans `data/suivi_sitemaps.csv` (un relevé par média : URLs vues,
   ajoutées) ;
 - [`maj_csv_suivi.sh`](scripts/maj_csv_suivi.sh) copie ce journal vers les
@@ -843,9 +843,9 @@ Deux médias de la prospection du 07/07 entrent en production (dossiers dans
 **cnews** (json-ld, corps `div.article-body`) et **20minutes** (corps json-ld).
 
 - **Rattrapage avant versement** — les mappings sont désormais relançables :
-  [`mapping_cnews.py`](exploration/mapping_cnews.py) passe en append+dédup
+  [`mapping_cnews.py`](mapping/cnews.py) passe en append+dédup
   (re-balayage obligatoire, sitemap non trié par date) et
-  [`mapping_20minutes.py`](exploration/mapping_20minutes.py) prend les années
+  [`mapping_20minutes.py`](mapping/vingt_minutes.py) prend les années
   en argument. cnews : +562 URLs (fenêtre 07→14/07) → **357 990**. 20minutes :
   +18 996 URLs 2026, puis un **trou 2022-2025 découvert par l'audit** (le
   mapping du 07/07 s'était interrompu à 2021 sans le signaler) et comblé dans
@@ -866,7 +866,7 @@ Deux médias de la prospection du 07/07 entrent en production (dossiers dans
   (357 990 + 839 923, zéro écartée), scrapping mis en pause pendant
   l'opération puis relancé.
 - Les deux rejoignent la collecte news quotidienne
-  ([`sitemap_news.py`](exploration/sitemap_news.py)) : 20minutes via son
+  ([`sitemap_news.py`](scripts/sitemap_news.py)) : 20minutes via son
   `sitemap-news.xml` (~48 h), cnews via le `googlenews.xml` déclaré dans son
   robots.txt (~5 jours, via_cffi car Cloudflare bloque curl — la reco du
   07/07 l'avait raté pour ça, `/videos/` exclues). Plus aucun média branché
