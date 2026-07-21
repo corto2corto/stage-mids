@@ -974,3 +974,36 @@ purifiée. Testé sur 20 mots, 26 917 jours (1944-2025) —
 - Limite confirmée : covid reste à 0 pic, ses outliers formant une ère
   entière plutôt que des jours isolés — hors de portée du double fit,
   toujours du ressort de l'étape 4 (modèle autorégressif).
+
+## Le mapping regroupé en un module (2026-07-21)
+
+Le *mapping*, c'est l'étape qui dresse, pour chaque journal, la liste de
+toutes les URLs de ses articles — le point de départ, avant de les scrapper.
+Comme chaque site a sa structure, cette étape avait accumulé une quinzaine de
+scripts éparpillés dans `exploration/`, un par journal, qui se ressemblaient
+beaucoup : même plomberie, seule la façon de dénicher les URLs changeait.
+
+Tout est désormais réuni dans un module [`mapping/`](mapping/), bâti comme
+[`scraping/`](scraping/) : d'un côté **les méthodes** (le code commun, dans
+[`generique.py`](mapping/generique.py)), de l'autre **la configuration** (une
+fiche par journal dans [`catalogue.py`](mapping/catalogue.py)). Ajouter un
+journal revient à écrire une fiche, plus un script à maintenir.
+
+- **Cinq méthodes** couvrent tous les cas rencontrés : sitemap indexé,
+  sitemap paginé, pagination HTML, archives jour par jour, et l'API
+  d'archives de la Wayback Machine (pour les sites verrouillés, type
+  DataDome, inaccessibles autrement). Les dix scripts par journal se sont
+  résorbés dans ces cinq méthodes, chaque particularité devenant une option
+  de fiche.
+- **Sécurité des données** : la sortie passe en *ajout + déduplication* — on
+  n'ajoute au CSV que les URLs manquantes, sans jamais réécrire l'existant.
+  Une reprise après interruption ne perd rien, et deux mappings peuvent
+  nourrir le même fichier (ex. Libération récent via son sitemap + ses
+  archives via la Wayback).
+- Bilan : 18 fichiers ramenés à 6, validés par 52 tests rapides sur le
+  serveur (chacun écrivant dans un dossier temporaire) ; les 34 CSV de
+  production sont restés intacts à l'octet près.
+
+Au passage, le pipeline quotidien (collecte des sitemaps *news*) a quitté
+`exploration/` pour [`scripts/`](scripts/) : ces fichiers tournent tous les
+jours par cron, ils n'avaient pas leur place dans un dossier d'essais.
