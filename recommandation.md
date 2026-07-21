@@ -129,16 +129,12 @@ tentatives) plutôt que de continuer à griller des URLs.
   utilisé — le pipeline ne se sert que des clés. `SELECT DISTINCT media` dirait ce qu'on
   fait vraiment et éliminerait la bizarrerie.
 - **pipeline.py** : la ligne morte `# charger_nouvelles_urls(conn)` (et la fonction) sont
-  supplantées par `exploration.verser_nouveaux` — à supprimer pour éviter qu'un futur
+  supplantées par `scripts.verser_nouveaux` — à supprimer pour éviter qu'un futur
   lecteur les réactive par erreur.
 - **.gitignore** : `identifiants.json` n'est protégé que par la règle générale `*.json`.
   Or ce fichier a déjà des exceptions (`!site/package.json`). Ajouter une ligne explicite
   `identifiants.json` : si un jour quelqu'un ré-autorise les .json pour un besoin de
   config, les identifiants ne partiront pas avec.
-- **Nom en double** : `exploration/medias.py` (catalogue de mapping) et
-  `scraping/medias.py` (registre des moteurs) portent le même nom pour deux rôles
-  différents — risque d'import du mauvais. Renommer côté exploration
-  (ex. `catalogue_mapping.py`) lèverait l'ambiguïté.
 
 ## 5. Ce que je ne ferais PAS
 

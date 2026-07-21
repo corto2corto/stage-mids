@@ -1,5 +1,5 @@
 """Verse dans urls.db les URLs des CSV absentes de la base, média par média.
-Étape « nourrir la base » du pipeline quotidien (après exploration.sitemap_news
+Étape « nourrir la base » du pipeline quotidien (après scripts.sitemap_news
 qui remplit les CSV), et resynchronisation à la demande.
 
 S'appuie sur l'index UNIQUE (media, url) : chaque URL du CSV est proposée en
@@ -18,14 +18,14 @@ instantanément les connues, sans relire toute la table. Conséquences :
 Pas de sauvegarde automatique (le quotidien n'ajoute que des lignes ignorées
 si connues) : pour un gros versement ponctuel, sauvegarder la base avant.
 
-    python -m exploration.verser_nouveaux            # tous les médias
-    python -m exploration.verser_nouveaux le_figaro  # un seul
+    python -m scripts.verser_nouveaux            # tous les médias
+    python -m scripts.verser_nouveaux le_figaro  # un seul
 """
 import csv
 import sys
 from pathlib import Path
 
-from exploration.collecte import est_non_article, url_article
+from scripts.collecte import est_non_article, url_article
 from scraping.medias import MEDIAS
 from scraping.stockage import DATA_DIR
 import sqlite3
