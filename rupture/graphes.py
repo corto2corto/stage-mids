@@ -1,12 +1,20 @@
-"""Plot optionnel : planche des fenetres d'un mot, meme langage visuel que /fiche-mot."""
+"""Briques graphiques : fiche express d'un mot, planche des fenetres.
+
+Meme langage visuel que /fiche-mot (palette de rapport_lib) ; les fonctions
+prennent des donnees deja calculees (serie enrichie, densite) — le calcul
+reste dans pics.py.
+"""
 import math
+import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
-# palette de rapport_lib
+# palette de rapport_lib (+ vert Bern-NB des fiches)
 BLEU, ROUGE, GRILLE, ENCRE2, AXE = "#2a78d6", "#e34948", "#e1e0d9", "#52514e", "#c3c2b7"
+GRIS, ORANGE, VERT = "#c9ced6", "#eb6834", "#2f9e6e"
 
 plt.rcParams.update({
     "font.family": "sans-serif",
@@ -16,6 +24,44 @@ plt.rcParams.update({
     "xtick.color": ENCRE2, "ytick.color": ENCRE2,
     "axes.spines.top": False, "axes.spines.right": False,
 })
+
+
+def fiche(d, k, pmf, loi, titre, chemin):
+    """Fiche express : serie f_t + pics, histogramme vs loi ajustee, p-valeurs."""
+    X = d["X_t"].to_numpy(float)
+    coul = {"poisson": ORANGE, "nb": BLEU, "bnb": VERT}[loi]
+    fig = plt.figure(figsize=(10, 5.8))
+    ax = fig.add_subplot(2, 1, 1)
+    ax.plot(d["dt"], d["f_t"], lw=.4, color=GRIS)
+    mm = d["f_t"].rolling(7, center=True, min_periods=1).mean()
+    ax.plot(d["dt"], mm, lw=1.1, color=BLEU)
+    pics = d[d["p_t"] < 1e-4]
+    ax.scatter(pics["dt"], pics["f_t"], s=12, color=ROUGE, zorder=3)
+    ax.set_ylabel("$f_t$ (pour 100 000 mots)")
+    ax.set_ylim(0, d["f_t"].max() * 1.12)
+    ax.margins(x=0)
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.set_title(titre, fontsize=10, color=ENCRE2)
+
+    a1 = fig.add_subplot(2, 2, 3)
+    a1.hist(X, bins=np.arange(0, k[-1] + 2) - 0.5, density=True, color=GRIS)
+    a1.plot(k, pmf, color=coul, lw=1.6)
+    a1.set_xlim(-0.5, np.percentile(X, 99.5) + max(3, int(0.05 * X.max())))
+    a1.set_xlabel("$X_t$ (occurrences/jour)")
+    a1.set_ylabel("densité")
+
+    a2 = fig.add_subplot(2, 2, 4)
+    p = d.loc[d["X_t"] >= 1, "p_t"] if loi == "bnb" else d["p_t"]
+    a2.hist(p, bins=20, range=(0, 1), density=True, color=GRIS)
+    a2.axhline(1, color=ENCRE2, lw=1, ls="--")
+    a2.set_xlabel("$p_t$" + (" (jours actifs)" if loi == "bnb" else ""))
+
+    for a in (ax, a1, a2):
+        a.grid(True, axis="y", lw=.5, color=GRILLE)
+        a.set_axisbelow(True)
+    fig.tight_layout()
+    fig.savefig(chemin, bbox_inches="tight", dpi=200)
+    plt.close(fig)
 
 
 def planche(fen, slug, chemin, ncol=5):

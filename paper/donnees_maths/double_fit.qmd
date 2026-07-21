@@ -1,0 +1,93 @@
+---
+title: "Double fit Bern-NB — campagne de tests"
+subtitle: "20 mots dans *Le Monde*, 1944–2025 (26 917 jours) — 20/07/2026"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2cm
+      y: 1.6cm
+    fontsize: 10pt
+    toc: false
+---
+
+## Méthode
+
+Le double fit (validé par Simon) : ajuster la Bern-NB, **retirer les jours
+« évidents »** ($p_t <$ seuil évident), **réajuster** la NB des jours actifs
+sur le reste, recalculer toutes les $p$-valeurs sous la loi réajustée. $p_0$
+reste inchangée (un jour à zéro n'est jamais un outlier). Trois seuils
+« évident » testés à un tour ($10^{-5}$, $10^{-6}$, $10^{-7}$), plus une
+version itérée à $10^{-6}$ jusqu'à convergence (max 6 tours). Les pics sont
+comptés à $p_t < 10^{-4}$ ; la calibration est le χ²/ddl du mélange final sur
+les jours conservés (le bulk). Script : `exploration/double_fit_campagne.py`.
+
+## Résultats par mot
+
+| Mot | Simple | Un tour @$10^{-5}$ | @$10^{-6}$ | @$10^{-7}$ | Itéré @$10^{-6}$ | Tours | χ²/ddl bulk |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| guerre | 141 | 164 | 149 | 145 | 152 | 4 | 1,40 |
+| retraite | 96 | 117 | 111 | 108 | 115 | 5 | 1,35 |
+| président | 76 | 82 | 81 | 79 | 82 | 4 | 1,07 |
+| terrorisme | 55 | 62 | 55 | 55 | 55 | 2 | 1,36 |
+| climat | 53 | 54 | 54 | 54 | 54 | 4 | 1,16 |
+| grève | 51 | 59 | 57 | 56 | 57 | 2 | 1,26 |
+| Mitterrand | 37 | 42 | 40 | 39 | 40 | 3 | 1,28 |
+| attentat | 31 | 33 | 32 | 31 | 32 | 2 | 1,18 |
+| gouvernement | 29 | 30 | 29 | 29 | 29 | 2 | 1,16 |
+| cancer | 29 | 34 | 32 | 30 | 34 | 3 | 1,26 |
+| Chirac | 26 | 30 | 30 | 29 | 30 | 3 | 1,10 |
+| internet | 24 | 30 | 28 | 26 | 28 | 2 | 1,05 |
+| économie | 24 | 29 | 27 | 26 | 27 | 2 | 1,10 |
+| Europe | 21 | 21 | 21 | 21 | 21 | 2 | 1,07 |
+| chômage | 20 | 20 | 20 | 20 | 20 | 2 | 1,12 |
+| sida | 20 | 20 | 20 | 20 | 20 | 2 | 1,21 |
+| immigration | 18 | 21 | 19 | 18 | 19 | 2 | 1,15 |
+| inflation | 16 | 17 | 16 | 16 | 16 | 2 | 1,07 |
+| Ukraine | 14 | 15 | 14 | 14 | 14 | 1 | 1,25 |
+| covid | 0 | 0 | 0 | 0 | 0 | 1 | 1,04 |
+| **Total** | **781** | **880** | **835** | **816** | **845** | — | — |
+
+## Sensibilité au seuil et itération
+
+La direction est robuste : quel que soit le seuil, le double fit ajoute des
+pics (+35 à +99, soit +4 % à +13 %), n'en retire à aucun mot, et laisse
+inchangés les mots sans jours extrêmes (chômage, sida, Europe) comme covid
+(zéro jour « évident » sous une loi déjà large : ses outliers sont une ère,
+pas des jours — le double fit n'y peut rien, c'est le rôle de l'étape 4).
+L'itération converge vite (2 à 5 tours) mais gagne peu (+10 pics par rapport
+à un tour). La calibration du bulk reste bonne partout (1,04–1,40).
+
+## Les pics gagnés sont des événements réels
+
+Presque toutes les dates gagnées (@$10^{-6}$, un tour) s'identifient :
+
+- **retraite** (+15) : ordonnance de la retraite à 60 ans (27/03 et
+  30/04/1982), réforme Woerth (13/04 et 28/10/2010), grèves de la réforme
+  Philippe (12/12/2019, 6–7/01/2020), mobilisation contre la réforme Borne
+  (31/01/2023), plus des dates 1945–2006 à confirmer.
+- **guerre** (+8) : fin de la Seconde Guerre mondiale (janvier–juin 1945),
+  guerre du Golfe (08/02/1991), invasion de l'Ukraine (16 et 23/03/2022).
+- **grève** (+6) : grèves insurrectionnelles de 1947 (juin, octobre), mineurs
+  de 1948 (22/10) et de 1963 (11/03).
+- **Chirac** (+4) : démission de Matignon (27/08/1976), entre-deux-tours 2002
+  (04/05/2002), mort (26–27/09/2019).
+- **internet** (+4) : bulle internet (mars 1998, février/juin/septembre 2000).
+- **Mitterrand** (+3) : présidentielle 1965 (7 et 16/12), campagne 1974 (04/05).
+- **président** (+5) : dont le lendemain de l'élection de Mitterrand
+  (12/05/1981) ; autres dates (1956, 1958, 1964, 1991) plausibles, à confirmer.
+- **climat** (+1) : grève mondiale pour le climat (15/03/2019).
+- **immigration** (+1) : débat de la loi CESEDA (18/05/2006).
+- économie, cancer, attentat : dates plausibles, à identifier au besoin.
+
+## Verdict
+
+Le double fit fait exactement ce qu'il promet : en retirant les jours
+extrêmes de l'estimation, il allège la queue de la loi ($r_b$ remonte de
+quelques pourcents) et révèle des **événements moyens réels** qui étaient
+masqués par la contamination — sans aucun effet de bord sur les mots sains.
+Recommandation : l'adopter dans le pipeline de détection, **un tour au seuil
+$10^{-6}$** (l'itération gagne peu ; $10^{-5}$ est plus agressif, au choix de
+Simon). Pipeline final proposé : Bern-NB → retrait des $p_t < 10^{-6}$ →
+refit → $p$-valeurs définitives, pics à $10^{-4}$.

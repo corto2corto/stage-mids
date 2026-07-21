@@ -5,6 +5,8 @@
 #
 # Usage (sur le Mac, depuis la racine du dépôt) : python3 -m scripts.maj_dashboard
 
+import csv
+import io
 import re
 import subprocess
 import sys
@@ -23,6 +25,7 @@ echo "=== date ==="; date +%s
 echo "=== tmux ==="; tmux ls 2>/dev/null || echo "(aucune session)"
 echo "=== process python ==="; ps -eo pid,etime,%cpu,%mem,args | grep "[p]ython" | grep -v vscode-server
 echo "=== bases ==="; ls -l --time-style=+%s /data/elias/stage-mids/data/corpus/*.db /data/elias/stage-mids/data/urls.db 2>/dev/null
+echo "=== avancement ==="; cat /data/elias/stage-mids/site/sources/suivi/avancement.csv 2>/dev/null
 echo "=== disque ==="; df -h /data | tail -1
 echo "=== pane scrapping ==="; tmux capture-pane -p -t scrapping 2>/dev/null | grep -v "^$" | tail -12
 echo "=== pane build ==="; tmux capture-pane -p -t build 2>/dev/null | grep -v "^$" | tail -8
@@ -70,6 +73,13 @@ def remplacer(html, motif, remplacement, quoi):
     return html
 
 
+def remplacer_tous(html, motif, remplacement, quoi):
+    html, n = re.subn(motif, remplacement, html)
+    if n == 0:
+        print(f"ATTENTION : « {quoi} » non injecté (aucune occurrence du motif)")
+    return html
+
+
 # --- Relevé ---
 print("Relevé de l'état du serveur (ssh gallica, lecture seule)…", file=sys.stderr)
 resultat = subprocess.run(["ssh", "gallica", COMMANDE_SSH], capture_output=True, text=True, timeout=60)
@@ -107,11 +117,29 @@ for nom in bases_html:
     html = remplacer(html, rf'(data-taille="{nom}">)[^<]*(</td>)', rf"\g<1>{taille_fr(octets)}\g<2>", f"taille {nom}")
     html = remplacer(html, rf'(data-ecriture="{nom}">)[^<]*(</td>)', rf"\g<1>{date_fr(mtime, maintenant)}\g<2>", f"écriture {nom}")
 
+# --- Articles collectés + file d'attente (même source que le site Evidence :
+#     avancement.csv, régénéré chaque jour depuis urls.db par le cron du serveur) ---
+articles_txt = None
+lignes_csv = [l for l in sections.get("avancement", "").splitlines() if l.strip()]
+if len(lignes_csv) > 1:
+    lignes = list(csv.DictReader(io.StringIO("\n".join(lignes_csv))))
+    reussis = sum(int(x["reussis"]) for x in lignes)
+    restants = sum(int(x["restants"]) for x in lignes)
+    articles_fr = f"{reussis:,}".replace(",", " ")
+    file_fr = f"{restants / 1e6:.1f}".replace(".", ",") + " M"
+    html = remplacer_tous(html, r"(<span data-articles>)[^<]*(</span>)", rf"\g<1>{articles_fr}\g<2>", "articles collectés")
+    html = remplacer_tous(html, r"(<span data-file>)[^<]*(</span>)", rf"\g<1>{file_fr}\g<2>", "file d'attente")
+    articles_txt = f"{articles_fr} articles collectés · {file_fr} en file"
+else:
+    print("ATTENTION : avancement.csv illisible sur le serveur — nombre d'articles inchangé")
+
 DASHBOARD.write_text(html)
 
 # --- Résumé pour la passe éditoriale ---
 print(f"Dashboard mis à jour : {heure} (heure de Paris)")
 print(f"Disque /data : {utilise} / {total} ({pct} %)")
+if articles_txt:
+    print(f"Articles : {articles_txt}")
 non_affichees = sorted(set(bases_serveur) - set(bases_html))
 if non_affichees:
     print(f"Bases sur le serveur non affichées : {', '.join(non_affichees)}")

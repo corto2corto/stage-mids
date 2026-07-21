@@ -871,3 +871,106 @@ Deux médias de la prospection du 07/07 entrent en production (dossiers dans
   robots.txt (~5 jours, via_cffi car Cloudflare bloque curl — la reco du
   07/07 l'avait raté pour ça, `/videos/` exclues). Plus aucun média branché
   sans source de nouvelles URLs, sauf francesoir.
+
+## Phase 2 — détection des pics revue : mélange Bernoulli × NB (2026-07-20)
+
+La phase 2 du mémoire (classification des sauts) demande un gros dataset de
+pics : pour chaque couple (mot, jour anormal), une fenêtre de la série sur
+±15 jours, destinée à une PCA (« modèle zéro »). Nouvelles briques dans
+`rupture/` (série → pics → fenêtres), testées d'abord sur quelques mots
+2020-2024, puis sur 10 mots sur toute la profondeur de la base Le Monde
+(1944-2025, 26 917 jours de parution).
+
+### Ce que les tests ont montré
+
+- La période longue démultiplie les pics : chômage passe de 2 pics
+  (2020-2024) à 21, guerre de 2 à 148. Le volume visé (~100 000 fenêtres sur
+  10 000 mots) est atteignable sans toucher au seuil.
+- Le nombre de pics varie fortement selon les mots (guerre 148, chirac 25).
+  Arbitrage de Simon : c'est *by design*, le seuil fixe $10^{-4}$ est
+  objectif ; pas de règle de proportion, Benjamini-Hochberg noté pour plus
+  tard, double fit (retirer les outliers évidents puis réajuster) validé.
+- **Le vrai problème : les zéros structurels.** covid a 92 % de jours à
+  zéro (le mot n'existe pas avant 2020). Une NB unique doit couvrir à la
+  fois les zéros et les explosions ; son seul bouton est de gonfler sa
+  variance ($\hat r = 0{,}02$) : elle devient une « loterie » qui s'attend à
+  tout, plus rien n'est surprenant, zéro pic détecté. Piège de diagnostic :
+  cette loi n'est pas rejetée par le χ² (χ²/ddl = 0,49 — loi *trop large*,
+  invisible pour un test unilatéral).
+
+### La réponse : le mélange Bernoulli × NB décalée (décision Simon, vocal du 20/07)
+
+Deux questions séparées au lieu d'une loi unique : « le mot apparaît-il
+aujourd'hui ? » (Bernoulli, probabilité $p_0$ d'un jour à zéro) et
+« sachant qu'il apparaît, combien de fois ? » (NB ajustée sur $X_t - 1$,
+jours actifs seulement). La raison profonde du succès : **l'estimation se
+sépare** — les jours à zéro n'informent que $p_0$, les jours actifs
+n'informent que la loi de comptage. Les décennies de silence ne contaminent
+plus le fit, et la surprise redevient « surprenant par rapport aux jours où
+le mot vit », pas par rapport à une moyenne diluée par l'absence.
+
+### Validation sur 20 mots (`paper/donnees_maths/fiches_bnb.pdf`)
+
+Trois lois comparées (Poisson, NB, Bern-NB) sur la série complète : χ² de
+Pearson jour par jour, résidus, moments, histogrammes.
+
+- Mots sans zéros (guerre, gouvernement, président…) : Bern-NB ≈ NB, rien
+  ne change — la nouvelle loi ne coûte rien.
+- Mots à zéros (ukraine 74 %, sida 70 %, cancer 52 %…) : χ²/ddl s'améliore
+  nettement (ukraine 1,63 → 1,25).
+- **internet, le cas démonstratif** : la NB dégénérée ne voyait que 4 pics ;
+  Bern-NB en trouve 24, qui dessinent la bulle internet 1999-2001. La
+  détection sur les néologismes à vie stable est débloquée.
+- **covid : réparé à moitié.** Le fit devient sain (χ²/ddl 0,49 → 1,04,
+  quasi idéal) mais toujours 0 pic : sa période active est elle-même une
+  vague géante (2020-21 puis décrue), jamais un régime stable. Limite
+  restante et identifiée : ces mots-là relèvent de l'étape 4 (modèle
+  autorégressif — un « normal » qui bouge avec le temps).
+- **Piège méthodologique découvert** : le test du χ² est unilatéral, il ne
+  rejette que les lois trop étroites. La NB-loterie de covid (χ²/ddl = 0,49)
+  ou d'internet (0,65) ressortait « non rejetée » tout en étant fausse — une
+  loi trop *large* passe entre les mailles. Juger sur le ratio (≈ 1 idéal),
+  jamais sur le verdict seul.
+- **Angle mort restant** : Chirac et Mitterrand sont mal ajustés sous les
+  trois lois (χ²/ddl ≈ 2,4-2,8). Leur problème n'est pas les zéros mais la
+  dérive séculaire de leur fréquence (carrière politique), et leurs zéros
+  sont concentrés dans les époques creuses alors que la Bernoulli suppose
+  $p_0$ constante. Deuxième argument pour l'étape 4.
+- Total des pics sur les 20 mots : 905 (NB) → 781 (Bern-NB). Baisse saine :
+  les pics perdus ne devaient leur surprise qu'à la dilution par les zéros,
+  les pics gagnés (internet) sont réels.
+- Reste à trancher avec Simon : la convention de p-valeur sous le mélange
+  (plafonnée à $1-p_0$ pour les jours actifs) ou conditionnelle aux jours
+  actifs — ça change les comptages des mots très zéro-inflatés.
+
+### Outillage
+
+- Route [`/fiche`](api/app.py) : troisième ajustement ajouté, purement
+  additif ($p_0$, $\mu_b$, $r_b$, p-valeurs `p_bnb`, `pics_bnb`,
+  `adequation.bnb`, densité et moments) — le front existant est intact.
+- [`fiches_bnb.py`](paper/donnees_maths/fiches_bnb.py) → `fiches_bnb.pdf`
+  (synthèse + une page par mot) + CSV récapitulatif machine.
+- Prochaine étape : câbler la Bern-NB dans les briques `rupture/`, puis la
+  NMS (dédoublonnage des fenêtres qui se recouvrent).
+
+## Double fit Bern-NB : purger les outliers avant de réestimer le bruit (2026-07-20)
+
+Suite du mélange Bernoulli × NB : la loi de fond reste estimée sur *tous* les
+jours actifs, y compris les pics eux-mêmes, qui la tirent vers le haut et la
+rendent trop tolérante — des pics plus modestes mais réels passent alors
+inaperçus. Le double fit (validé par Simon) corrige ça : ajuster la Bern-NB,
+retirer les jours « évidents » ($p_t$ sous un seuil très strict), réajuster la
+NB sur le reste (le bulk), recalculer toutes les p-valeurs sous cette loi
+purifiée. Testé sur 20 mots, 26 917 jours (1944-2025) —
+[`paper/donnees_maths/double_fit.qmd`](paper/donnees_maths/double_fit.qmd).
+
+- Le double fit **ajoute toujours** des pics (+4 % à +13 % selon le seuil),
+  n'en retire jamais, et laisse intacts les mots sans jours extrêmes. Les
+  pics gagnés correspondent à de vrais événements (réforme des retraites,
+  fin de la Seconde Guerre mondiale, mort de Chirac…) — pas un artefact.
+- Une version itérée (retirer/réajuster en boucle jusqu'à convergence)
+  gagne peu par rapport à un seul tour : retenu pour la suite, **un tour au
+  seuil $10^{-6}$**.
+- Limite confirmée : covid reste à 0 pic, ses outliers formant une ère
+  entière plutôt que des jours isolés — hors de portée du double fit,
+  toujours du ressort de l'étape 4 (modèle autorégressif).
