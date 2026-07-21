@@ -50,6 +50,18 @@ Remarques.
 
 ### Étape 3 : clusters d'activité anormale
 
+*(Ébauche à valider — cette section n'a jamais été rédigée.)*
+
+Un pic est rarement isolé : un jour aberrant est souvent entouré de jours eux aussi au-dessus du bulk, et l'étape 2 les compte comme autant de pics distincts alors qu'il s'agit d'un seul événement (typiquement le Covid, plusieurs semaines continues). L'objet naturel est donc la *période d'activité anormale*, pas le jour aberrant.
+
+Piste :
+
+- Fusionner en un même cluster les jours aberrants ($p_t < 10^{-4}$) séparés de moins de $g$ jours (trou toléré à régler, de l'ordre de quelques jours).
+- Caractériser chaque cluster : date de début, durée, jour de surprise maximale, surprise cumulée.
+- N'en retenir qu'un représentant, le jour de surprise maximale — c'est la NMS de la Phase 2 §4, en formulation « périodes » plutôt que « fenêtres qui se recouvrent ».
+
+Même objet que « passer des sauts isolés aux périodes d'activité anormale » (Pour plus tard), vu depuis la détection de pics. Reste à trancher : garder la période entière comme datapoint, ou seulement son pic.
+
 ### Étape 4 : séries temporelles ?
 
 Si ce qui précède ne fonctionne pas très bien, on pourrait ajouter un modèle autorégressif sur les paramètres. @Elias : il serait bien de tracer la fonction d'autocorrélation de $X_t$, ou plutôt de $f_t$ ; je m'attends fortement à observer des autocorrélations intéressantes dans $f_t$.
@@ -58,21 +70,7 @@ On ajusterait typiquement quelque chose comme $m_t = N_t \times e^{R_t}$ avec $R
 
 ## Nouveautés à intégrer (par ordre de difficulté)
 
-Cette section rassemble les pistes issues des échanges les plus récents, classées de la plus simple à la plus difficile à mettre en œuvre.
-
-### Facile
-
-- **Commencer par une loi de Poisson.** Avant la binomiale négative, ajuster mot par mot un modèle de Poisson, en veillant à faire scaler la moyenne avec la taille du corpus : fitter $\mathrm{Poisson}(\lambda N_t)$ et *non* $\mathrm{Poisson}(\lambda)$ (c'est la remarque de Benoît sur la normalisation par $N_t$).
-
-- **Batterie d'indicateurs et de graphes, pour 5 ou 6 mots.** Pour chaque mot, produire :
-  - moyenne / écart-type / asymétrie (skewness) / aplatissement (kurtosis) de la *série observée* ;
-  - les mêmes moments pour la *loi ajustée* ;
-  - le graphe histogramme des données *vs* densité de la loi ajustée (superposés) ;
-  - l'histogramme des $p$-valeurs de chaque observation.
-
-  Ces sorties suffisent déjà à bien réfléchir à la suite.
-
-- **Rappel sur la $p$-valeur.** Une fois le modèle ajusté, si $F$ est sa fonction de répartition, la $p$-valeur d'une observation $X$ est simplement $1 - F(X) = \mathbb{P}(\text{être} > X)$. Une $p$-valeur trop petite $\Rightarrow$ outlier.
+Cette section rassemble les pistes issues des échanges les plus récents, classées de la plus simple à la plus difficile à mettre en œuvre. (La loi de Poisson, la batterie d'indicateurs/graphes et le rappel sur la $p$-valeur — anciennement en « Facile » — sont désormais faits : loi paramétrable dans `pics.py`, indicateurs et graphes produits par `/fiche`.)
 
 ### Moyen
 
@@ -81,13 +79,6 @@ Cette section rassemble les pistes issues des échanges les plus récents, class
 - **Distinguer soigneusement le différentiel de la fréquence.** Difficulté observée : les pics négatifs semblent souvent n'être que le contrecoup d'un pic positif précédent (retour à la normale après une hausse), plutôt qu'une vraie censure. Deux pistes complémentaires :
   - passer à un modèle autorégressif d'ordre supérieur, AR(2) ou AR(3), pour absorber cet effet de rebond ;
   - garder à l'esprit qu'il est aussi possible qu'il n'y ait tout simplement pas de phénomène de censure sur les mots regardés.
-
-- **Rendre le choix du seuil « principled » plutôt qu'arbitraire.** Le seuil actuel (99,9 % ou 99 %) est arbitraire ; selon les mots, 97 % pourrait suffire. Objectif : déduire le seuil des données. Pistes :
-  - identifier le point où l'ajustement d'une loi devient « assez mauvais » (le bulk lisse de la distribution *vs* les points qui n'en font pas partie) ;
-  - transposer un critère d'outlier type distance de Cook, en l'adaptant aux données discrètes (comptages) ;
-  - construire un test statistique : estimer la loi *en éliminant* les outliers, puis tester si les occurrences suspectes sont « naturelles » sous cette loi.
-
-  **Tranché (échange Simon, 20/07/2026)** : le nombre de pics variable selon les mots (guerre 148, chirac 25 au seuil $10^{-4}$) n'est pas un problème — c'est by design, et c'est objectif là où une règle de proportion type « max 5 % » serait arbitraire. Benjamini–Hochberg : bonne idée, mais pas nécessaire pour le moment. Le double fit (retirer les outliers évidents puis réajuster, troisième piste ci-dessus) est validé.
 
 - **Cadrer outliers vs breakpoints.** Distinction à garder claire : pour l'instant on cherche des *outliers* (périodes courtes d'activité anormale : un jour, une semaine, un mois — typiquement le Covid), car c'est le plus simple et probablement déjà très significatif. La question des *breakpoints* (changement total et définitif de toute la distribution, typiquement un rachat comme Bolloré → JDD) viendra dans un second temps.
 
@@ -103,9 +94,9 @@ Cette section rassemble les pistes issues des échanges les plus récents, class
 
   Conséquence pratique : on observe des valeurs plus extrêmes sur un petit corpus (un hebdo) que sur un grand (un quotidien). Le modèle standard « mots i.i.d. » donnerait une loi binomiale à variance décroissant en $\sqrt{n}$ ; il n'existe pas de littérature sur la construction d'intervalles de confiance en lexicométrie. Piste suggérée : du **bootstrap** pour mesurer empiriquement le rythme de convergence.
 
-## Phase 2 : classification des sauts (échange Simon–Benoît, juillet 2026)
+## Phase 2 : classification des sauts (juillet 2026)
 
-Décision de Simon : arrêter de raffiner la détection de pics et avancer vite vers un POC de classification des sauts, qu'on raffinera ensuite. Les tâches ci-dessous sont dans l'ordre où les faire.
+Décision : arrêter de raffiner la détection de pics et avancer vite vers un POC de classification des sauts, qu'on raffinera ensuite. Les tâches ci-dessous sont dans l'ordre où les faire.
 
 ### 1. Corriger le plotting des points rouges — terminé (élucidé le 17/07/2026)
 
@@ -114,17 +105,17 @@ Sur certaines séries (ex. « chomage »), des pics au-dessus du seuil ne sont p
 - [x] Compter les points rouges sur plusieurs figures : **de 0 à 144 selon la fiche** (chomage 20, mitterrand 21, immigration 23, chirac 24, guerre 144, covid 0…). L'hypothèse du nombre fixe est fausse — plusieurs fiches autour de 20–25 ont donné cette impression.
 - [x] Chercher un cap dans le code : **aucun** — `fig_serie` (rapport_lib.py) colorie tous les jours avec $p_t < 10^{-4}$, vérifié en recalculant chomage (20 recalculés = 20 sur la fiche).
 - [x] Expliquer les pics 88–90 non rouges : **la figure montre $f_t$ mais la détection opère sur $(X_t, N_t)$**. Les pics visibles de 1988–90 sur chomage sont de deux sortes : des jours à corpus quasi vide ($N_t$ = 252 à 1 100 mots, 1 occurrence suffit à faire $f_t \approx 400$ pour 100 000, mais $p_t \approx 3 \times 10^{-2}$ — pas surprenant du tout sous la loi du jour) et des pics réels modérés ($X_t \approx 30$, $p_t \approx 4 \times 10^{-3}$) au-dessus du seuil $10^{-4}$. Ce n'est ni un artefact ni un bug : rien à corriger dans le code.
-- [ ] (option, à discuter avec Simon) Rendre le seuil lisible sur la figure : tracer la fréquence critique du jour (quantile $10^{-4}$ de $\mathrm{NB}(\mu N_t, r)$ ramené en fréquence) et/ou signaler les jours à $N_t$ minuscule, pour que les pics non marqués s'expliquent d'eux-mêmes.
+- [ ] (option à discuter) Rendre le seuil lisible sur la figure : tracer la fréquence critique du jour (quantile $10^{-4}$ de $\mathrm{NB}(\mu N_t, r)$ ramené en fréquence) et/ou signaler les jours à $N_t$ minuscule, pour que les pics non marqués s'expliquent d'eux-mêmes.
 
-### 2. Passer au mélange Bernoulli × NB décalée (échange Simon, 20/07/2026)
+### 2. Passer au mélange Bernoulli × NB décalée (20/07/2026)
 
-Constat (vocal de Simon) : les jours à zéro occurrence sont très fréquents et ce sont souvent eux qui cassent le fit (visible sur les histogrammes) — « on aurait dû faire ça dès le début ». Cas extrême mesuré : covid sur 1944–2025 a 92 % de jours à zéro, le fit donne $\hat r = 0{,}02$, queue si lourde qu'aucune $p$-valeur ne descend sous $10^{-3}$ : zéro pic détecté. Ce modèle remplace la piste « restreindre à la période d'activité » : les zéros structurels sont portés par la Bernoulli au lieu d'être découpés.
+Constat : les jours à zéro occurrence sont très fréquents et ce sont souvent eux qui cassent le fit (visible sur les histogrammes). Cas extrême mesuré : covid sur 1944–2025 a 92 % de jours à zéro, le fit donne $\hat r = 0{,}02$, queue si lourde qu'aucune $p$-valeur ne descend sous $10^{-3}$ : zéro pic détecté. Ce modèle remplace la piste « restreindre à la période d'activité » : les zéros structurels sont portés par la Bernoulli au lieu d'être découpés.
 
 Forme paramétrique : $p\,\delta_0 + (1-p)\,(\mathrm{NB} + 1)$, avec $p$ la probabilité de zéro occurrence.
 
 - [x] Séparer les jours à $X_t = 0$ des jours à $X_t \geq 1$ ; estimer $p$ = part des jours à zéro (Bernoulli). **Fait** (`rupture/pics.py`, route `/fiche`).
 - [x] Fiter la NB uniquement sur les jours à $X_t \geq 1$, sur $Y_t = X_t - 1$ (la NB commence à 0), toujours avec l'exposure $N_t$. **Fait.**
-- [x] Ne **pas** supprimer purement les jours à zéro : ils restent dans le modèle via la Bernoulli (confirmé par Simon). **Fait.**
+- [x] Ne **pas** supprimer purement les jours à zéro : ils restent dans le modèle via la Bernoulli. **Fait.**
 - [x] Y ajouter le double fit validé : retirer les outliers évidents puis réajuster. **Fait et testé** (campagne du 20/07, `double_fit.pdf` : +54 pics, tous des événements réels).
 - [x] Recalculer les $p$-valeurs des jours à $X_t \geq 1$ : sous le mélange, $p_t = (1-p)\,\mathbb{P}(\mathrm{NB} \geq X_t - 1)$. **Tranché (21/07/2026)** : convention du mélange conservée ; seuil de détection $10^{-4}$ par défaut, outliers évidents à $10^{-6}$ par défaut pour le refit.
 - [x] Vérifier sur les mots tests : **fait** (fiches_bnb.pdf, 20 mots) — χ²/ddl amélioré ou égal presque partout, internet débloqué (4 → 24 pics) ; covid reste à 0 pic (sa vie active est une vague unique : relève de l'étape 4), les autres comptages restent du même ordre.
@@ -135,7 +126,10 @@ Pipeline final câblé dans `rupture/` (21/07/2026) : `extraire` (mécanisme uni
 
 Objectif : une matrice $N \times D$ de fenêtres centrées sur les sauts, avec $N \approx 100\,000$ attendu.
 
-- [ ] Choisir un gros vocabulaire : au moins $10\,000$ mots candidats. Les critères de sélection (fréquence minimale, stop words…) sont à discuter avec Simon.
+**Choix du gros vocabulaire (actés le 21/07/2026).** Modèle zéro : unigrammes du Monde seulement — l'extension aux autres médias (et bi/trigrammes) est à faire une fois la chaîne validée. Exclusions : mots outils (`MOTS_OUTILS`) et tokens commençant par un chiffre (mêmes règles que les tops) ; graphies avec/sans accents fusionnées comme dans `extraire` (sinon pics dupliqués dans la matrice) ; noms propres conservés. Plancher de fréquence : le critère est le nombre de **jours actifs** ($X_t \geq 1$), le total d'occurrences est abandonné — c'est le nombre de jours non nuls qui conditionne le fit de la NB du mélange et la forme des fenêtres pour la PCA. Sélection finale : implémenter **les deux** méthodes (seuil sur jours actifs / top-K) et comparer avant de trancher.
+
+- [ ] Recensement du vocabulaire : scan complet one-shot (`exploration/scan_vocab_lemonde.py`, tranches de `w1` suivies dans le log) → CSV (mot, jours_actifs, total) ; choisir le seuil sur l'histogramme des jours actifs.
+- [ ] Extraire les séries du vocabulaire retenu : script à part optimisé pour la performance (une seule passe sur `unigram`), pas une boucle sur `serie()`.
 - [ ] Sélectionner tous les couples (mot, date) dont la surprise dépasse $4$, c'est-à-dire $p$-valeur $< 10^{-4}$.
 - [ ] Pour chaque saut, extraire la fenêtre de la série sur $\pm d$ jours autour de la date, avec $d = 15$, soit une dimension $D = 1 + 2d = 31$.
 - [ ] Garder pour chaque ligne les métadonnées (mot, date, fréquence, $p$-valeur) à côté de la matrice.
@@ -146,7 +140,7 @@ Si un mot a plusieurs pics à moins de $d$ jours d'écart, les fenêtres se reco
 
 - [ ] Repérer, pour chaque mot, les groupes de pics dont les fenêtres se recouvrent.
 - [ ] Appliquer une suppression de type *non-maximal suppression* (NMS) : dans chaque groupe, ne garder que le pic de surprise maximale.
-- [ ] Documenter les choix faits (taille du voisinage, critère de conservation) : Simon prévient qu'il y aura des arbitrages.
+- [ ] Documenter les choix faits (taille du voisinage, critère de conservation) : il y aura des arbitrages.
 
 ### 5. Normaliser les fenêtres avant la PCA
 
@@ -161,14 +155,14 @@ Ne pas faire la PCA sur les occurrences ni les fréquences brutes : elle détect
 Faire une PCA sur la matrice $N \times D$, sans ondelette ni autre transformation.
 
 - [ ] Lancer la PCA et tracer la variance expliquée par composante.
-- [ ] Visualiser les premières composantes comme des profils temporels. Attendu (Simon) : des directions simples et peu informatives, genre « activité déjà forte avant le saut et qui continue après » ou « activité nulle avant, forte après », pas trop loin de Sornette.
+- [ ] Visualiser les premières composantes comme des profils temporels. Attendu : des directions simples et peu informatives, genre « activité déjà forte avant le saut et qui continue après » ou « activité nulle avant, forte après », pas trop loin de Sornette.
 - [ ] Consigner les résultats comme *modèle zéro* : analyse à l'aveugle, les mots ne sont que des séries temporelles (on oublie l'identité des mots et les dates). Important pour l'article à venir.
 
-### 7. CSV des pics pour Simon
+### 7. CSV des pics à transmettre
 
-- [ ] Extraire un petit CSV avec les colonnes (mot, date, fréquence du pic, $p$-valeur du pic) et l'envoyer à Simon.
+- [ ] Extraire un petit CSV avec les colonnes (mot, date, fréquence du pic, $p$-valeur du pic) et le transmettre.
 
-Il fera lui-même les statistiques :
+Statistiques à en tirer :
 
 - nombre total de sauts par jour (co-jumps) ;
 - histogramme des $\log(p)$ des sauts (amplitudes) — voir s'il y a des valeurs extrêmes ;
@@ -177,5 +171,5 @@ Il fera lui-même les statistiques :
 ### Pour plus tard (noté, pas à faire maintenant)
 
 - Passer des sauts isolés aux *périodes d'activité anormale* (remarque de Benoît, objectif de long terme partagé — rejoint l'étape 3 de la détection de pics).
-- Enrichir les datapoints avec le profil *par journal* : au lieu d'une fenêtre, les $J$ fenêtres des $J \approx 14$ journaux autour du même pic. C'est là que Simon attend de vrais résultats.
+- Enrichir les datapoints avec le profil *par journal* : au lieu d'une fenêtre, les $J$ fenêtres des $J \approx 14$ journaux autour du même pic. C'est là qu'on attend de vrais résultats.
 - Intégrer d'une façon ou d'une autre les co-jumps (sauts de mots différents à la même date) dans l'analyse.
