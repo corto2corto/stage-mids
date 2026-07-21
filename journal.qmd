@@ -1007,3 +1007,23 @@ journal revient à écrire une fiche, plus un script à maintenir.
 Au passage, le pipeline quotidien (collecte des sitemaps *news*) a quitté
 `exploration/` pour [`scripts/`](scripts/) : ces fichiers tournent tous les
 jours par cron, ils n'avaient pas leur place dans un dossier d'essais.
+
+## Phase 3 — gros vocabulaire : règle d'absorption des graphies (2026-07-21)
+
+Le dataset de sauts démarre sur les unigrammes du Monde : recensement complet
+de la base (441 081 mots, 3 min 20 — `exploration/scan_vocab_lemonde.py`),
+exclusions (mots outils, tokens numériques ou d'une seule lettre), puis
+**top-10 000 par jours actifs** — la coupe tombe vers 7 200 jours actifs sur
+~26 900 jours de parution. La variante « seuil ≥ 1 000 jours » (39 316 mots)
+est notée au to_do pour comparaison ultérieure.
+
+La fusion des graphies avec/sans accents, pensée pour les doublons OCR,
+fusionnait aussi de vrais mots distincts (« retraite + retraité »,
+« côte + côté »…) : sur 20 000 clés candidates, 2 330 avaient des graphies
+secondaires pesant plus de 1 % du total. **Choix acté : l'unité de vocabulaire
+est la graphie**, et une graphie n'est absorbée par la dominante de sa clé
+désaccentuée que si elle pèse **moins de 1 %** de celle-ci — les doublons OCR
+(« chomâge », « chomage » des années mal numérisées) sont sommés dans le mot,
+les paires réelles restent deux mots. Extraction en masse : `rupture/masse.py`,
+une passe sur `unigram`, matrice dense 10 000 mots × 26 917 jours dans
+`data/vocab_series_lemonde.npz` (~10 min sur gallica).
