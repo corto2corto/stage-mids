@@ -1400,3 +1400,44 @@ entrées du 20 au 22/07.
 Reste pour la PCA du modèle zéro : normalisation des fenêtres (z-scores le
 long de la fenêtre, variante $[0,1]$ à comparer — pas la standardisation
 colonne par colonne des fonctions PCA), puis PCA et variance expliquée.
+
+## Phase 3 — normalisation des fenêtres et PCA du modèle zéro (22/07/2026)
+
+Étapes 5 et 6 du to_do, dans [`rupture/pca.py`](rupture/pca.py) : trois
+normalisations comparées sur la matrice 123 310 × 31, puis PCA (centrage des
+colonnes, SVD) pour chacune. Sorties : `data/pca_lemonde_{z,01,col}.npz`
+(composantes, variance expliquée, projections, indices des fenêtres gardées)
+et deux figures dans `rupture/sorties/`.
+
+**Choix : le z-score le long de la fenêtre est la normalisation de
+l'analyse.** Les deux autres servent de comparaison :
+
+- **min-max [0, 1] par fenêtre** : proche du z au-delà de la première
+  composante ; sa composante 1 (27,9 %) capte le niveau d'ensemble de la
+  fenêtre normalisée (corrélation 0,49 au niveau brut) — moins propre que
+  le z, gardée comme variante.
+- **standardisation colonne par colonne** (ce que fait l'option intégrée
+  des fonctions de PCA) : composante 1 = **63,5 %** de la variance,
+  corrélée à **0,99** au niveau moyen brut de la fenêtre — c'est la
+  direction « ce mot est-il fréquent », exactement l'artefact annoncé par
+  Benoît. Vérifié, à ne pas utiliser.
+
+**Résultats du modèle zéro (z)** : spectre plat — 9,1 / 5,9 / 5,0 / 4,8 /
+4,2 / 3,7 % pour les six premières composantes (32,7 % en cumulé), le reste
+diffus : pas de petit nombre de formes dominantes, les fenêtres sont
+diverses. Les profils temporels sont simples et lisibles, conformes à
+l'attendu (« pas trop loin de Sornette ») :
+
+1. pic isolé d'un jour (creux la veille et le lendemain) ;
+2. niveau durablement plus élevé après le pic (montée sans redescente) ;
+3. bascule avant/après au jour du pic ;
+4. creux la veille, rebond après ;
+5-6. paire d'oscillations de période ≈ 7 jours de parution, en quadrature —
+   le rythme hebdomadaire du journal, pas un signal éditorial.
+
+Validation : test synthétique (deux profils imposés dans des fenêtres
+bruitées : 94 % de variance sur 2 composantes, profils retrouvés dans leur
+plan à 1,00 près) ; fenêtres plates écartées et comptées (0 sur les données
+réelles) ; la 31e composante du z est dégénérée (le centrage par ligne
+enlève un degré de liberté), la figure de variance s'arrête à 30. PCA
+exécutée sur gallica (5 s), chiffres identiques au run local.
