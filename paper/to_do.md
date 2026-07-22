@@ -87,6 +87,8 @@ Cette section rassemble les pistes issues des échanges les plus récents, class
 - **Ajuster une loi commune à plusieurs mots.** Au lieu d'ajuster les occurrences d'un seul mot, ajuster simultanément les occurrences de tout (ou d'une partie) du vocabulaire, pour disposer d'un critère d'outlier partagé. Plus difficile que l'approche mot par mot ; à tenter dans un second temps.
 
 - **Détecter les breakpoints (ruptures durables).** Au-delà des pics ponctuels, détecter un déplacement définitif de la distribution après un événement (rachat de journal). Suppose des outils de détection de rupture, pas seulement de détection d'outliers.
+  - Ressource externe repérée : **tsseg** (<https://github.com/fchavelli/tsseg>), framework de segmentation / changepoint detection clé en main pour séries temporelles. On y met la série et il la segmente ; sa doc est un gros catalogue d'algos de changepoint detection. À garder en tête pour cette étape.
+  - Points de départ conseillés quand on ne sait pas quel algo prendre : **GGS** (Greedy Gaussian Segmentation) et **ClaSP**. Tenter, avec un *gut check* en plottant la série (par ex. « guerre », ou « pas » dans Le Monde sur toute la période).
 
 - **Question ouverte : le bruit décroît-il vraiment en $\sqrt{n}$ en lexicométrie ?** Intuition de Benoît : probablement *non* (comportement non-diffusif). Deux raisons avancées :
   - les mots ne sont pas des variables indépendantes : le texte est un tissu ;
@@ -139,9 +141,12 @@ Objectif : une matrice $N \times D$ de fenêtres centrées sur les sauts, avec $
 
 Si un mot a plusieurs pics à moins de $d$ jours d'écart, les fenêtres se recouvrent et les mêmes données entrent plusieurs fois dans la matrice.
 
-- [ ] Repérer, pour chaque mot, les groupes de pics dont les fenêtres se recouvrent.
-- [ ] Appliquer une suppression de type *non-maximal suppression* (NMS) : dans chaque groupe, ne garder que le pic de surprise maximale.
-- [ ] Documenter les choix faits (taille du voisinage, critère de conservation) : il y aura des arbitrages.
+**Décision (22/07/2026)** : NMS **glouton non-transitif**, pas de groupement par recouvrement — le groupement de proche en proche est du single-linkage, dont l'effet de chaînage soude les longues périodes en « groupes géants » réduits à un datapoint (mesuré : 164 groupes de plus de 90 jours de parution d'étendue, ex. « syrienne » 203 pics sur 760 jours). Algorithme : tri par surprise décroissante, chaque pic retenu supprime ses voisins à moins de 31 jours de parution **de lui** ; un pic supprimé ne supprime personne. 31 = largeur de fenêtre → aucune paire de fenêtres gardées ne se chevauche, par construction. Justifications détaillées au journal du 22/07/2026.
+
+- [x] Implémentation : `rupture/nms.py` (`pics_<media>.csv` → `pics_<media>_nms.csv`, colonne `n_absorbes` en plus), avec contre-vérification indépendante par `scipy.signal.find_peaks(height=4, distance=31)` et écarts consignés dans `pics_<media>_nms_ecarts.txt`.
+- [x] Testé en local sur les 164 254 pics du serveur : 123 465 gardés (75,2 %), médiane 10 représentants par mot ; 46 mots avec écart de contre-vérif sur 9 817 — 45 égalités de surprise (arrondi 2 décimales du CSV), 1 pic à exactement 31 jours du maximum mais non-maximum local du signal (compris, conforme à notre critère). Aucun bug.
+- [x] Documenter les choix faits (taille du voisinage, critère de conservation) : journal du 22/07/2026.
+- [ ] Produire la sortie officielle sur gallica : `python -m rupture.nms lemonde`.
 
 ### 5. Normaliser les fenêtres avant la PCA
 
@@ -174,3 +179,21 @@ Statistiques à en tirer :
 - Passer des sauts isolés aux *périodes d'activité anormale* (remarque de Benoît, objectif de long terme partagé — rejoint l'étape 3 de la détection de pics).
 - Enrichir les datapoints avec le profil *par journal* : au lieu d'une fenêtre, les $J$ fenêtres des $J \approx 14$ journaux autour du même pic. C'est là qu'on attend de vrais résultats.
 - Intégrer d'une façon ou d'une autre les co-jumps (sauts de mots différents à la même date) dans l'analyse.
+- **Comparaison avec le corpus GIEC (Cosmos / Carbon Brief).** Base Cosmos, présentée comme la plus grande base de recherche sur le changement climatique (<https://interactive.carbonbrief.org/cosmos/index.html>). Piste : suivre l'évolution de certains termes dans les rapports du GIEC depuis sa création (1988) à aujourd'hui — par ex. « justice climatique », « adaptation » — et mettre ça en regard de notre base d'articles de presse.
+
+## Pistes d'analyse notées en juin-juillet 2026 (déplacées du journal)
+
+Notes prises au fil des échanges du début du stage, quand le corpus n'était pas
+encore constitué. Ce qui a été fait depuis est barré de la liste : le site de
+suivi, les premiers comptages de mots et le choix du format de base (SQLite,
+une base n-grammes par journal) sont réglés.
+
+- Analyser les prénoms (qui parle de qui, et quand).
+- Séries temporelles.
+- Comptage de mots pondéré : TF-IDF.
+- Sauts intrinsèques et extrinsèques (voir l'article de Mala).
+- MOR / traitement automatique des langues.
+- Analyse de sentiment : voir si BERT est utilisable sur le corpus.
+- Vérifier les archives du Monde (note d'origine incomplète : vérifier la
+  couverture réelle des archives récupérées, en particulier les premières
+  décennies).
