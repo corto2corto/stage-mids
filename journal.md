@@ -1432,8 +1432,12 @@ l'attendu (« pas trop loin de Sornette ») :
 2. niveau durablement plus élevé après le pic (montée sans redescente) ;
 3. bascule avant/après au jour du pic ;
 4. creux la veille, rebond après ;
-5-6. paire d'oscillations de période ≈ 7 jours de parution, en quadrature —
-   le rythme hebdomadaire du journal, pas un signal éditorial.
+5-6. oscillations lentes (périodes dominantes ≈ 8 et ≈ 15 jours de
+   parution). **Hypothèse « rythme hebdomadaire » testée et infirmée** le
+   jour même : la phase de la paire n'est pas alignée sur le jour de la
+   semaine du pic (vecteurs moyens par jour de norme 0,01-0,14 contre une
+   dispersion de 0,80 ; idem sur 2000-2025). Ce sont des modes oscillants
+   génériques, pas un signal de calendrier.
 
 Validation : test synthétique (deux profils imposés dans des fenêtres
 bruitées : 94 % de variance sur 2 composantes, profils retrouvés dans leur

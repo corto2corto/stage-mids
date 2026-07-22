@@ -161,7 +161,8 @@ Ne pas faire la PCA sur les occurrences ni les fréquences brutes : elle détect
 Faire une PCA sur la matrice $N \times D$, sans ondelette ni autre transformation.
 
 - [x] PCA lancée (SVD, 123 310 fenêtres, gallica 5 s) et variance tracée (`rupture/sorties/pca_lemonde_variance.png`) : spectre plat en $z$ — 9,1 / 5,9 / 5,0 / 4,8 / 4,2 / 3,7 % (32,7 % à 6 composantes), pas de petit nombre de formes dominantes.
-- [x] Profils temporels tracés (`pca_lemonde_composantes.png`) : 1 = pic isolé d'un jour, 2 = niveau durablement plus élevé après le pic, 3 = bascule avant/après, 4 = creux la veille puis rebond, 5-6 = paire hebdomadaire (période ≈ 7 jours de parution, quadrature) — conformes à l'attendu (« pas trop loin de Sornette »).
+- [x] Profils temporels tracés (`pca_lemonde_composantes.png`) : 1 = pic isolé d'un jour, 2 = niveau durablement plus élevé après le pic, 3 = bascule avant/après, 4 = creux la veille puis rebond, 5-6 = oscillations lentes (hypothèse « rythme hebdomadaire » testée et **infirmée** : phase non alignée sur le jour de la semaine du pic) — conformes à l'attendu (« pas trop loin de Sornette »).
+- [ ] **Jours à corpus quasi vide dans les fenêtres** (trouvé le 22/07/2026 via les archétypes de la composante 4) : un jour à $N_t$ minuscule (177 mots contre 57 000 en médiane) fait exploser $f_t$ dans la fenêtre ; 17 % des fenêtres contiennent un jour à $N_t < 5\,000$, et les projections extrêmes de la composante 4 y sont sur-représentées (×18 entre $N_t$ 100-1 000 et $N_t > 20\,000$). À traiter avant les analyses fines : masquer ou plancher ces jours, ou pondérer les fenêtres.
 - [x] Consigné comme *modèle zéro* au journal du 22/07/2026 (analyse à l'aveugle, mots et dates oubliés) ; sorties `data/pca_lemonde_{z,01,col}.npz`.
 
 ### 7. CSV des pics à transmettre
