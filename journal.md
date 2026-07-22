@@ -1445,3 +1445,30 @@ plan à 1,00 près) ; fenêtres plates écartées et comptées (0 sur les donné
 réelles) ; la 31e composante du z est dégénérée (le centrage par ligne
 enlève un degré de liberté), la figure de variance s'arrête à 30. PCA
 exécutée sur gallica (5 s), chiffres identiques au run local.
+
+## Figures d'exploration et document de présentation (22/07/2026)
+
+Cinq figures d'exploration de la PCA (`exploration/figures_pca_lemonde.py`,
+sorties dans `rupture/sorties/`) : le plan des composantes 1-2 avec six
+événements historiques situés dedans, les fenêtres archétypes de chaque
+composante (état de siège en Pologne 12/1981, coup d'État de Pinochet
+09/1973, JO 2004, présidentielle 2022…), le NMS en image sur « syrienne »
+(220 pics → 24 représentants), la reconstruction progressive de la fenêtre
+« jaunes » du 08/12/2018 (48 % de la forme avec 1 composante, 89 % avec 15)
+et le diagnostic corpus quasi vide.
+
+Deux contrôles menés au passage, tous deux instructifs :
+
+- **hypothèse « rythme hebdomadaire » infirmée** pour la paire de
+  composantes 5-6 (phase sans lien avec le jour de la semaine du pic) —
+  l'entrée PCA du jour est corrigée en conséquence ;
+- **artefact découvert** : les projections extrêmes de la composante 4
+  viennent des fenêtres contenant un jour à corpus quasi vide ($N_t$ = 177
+  mots un jour de 1994 contre 57 000 en médiane, $f_t$ explose) —
+  enrichissement ×18 des projections extrêmes entre fenêtres saines et
+  fenêtres à jour creux. Chantier de nettoyage noté au to_do.
+
+Le tout est rassemblé dans un document de présentation pédagogique :
+`paper/presentation_sauts.qmd` → `presentation_sauts.pdf` (7 pages, quarto
+typst, figures copiées dans `paper/figs/`). Il présente la chaîne complète,
+les choix et les premiers résultats du modèle zéro.
