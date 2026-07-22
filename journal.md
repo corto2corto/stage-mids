@@ -1472,3 +1472,38 @@ Le tout est rassemblé dans un document de présentation pédagogique :
 `paper/presentation_sauts.qmd` → `presentation_sauts.pdf` (7 pages, quarto
 typst, figures copiées dans `paper/figs/`). Il présente la chaîne complète,
 les choix et les premiers résultats du modèle zéro.
+
+## Phase 3 — V2 : nettoyage des jours à corpus quasi vide (22/07/2026)
+
+La V2 de la chaîne intègre les leçons des contrôles de la V1 (proposition
+complète et chiffres dans le to_do, section « Phase 3 — V2 »). Le cœur est
+le traitement de l'artefact découvert le jour même : 321 jours de la grille
+ont moins de 5 000 mots publiés, et $f_t$ y explose au point de fabriquer de
+fausses formes dans 17 % des fenêtres.
+
+Méthode (`rupture/pca.py`, fonction `nettoyer()`, désormais le défaut ;
+`seuil 0` reproduit la V1) : dans chaque fenêtre, les jours quasi vides sont
+remplacés par l'interpolation linéaire des jours sains voisins (38 532 jours
+dans 19 554 fenêtres, médiane 2 par fenêtre touchée) ; les 1 505 fenêtres
+dont le jour central est lui-même quasi vide sont écartées — le pic reste
+valide, la forme ne l'est pas.
+
+Validation (V1 vs V2, tests unitaires + comparaison complète) :
+
+- l'enrichissement corpus-vide des projections extrêmes de la composante 4
+  passe de **×17,8 à ×0,5** — l'artefact disparaît ;
+- le spectre bouge à peine (9,2 / 6,2 / 5,3 / 4,6 / 4,2 / 3,8 %) et les six
+  premières composantes restent les mêmes (|cos| ≥ 0,94) : seule la
+  direction contaminée se réorganise (angles top-4 : 18,7° puis ≤ 2,8°) ;
+- les archétypes de la composante 4 redeviennent des fenêtres saines
+  (« désastre » du 19/03/2011 — Fukushima — au lieu de jours à 177 mots) ;
+- le résultat est insensible au seuil (2 000 / 5 000 / 10 000 : sous-espaces
+  top-3 à moins de 4°) — 5 000 retenu, à la frontière naturelle de la
+  population pathologique.
+
+Conclusion niveau mémoire : les résultats du modèle zéro (spectre plat,
+profils simples) sont **robustes** au nettoyage ; la V2 corrige une
+direction artefactuelle sans altérer la structure. Restent notés au to_do :
+la précision de la surprise dans les CSV (V2.2, cosmétique), le statut des
+composantes oscillantes (V2.3, acté) et la piste « fenêtres en résidus
+standardisés » pour une V3 (V2.4, à discuter avec Benoît).
