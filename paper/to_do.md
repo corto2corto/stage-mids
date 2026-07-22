@@ -198,3 +198,46 @@ une base n-grammes par journal) sont réglés.
 - Vérifier les archives du Monde (note d'origine incomplète : vérifier la
   couverture réelle des archives récupérées, en particulier les premières
   décennies).
+
+## Phase 3 — V2 de la chaîne (proposée et testée le 22/07/2026)
+
+La V1 complète (vocabulaire → séries → pics → NMS → fenêtres → PCA) a livré son modèle zéro le 22/07/2026, et ses contrôles ont mis au jour des défauts corrigibles. La V2 les intègre ; chaque point ci-dessous indique son statut.
+
+### V2.1 — Nettoyage des jours à corpus quasi vide (fait, validé)
+
+**Problème (V1).** 321 jours de la grille (1,2 %) ont moins de 5 000 mots publiés (contre 57 099 en médiane ; ex. 177 mots le 14/11/1994) : $f_t = X_t/N_t$ y explose et fabrique de fausses formes dans 17 % des fenêtres. Signature mesurée en V1 : les projections extrêmes de la composante 4 étaient 17,8 fois plus fréquentes dans les fenêtres contenant un jour à $N_t$ ∈ [100, 1 000[ que dans les fenêtres saines ($N_t$ > 20 000).
+
+**Méthode (implémentée dans `rupture/pca.py`, `nettoyer()`, seuil par défaut 5 000, `0` = V1).**
+
+- Dans chaque fenêtre, les jours à $N_t <$ seuil sont remplacés par l'interpolation linéaire des jours sains voisins (extension constante aux bords). Charge : 38 532 jours interpolés dans 19 554 fenêtres (médiane 2 jours/fenêtre touchée, max 6 au seuil 5 000).
+- Les 1 505 fenêtres (1,2 %) dont le **jour central** est quasi vide sont écartées : le pic reste statistiquement valide (la détection tient compte de $N_t$ via l'exposure), mais la forme de sa fenêtre n'est pas exploitable.
+- Justification du seuil 5 000 : les jours < 5 000 forment une population à part (177 jours < 1 000, 321 < 5 000, puis la pente reprend : 632 < 10 000, 1 741 < 20 000 — on entre dans les journaux minces normaux des débuts).
+
+**Résultats (V1 vs V2, 121 805 fenêtres).**
+
+| Critère | V1 | V2 |
+|---|---|---|
+| Enrichissement corpus-vide de la comp. 4 (ratio bandes 100-1k / >20k, seuil 2,5) | ×17,8 | ×0,5 (disparu) |
+| Enrichissement des comp. 1-3, 5-6 | ×0,5 à ×1,3 (jamais atteintes) | inchangé |
+| Spectre (6 premières, %) | 9,1 / 5,9 / 5,0 / 4,8 / 4,2 / 3,7 | 9,2 / 6,2 / 5,3 / 4,6 / 4,2 / 3,8 |
+| Stabilité des composantes (\|cos\| V1-V2) | — | ≥ 0,94 sur les 6 premières |
+| Angles principaux sous-espaces top-4 | — | 18,7° / 2,8° / 1,4° / 0,4° (seule la comp. 4 se réorganise) |
+| Archétypes de la comp. 4 | fenêtres artefactuelles ($N_{\min}$ = 177…) | fenêtres saines ($N_{\min}$ 8 037-43 716 ; ex. « désastre » 19/03/2011, Fukushima) |
+
+**Sensibilité au seuil** : entre 2 000, 5 000 et 10 000, les sous-espaces top-3 bougent de moins de 4° et l'enrichissement de la comp. 4 tombe respectivement à ×1,3 / ×0,5 / ×0,5 — le choix de 5 000 n'est pas critique. Conclusions du modèle zéro (spectre plat, profils simples) **robustes au nettoyage**.
+
+- [x] Implémentation + tests unitaires (interpolation, bords, centres écartés, fenêtres saines intactes).
+- [x] Comparaison V1/V2 complète (ci-dessus) ; sorties `data/pca_lemonde_{z,01,col}_v2.npz`.
+- [x] La V2 est le défaut de `rupture/pca.py` depuis le 22/07/2026.
+
+### V2.2 — Précision de la surprise dans les CSV (à faire au prochain passage)
+
+L'arrondi à 2 décimales de la colonne `surprise` de `pics_<media>.csv` crée des égalités artificielles : 45 des 46 écarts NMS/find_peaks viennent de là. Au prochain passage de `pics_masse` (extension multi-journaux), écrire la surprise à 4 décimales (et $p_t$ en `%.6e`). Sans urgence : l'effet est cosmétique (les deux choix d'égalité sont valides).
+
+### V2.3 — Composantes oscillantes 5-6 : statut acté (pas d'action)
+
+Modes oscillants génériques (périodes dominantes ≈ 8 et ≈ 15 jours de parution), phase sans lien avec le jour de la semaine — ne pas interpréter comme un signal de calendrier ni éditorial. À reconsidérer seulement si une analyse future exige une dé-saisonnalisation explicite.
+
+### V2.4 — Piste pour une V3 : fenêtres en résidus standardisés (à discuter)
+
+Plutôt que $f_t$ brut, remplir les fenêtres avec un résidu standardisé sous la loi ajustée du mot (ex. $\Phi^{-1}(1 - p_t)$ tronqué, ou un score de Pearson $(X_t - \mu N_t)/\sqrt{\mathrm{Var}}$) : la sensibilité à $N_t$ disparaîtrait *par construction* (plus besoin de V2.1), et la fenêtre serait dans l'échelle même de la détection. Coût : recalcul des $p_t$ de tous les jours de fenêtre (une passe type `pics_masse`), et interprétation moins directe qu'une fréquence. À discuter avec Benoît avant d'investir.
