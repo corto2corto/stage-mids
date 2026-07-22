@@ -133,9 +133,9 @@ Objectif : une matrice $N \times D$ de fenêtres centrées sur les sauts, avec $
 - [x] Recensement du vocabulaire : scan complet fait le 21/07/2026 (`exploration/scan_vocab_lemonde.py`, 3 min 20, 286 M lignes) → `data/vocab_lemonde_unigram.csv` (441 081 mots ; 413 588 après exclusions et fusion des graphies). Repères : ≥ 1 000 jours actifs = 39 316 mots, ≥ 5 000 = 13 545, top-10 000 = coupe à 7 121.
 - [ ] **Comparaison à faire plus tard** : refaire la chaîne avec la variante seuil ≥ 1 000 jours actifs (39 316 mots, ~4× le top-10 000) et comparer ce que la queue du vocabulaire apporte ou pollue (dataset de sauts, PCA).
 - [x] Extraire les séries du vocabulaire retenu : **fait le 21/07/2026** (`rupture/masse.py`, une passe sur `unigram`, 5 min 30) → `data/vocab_series_lemonde.npz` (X 26 917 jours × 10 000 mots int32, dates, N, mots, clés ; 126 Mo). Règle d'absorption actée : l'unité est la **graphie**, une graphie < 1 % de la dominante de sa clé désaccentuée est un doublon OCR sommé jour par jour dans celle-ci (« chomâge » → « chômage »), au-delà mot à part entière (« retraite » / « retraité » séparés). Validé contre `extraire.serie()` : retraite/internet/mitterrand identiques à l'occurrence près, chomage = +78 occurrences OCR récupérées (voulu).
-- [ ] Sélectionner tous les couples (mot, date) dont la surprise dépasse $4$, c'est-à-dire $p$-valeur $< 10^{-4}$.
-- [ ] Pour chaque saut, extraire la fenêtre de la série sur $\pm d$ jours autour de la date, avec $d = 15$, soit une dimension $D = 1 + 2d = 31$.
-- [ ] Garder pour chaque ligne les métadonnées (mot, date, fréquence, $p$-valeur) à côté de la matrice.
+- [x] Sélectionner tous les couples (mot, date) dont la surprise dépasse $4$, c'est-à-dire $p$-valeur $< 10^{-4}$ : **fait** (campagne `rupture/pics_masse.py` du 21/07/2026, 164 254 pics sur 9 817 mots, 11 échecs de fit consignés) → `data/pics_lemonde.csv`.
+- [x] Pour chaque saut, extraire la fenêtre de la série sur $\pm d$ jours autour de la date, avec $d = 15$, soit une dimension $D = 1 + 2d = 31$ : **fait le 22/07/2026** (`rupture/fenetres_masse.py`, après NMS) → `data/fenetres_lemonde.npz`, matrice $123\,310 \times 31$ de $f_t$ pour $10^5$ (155 pics à moins de 15 jours d'un bord écartés, contrôle centre = $f_t$ des métadonnées).
+- [x] Garder pour chaque ligne les métadonnées (mot, date, fréquence, $p$-valeur) à côté de la matrice : **fait** (mot, date, $X_t$, $N_t$, $f_t$, $p_t$, surprise, `n_absorbes` alignés dans le même npz).
 
 ### 4. Dédoublonner les pics rapprochés (NMS)
 
@@ -146,7 +146,7 @@ Si un mot a plusieurs pics à moins de $d$ jours d'écart, les fenêtres se reco
 - [x] Implémentation : `rupture/nms.py` (`pics_<media>.csv` → `pics_<media>_nms.csv`, colonne `n_absorbes` en plus), avec contre-vérification indépendante par `scipy.signal.find_peaks(height=4, distance=31)` et écarts consignés dans `pics_<media>_nms_ecarts.txt`.
 - [x] Testé en local sur les 164 254 pics du serveur : 123 465 gardés (75,2 %), médiane 10 représentants par mot ; 46 mots avec écart de contre-vérif sur 9 817 — 45 égalités de surprise (arrondi 2 décimales du CSV), 1 pic à exactement 31 jours du maximum mais non-maximum local du signal (compris, conforme à notre critère). Aucun bug.
 - [x] Documenter les choix faits (taille du voisinage, critère de conservation) : journal du 22/07/2026.
-- [ ] Produire la sortie officielle sur gallica : `python -m rupture.nms lemonde`.
+- [x] Produire la sortie officielle sur gallica : **fait le 22/07/2026** — même bilan qu'en local (123 465 gardés), 51 mots avec écart de contre-vérif (5 de plus qu'en local : version scipy différente, égalités départagées autrement ; la sortie NMS elle-même est identique) → `data/pics_lemonde_nms.csv`.
 
 ### 5. Normaliser les fenêtres avant la PCA
 

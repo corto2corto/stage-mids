@@ -1351,5 +1351,13 @@ candidat chez scipy. Aucun bug.
 164 254 (75,2 %), médiane 10 représentants par mot ; 84 % des pics gardés
 sont solo (`n_absorbes` = 0) — le NMS ne mord que sur les périodes denses,
 comme voulu. Record d'absorption : « francisco », 58 pics absorbés autour du
-26/04/1945 — la conférence de San Francisco, fondation de l'ONU. Reste à
-produire la sortie officielle sur gallica.
+26/04/1945 — la conférence de San Francisco, fondation de l'ONU.
+
+Sorties officielles produites sur gallica dans la foulée : le NMS (7 s, même
+bilan qu'en local), puis l'**extraction des fenêtres** ±15 jours de parution
+autour de chaque pic gardé ([`rupture/fenetres_masse.py`](rupture/fenetres_masse.py),
+vectorisée sur la matrice du npz, 4 s) : **matrice 123 310 × 31** de $f_t$
+pour $10^5$ dans `data/fenetres_lemonde.npz`, métadonnées alignées (mot,
+date, $X_t$, $N_t$, $f_t$, $p_t$, surprise, `n_absorbes`), 155 pics à moins
+de 15 jours d'un bord écartés. Le dataset de sauts de l'étape 3 est prêt —
+prochaine étape : la normalisation des fenêtres, puis la PCA du modèle zéro.
