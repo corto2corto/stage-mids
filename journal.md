@@ -41,6 +41,15 @@ Liste des journaux cibles :
 
 - Valeurs actuelles : Rachat par un trio d'investisseurs, dont Stérin.
 
+**[MAJ 22/07/2026]** La liste de départ a beaucoup grossi : **32 journaux** sont
+aujourd'hui configurés dans le pipeline, contre 10 ici. Les ajouts et leurs
+motifs sont détaillés dans « Médias ajoutés » (Atlantico, La Dépêche,
+L'Opinion, Sud Ouest, Challenges, Le Télégramme), « Batch de 15 nouveaux médias
+(06/07/2026) » (Ouest-France, Midi Libre, Le Parisien, Libération, BFMTV,
+La Provence, La Croix, Gala, Voici, Paris-Normandie, La Tribune, France-Soir,
+Marianne…) et « Branchement de cnews et 20minutes (2026-07-15) ». Deux titres
+ont été mappés puis écartés (L'Express, Le Point), cf. « Moteur par média ».
+
 ## Premier test de scrapping
 
 ### JDD
@@ -177,6 +186,13 @@ Problème restant : des phrases génériques propres à chaque journal apparaiss
 | L'Express         | \~     | \~      | Bypass irrégulier sur les deux extensions |
 | La Provence       | KO     | KO      | Paywall résistant, à étudier              |
 
+**[MAJ 22/07/2026]** Chrome a été abandonné : Selenium ne sait pas y injecter
+d'extension proprement (il faut un profil préparé à la main, qui ne se charge
+pas en `--headless`), alors que Firefox installe le `.xpi` au démarrage. Tout
+le pipeline tourne donc sous Firefox, et la colonne « Chrome » de ce tableau
+n'a plus d'objet. La question « quel navigateur pour quel journal » a elle
+aussi disparu : elle est devenue « quel moteur », cf. « Moteur par média ».
+
 ## Pagination :
 
 Le but de cette section est de "cartographier" les sites web de chaque journal. L'objectif est d'obtenir l'URL de chaque article disponible en ligne (donc un grand nombre).
@@ -201,6 +217,45 @@ Après exploration des sitemap, on a en résumé :
 | Nice Matin | [nicematin.com/sitemap.xml](https://www.nicematin.com/sitemap.xml) | RAS |
 | Télérama | [telerama.fr/sitemaps/sitemap_index.php](https://www.telerama.fr/sitemaps/sitemap_index.php) | URL en `.php` mais XML standard (1992–2026) |
 
+### [MAJ 22/07/2026] Pagination des nouveaux médias
+
+Les journaux ajoutés depuis (cf. « Médias ajoutés », « Batch de 15 nouveaux
+médias », « Branchement de cnews et 20minutes ») ont été cartographiés de la
+même façon. Le sitemap reste la source par défaut ; quand il est absent ou
+plafonné, on retombe sur la pagination HTML ou sur les archives de la Wayback
+Machine. Toutes ces particularités sont désormais des fiches de configuration
+dans [`mapping/catalogue.py`](mapping/catalogue.py) (cf. « Le mapping regroupé
+en un module »).
+
+| Journal | Sitemap | Commentaire |
+|---------------------|---------------------|------------------------------|
+| Atlantico | [atlantico.fr/sitemap-index.xml](https://atlantico.fr/sitemap-index.xml) | Sous-sitemaps mensuels (domaine sans `www`) |
+| La Dépêche | [ladepeche.fr/sitemap.xml](https://www.ladepeche.fr/sitemap.xml) | Mensuel découpé en parts, sous-sitemaps gzippés |
+| L'Opinion | [lopinion.fr/sitemap.xml](https://www.lopinion.fr/sitemap.xml) | Mensuel `sitemap-AAAAMM.xml` |
+| Challenges | [challenges.fr/sitemap.xml](https://www.challenges.fr/sitemap.xml) | Mensuel, gzippé |
+| Sud Ouest | [sudouest.fr/sitemap.xml](https://www.sudouest.fr/sitemap.xml) | Mensuel daté ; anti-bot strict → empreinte Chrome (`curl_cffi`) |
+| Le Télégramme | [letelegramme.fr/sitemaps/sitemap.xml](https://www.letelegramme.fr/sitemaps/sitemap.xml) | Mensuel gzippé ; le CDN bloque l'empreinte TLS de `requests` → `curl` |
+| Gala | [gala.fr/sitemaps/articles.xml](https://www.gala.fr/sitemaps/articles.xml) | Index → sous-sitemaps mensuels |
+| Voici | [voici.fr/sitemap/articles.xml](https://www.voici.fr/sitemap/articles.xml) | Index → sous-sitemaps paginés |
+| La Croix | [la-croix.com/feeds/sitemaps/sitemaps_articles.xml](https://www.la-croix.com/feeds/sitemaps/sitemaps_articles.xml) | Index → sous-sitemaps mensuels |
+| BFMTV | [bfmtv.com/sitemap_index_arbo_contenu.xml](https://www.bfmtv.com/sitemap_index_arbo_contenu.xml) | Sous-sitemaps `.xml.gz` ; replays et podcasts écartés du corpus |
+| Midi Libre | [midilibre.fr/sitemap.xml](https://www.midilibre.fr/sitemap.xml) | Mensuel en parts, `.xml.gz` |
+| Ouest-France | [ouest-france.fr/sitemap.xml](https://www.ouest-france.fr/sitemap.xml) | DataDome : les ~179 sous-sitemaps ne sont servis qu'à un vrai navigateur → Firefox headless |
+| Paris-Normandie | [sitemapindex.xml](https://www.paris-normandie.fr/sites/default/files/sitemaps/www_paris_normandie_fr/sitemapindex.xml) | Akamai : passe avec l'UA académique + `curl`, filtre `/article/` |
+| France-Soir | [francesoir.fr/sitemap.xml](https://www.francesoir.fr/sitemap.xml) | Sitemap paginé (`?page=N`) |
+| cnews | [cnews.fr/sitemap.xml](https://www.cnews.fr/sitemap.xml) | Paginé, ~215 pages ; `crawl-delay` 10 s imposé, empreinte Chrome |
+| Libération | [liberation.fr/arc/outboundfeeds/sitemap/](https://www.liberation.fr/arc/outboundfeeds/sitemap/) | Arc XP, plafonné à ~10 000 articles récents → historique complété par la Wayback |
+| Le Parisien | — | Pas de sitemap d'archives : pagination des pages d'archives, une par jour (depuis 2010) |
+| 20 Minutes | — | Pas de sitemap d'archives : pages `/archives/AAAA/MM-JJ` (depuis 2006) |
+| Marianne | — | Pas de sitemap d'articles : pagination des 7 rubriques |
+| Mediapart | — | Pagination des rubriques (le sitemap par rubrique ne couvre que les news) |
+| La Provence | — | Pagination limitée à ~5-7 pages par rubrique → historique via la Wayback |
+| La Tribune | — | Refonte Next.js rendue côté client → Wayback (API CDX) |
+
+Mappés puis écartés : **L'Express** (deux sitemaps hebdomadaires, 2010-2020 et
+2020-2026) et **Le Point** (aucun sitemap, DataDome bloque tout → Wayback
+seule) — raisons dans « Moteur par média ».
+
 ### Détail des sitemap
 
 Les sites de presse exposent des fichiers `sitemap.xml` destinés aux moteurs de recherche, qui listent toutes les pages indexables du site. C'est un format en deux niveaux : un `sitemap-index` qui pointe vers des sous-sitemaps, et chaque sous-sitemap qui contient les URLs d'articles. C'est ce mécanisme qu'on exploite : on télécharge l'index, on parcourt chaque sous-sitemap, on en extrait les URL des articles qui sont dans des balises `<loc>`.
@@ -218,39 +273,89 @@ Format final adopté pour chaque ligne :
 {"type": "echec", "sitemap": "https://..."}
 ```
 
+Résultat de cette époque : un fichier JSONL par journal, stocké dans Google
+Drive — pour chaque ligne, l'information complète sur un sitemap (succès ou
+échec, liste des URLs si succès).
+
+**[MAJ 22/07/2026]** Le JSONL a disparu avec le passage sur serveur. Le
+mapping écrit maintenant directement **un CSV d'URLs par journal** (une
+colonne `url`), en **ajout + déduplication** : on ne réécrit jamais
+l'existant, on ajoute au fil de l'eau les URLs manquantes (`Sortie` dans
+[`mapping/generique.py`](mapping/generique.py)). Deux conséquences : une
+reprise après interruption ne perd rien, et deux mappings peuvent nourrir le
+même fichier (Libération récent par son sitemap + ses archives par la
+Wayback). Le suivi des sitemaps échoués n'est plus stocké, il est simplement
+journalisé à l'écran : le re-balayage étant idempotent, un échec se rattrape
+en relançant.
+
+Ces CSV sont ensuite versés dans la base `urls.db` (SQLite) par
+[`verser_nouveaux.py`](scripts/verser_nouveaux.py), en `INSERT OR IGNORE` sur
+l'index unique `(media, url)` — c'est elle qui pilote le scraping (cf.
+« La base urls.db »). Plus rien ne passe par Google Drive.
+
 ### Mécanisme de reprise après interruption
 
 Vu les volumes (jusqu'à plusieurs heures de scraping par journal) et les contraintes de Colab (timeout après 90 min d'inactivité, 12h maximum par session), un mécanisme de reprise était nécessaire. Au démarrage du script, le fichier JSONL existant est relu ligne par ligne pour reconstruire un `set` des sitemaps déjà traités. La boucle principale teste `if page in deja_traites` avant chaque téléchargement, sautant immédiatement ceux qui ont déjà été faits. Ce système permet de scraper sur plusieurs sessions étalées sans aucune perte de progression.
 
-### Résultats
-
-Un fichier JSONL par journal, stocké dans Google Drive. Pour chaque ligne, l'information complète sur un sitemap (succès ou échec, liste des URLs si succès).
+**[MAJ 22/07/2026]** Colab a disparu du projet : tout tourne sur le serveur,
+dans des sessions `tmux` qu'on peut laisser des jours. La contrainte de départ
+(une session coupée toutes les 12 h) n'existe donc plus, mais l'idée a été
+gardée telle quelle, parce qu'un run long finit toujours par être interrompu
+(plantage, coupure réseau, relance après correction). Le principe a juste
+changé de support : ce n'est plus un `set` de sitemaps déjà traités relu dans
+un JSONL, mais le CSV d'URLs lui-même qui est relu au démarrage — on ne
+réécrit que ce qui manque (`Sortie`, cf. « Choix du format de stockage »).
+Côté scraping, le même rôle est tenu par la colonne `etat` de `urls.db`.
 
 ### Articles actuels :
 
-| Journal | URLs collectées | Échecs |
-|---|---:|---:|
-| Le Monde | 4 086 784 | 9 |
-| Le Figaro | 2 745 555 | 0 |
-| Les Échos | 1 177 520 | 0 |
-| Nice Matin | 637 925 | 0 |
-| Le Nouvel Observateur | 523 470 | 8 |
-| Paris Match | 213 509 | 0 |
-| Le Journal du Dimanche | 159 225 | 0 |
-| Le Capital | 135 525 | 0 |
-| Télérama | 131 248 | 0 |
-| Valeurs Actuelles | 102 966 | 0 |
-| **Total** | **9 913 727** | **17** |
+**[MAJ 22/07/2026]** URLs collectées par le mapping, comptées dans les CSV
+d'URLs sur le serveur. Le corpus n'est plus un instantané : il grossit chaque
+jour avec la collecte des sitemaps *news* (cf. « Collecte quotidienne des
+sitemaps »).
 
-### Étape suivante
-- Gérer les quelques échecs du Monde
-- Réécrire le script pour tous types de journaux hors Paris Match (car Wayback)
-- Penser à un autre format de stockage : directement passer à CSV ? SQLite pour éviter les tuples, faire du comptage etc ? 
-- Passage à la parallélisation/scraping sur serveur.
+| Journal | URLs collectées |
+|---|---:|
+| Ouest-France | 7 756 909 |
+| Le Télégramme | 4 595 789 |
+| La Dépêche | 4 340 152 |
+| Le Monde | 4 094 518 |
+| Le Figaro | 2 766 644 |
+| Midi Libre | 1 370 140 |
+| Le Parisien | 1 289 350 |
+| Sud Ouest | 1 277 587 |
+| Les Échos | 1 183 641 |
+| La Provence | 906 681 |
+| 20 Minutes | 840 678 |
+| BFMTV | 772 114 |
+| Nice-Matin | 650 583 |
+| La Croix | 535 362 |
+| Le Nouvel Observateur | 525 335 |
+| cnews | 358 616 |
+| Paris Match | 260 533 |
+| Gala | 253 598 |
+| Challenges | 181 898 |
+| Paris-Normandie | 177 772 |
+| Voici | 177 611 |
+| Le Journal du Dimanche | 164 854 |
+| Atlantico | 162 715 |
+| L'Opinion | 144 762 |
+| Capital | 137 565 |
+| Télérama | 132 417 |
+| La Tribune | 112 154 |
+| Valeurs Actuelles | 103 246 |
+| France-Soir | 85 494 |
+| Mediapart | 53 032 |
+| Marianne | 47 505 |
+| **Total (31 médias branchés)** | **35 459 255** |
+
+Mappés mais hors production : Libération (1 266 923 URLs, média en pause,
+archives tronquées côté serveur), Le Point (1 094 630) et L'Express (342 887),
+tous deux écartés.
 
 ## Pipeline de scraping
 
-On a maintenant la liste des URLs (≈ 10 millions). Reste à aller chercher le contenu de chaque article. L'idée : garder toutes les URLs dans une petite base, et les traiter par batchs jusqu'à épuisement. À chaque batch, une URL par journal, scrapée en parallèle.
+On a maintenant la liste des URLs (≈ 10 millions à l'époque, 35,5 millions au 22/07/2026). Reste à aller chercher le contenu de chaque article. L'idée : garder toutes les URLs dans une petite base, et les traiter par batchs jusqu'à épuisement. À chaque batch, une URL par journal, scrapée en parallèle.
 
 ```
 urls.db
@@ -277,6 +382,18 @@ Chaque étape est un module séparé. Les sections suivantes les reprennent un p
 | [`stockage.py`](scraping/stockage.py) | écrit les métadonnées dans `<media>.csv`, met à jour l'état en base (1 échec / 2 succès) |
 | [`pipeline.py`](scraping/pipeline.py) | enchaîne le tout, batch après batch |
 
+**[MAJ 22/07/2026]** Ce chapitre décrit le pipeline v1 (batchs synchronisés,
+un seul moteur Firefox, 10 médias). Il a été refondu depuis : **le pipeline
+tourne aujourd'hui en une boucle indépendante par média, avec quatre moteurs
+de scraping, sur 32 médias** — voir « Pipeline v2 : un rythme par média
+(2026-07-07) » pour l'architecture actuelle et « Moteur par média » pour la
+répartition. Trois modules se sont ajoutés au tableau ci-dessus :
+[`moteurs.py`](scraping/moteurs.py) (choix du moteur par média),
+[`basic.py`](scraping/basic.py) (requête HTTP sans navigateur) et
+[`connexion.py`](scraping/connexion.py) (ouverture d'une session abonné).
+Les sections qui suivent gardent la description d'origine, chacune suivie de
+sa mise à jour.
+
 ### 0 . La base urls.db 
 
 Une seule table SQLite, quatre colonnes : `id`, `media`, `url`, `etat`. Chaque URL a un état :
@@ -294,6 +411,13 @@ Avant de scraper, on retire ce qui existe déjà ailleurs. Une bonne partie de n
 On a un petit script qui met tous les articles déjà scrapés à l'état 3 :
 [`scripts/4_marquer_doublons.py`](scripts/4_marquer_doublons.py). Résultat : **7 273 332 doublons écartés**.
 
+**[MAJ 22/07/2026]** Deux états ont été ajoutés depuis : `4` (échec confirmé,
+l'URL a eu ses deux tentatives) et `5` (URL corrompue / non-article) —
+détaillés dans « Les états d'une URL dans `urls.db` » et « Inspection des URLs
+non-articles ». La base est passée en mode WAL pour supporter les écritures
+concurrentes du pipeline v2, et elle est alimentée en continu par la collecte
+quotidienne des sitemaps.
+
 ### 1. `batch.py` : Constituer un batch
 
 La première étape est de sélectionner dans la BDD un article non traité par média, c'est le rôle de [`batch.py`](scraping/batch.py). Il interroge la base avec la commande SQL :
@@ -305,6 +429,13 @@ SELECT media, id, url FROM urls WHERE etat=0 GROUP BY media
 On obtient un dictionnaire `{media: (id, url)}`, par exemple la première ligne du dictionnaire sera :
 {"le_monde": (3, www.url_d_un_article.fr)}
 Cela va nous permettre d'ouvrir un Firefox par média, où chaque Firefox ouvre l'article associé à son média.
+
+**[MAJ 22/07/2026]** La notion de batch a disparu avec le pipeline v2 : chaque
+média a son propre thread, qui tire sa prochaine URL tout seul sans attendre
+les autres. La requête sélectionne désormais `WHERE etat IN (0,1)` — un média
+qui n'a plus de nouveautés (état 0) passe automatiquement à la seconde chance
+sur ses échecs (état 1), au lieu de sortir de la file (angle mort corrigé le
+09/07 sur le_monde).
 
 ### 2. `navigateur.py` : Lancer des Firefox pré-configurés bypass
 
@@ -319,6 +450,16 @@ Trois fonctions :
 - `scraper(driver, url)` — vide les cookies (pour la reproductibilité), charge la page, attend ~8 s que le bypass agisse, lit le HTML.
 
 P.S : La configuration d'uBlock et des extensions n'a lieu qu'une fois : les Firefox restent ouverts toute la durée du run. À chaque nouveau batch, on réutilise le même navigateur et on se contente de vider ses cookies, pour repartir d'un état propre. On désactive aussi les images, pour accélérer le chargement.
+
+**[MAJ 22/07/2026]** Firefox n'est plus le passage obligé : il y a maintenant
+**quatre moteurs**, choisis média par média dans
+[`moteurs.py`](scraping/moteurs.py) — `basic` (simple requête HTTP, 20
+médias), `firefox` (Selenium + bypass, 9), `log` (Firefox connecté à un compte
+abonné, 2) et `hybride` (HTTP d'abord, Firefox en secours si l'article est
+payant, telerama). Côté réglages Firefox : `pageLoadStrategy: eager`
+(chargement médian 3,4 s → 0,8 s), `page_load_timeout` de 30 s, profils
+temporaires en RAM (`/dev/shm`, ouverture ×3,5) et attente de 4 s au lieu de
+8 (vérifié : 0 article bloqué). Détail dans « Pipeline v2 ».
 
 
 ### 3. `extraction.py` : Extraire les métadonnées et l'article du HTML
@@ -343,7 +484,18 @@ On réutilise encore le mécanisme de dictionnaire : comme chaque média peut av
 "le_monde": {"meta": "json_ld", "corps": ".article__content"}
 ```
 
-`extraire(media, html)` lit ces deux indications et applique la bonne méthode ; seules les deux valeurs changent d'un média à l'autre. Seul le JDD fait exception : sans JSON-LD, ses métadonnées sont lues dans le HTML (`meta: corps`). Le sélecteur de chaque média est dans [`detail_metadonnees.md`](detail_metadonnees.md).
+`extraire(media, html)` lit ces deux indications et applique la bonne méthode ; seules les deux valeurs changent d'un média à l'autre. Seul le JDD fait exception : sans JSON-LD, ses métadonnées sont lues dans le HTML (`meta: corps`). Le sélecteur de chaque média est dans [`detail_metadonnees.md`](exploration/detail_metadonnees.md) (le fichier a suivi le ménage de `exploration/`).
+
+**[MAJ 22/07/2026]** Le dictionnaire de routage compte aujourd'hui 32 médias
+([`medias.py`](scraping/medias.py)), et le JSON-LD s'est confirmé comme la
+règle : deux médias seulement (JDD, France-Soir) lisent leurs métadonnées dans
+les balises. Deux ajouts au format des fiches : `corps: "json_ld"` quand le
+JSON-LD contient aussi le texte de l'article (une dizaine de médias, plus
+besoin de sélecteur CSS), et `secours` — des sélecteurs de repli titre/date
+utilisés quand le JSON-LD laisse un champ vide (bfmtv, atlantico : ~8 % des
+pages). Un sélecteur mal borné coûte cher : sur Le Monde, un corps trop large
+attrapait les encarts « Lire aussi » et faisait échouer ~13 % des articles à
+tort (corrigé le 11/07 en se limitant à `p.article__paragraph`).
 
 ### 4. `paywall.py` : Vérifier que le bypass a réussi
 
@@ -357,12 +509,27 @@ Pour calibrer les signaux, on a comparé les pages avec et sans bypass. Trois co
 | Paywall mou (texte déjà complet sans bypass) | le_journal_du_dimanche, le_capital, nice_matin, paris_match |
 | Bypass échoué | le_nouvel_observateur *(non résolu)* |
 
+**[MAJ 22/07/2026]** Le tableau ci-dessus est celui des 10 premiers médias. La
+règle qui s'est imposée depuis, en re-sondant tout le monde : **on n'accepte
+jamais un article tronqué**. Un média dont le paywall ne cède pas est soit
+limité à ses articles gratuits (colonne `free`), soit scrapé avec un compte
+abonné (le_monde, mediapart), soit écarté (L'Express, Le Point). Le
+nouvel_observateur, lui, est repassé en bypass efficace. Un cas à retenir :
+liberation est en pause parce que ses archives sont tronquées *côté serveur*
+(~240 mots), donc invisibles pour `est_bloque` — le contenu manque sans qu'un
+message de paywall l'annonce.
+
 ### 5. `stockage.py` : Écrire les résultats
 
 [`stockage.py`](scraping/stockage.py) fait deux choses :
 
 - `ecriture_csv(...)` extrait les métadonnées, passe le corps à `est_bloque`, et — si l'article est complet — ajoute une ligne au CSV du journal (`id, url, titre, auteur, date, section, free, contenu`). Renvoie l'état : `2` si écrit, `1` si bloqué.
 - `maj_bdd(...)` met à jour l'`etat` de l'URL. (passage à 2 ou 1)
+
+**[MAJ 22/07/2026]** `maj_bdd` pose aussi les états ajoutés depuis : `4` quand
+une URL déjà en échec re-échoue (fin de parcours, deux tentatives maximum) et
+`5` pour les URLs corrompues / non-articles, marquées à la main hors pipeline.
+Les états 3 et 5 sont invisibles pour le pipeline comme pour le suivi.
 
 ### 6. `pipeline.py` : Orchestrer les batchs
 
@@ -373,6 +540,14 @@ Pour calibrer les signaux, on a comparé les pages avec et sans bypass. Trois co
 3. **Fin** quand il n'y a plus d'`etat=0` : on ferme les navigateurs.
 
 Le commit par batch rend le run **reprenable** : si le script meurt, les URLs non commitées restent à `0` et sont reprises au lancement suivant. Une URL qui échoue finit à `etat=1`, sans faire tomber le batch.
+
+**[MAJ 22/07/2026]** Cette boucle a été remplacée par le pipeline v2 : plus de
+batch synchronisé (où tout le monde attendait le média le plus lent), mais un
+thread par média qui prend son URL, la scrape, écrit, respecte son délai de
+politesse et recommence. Le débit est passé de ~60 à **~280 URLs/min**. La
+propriété de reprise est conservée (chaque URL est commitée à son terme), et
+un média peut être mis en pause individuellement (`pause: True` dans sa
+fiche) sans arrêter le run.
 
 ### Suivi du run
 
@@ -395,6 +570,14 @@ ssh gallica 'cd /data/elias/stage-mids && source .venv/bin/activate && python -m
 
 Puis ouvrir <http://IP_DU_SERVEUR:8000/tendance.html> dans un navigateur.
 
+**[MAJ 22/07/2026]** `suivi.py` reste l'outil en ligne de commande, mais le
+suivi au quotidien se fait maintenant par deux canaux plus confortables : le
+**site de suivi** (chiffres régénérés chaque nuit par cron, cf. « Site de
+suivi ») et le **dashboard local** `site/static/dashboard.html`, une page HTML
+rafraîchie à la demande qui résume l'état des runs, des bases et des tâches en
+cours. `suivi.py` a gagné `exporter_avancement()`, qui écrit le CSV
+d'avancement lu par le site.
+
 ### Ajouter un nouveau média
 
 1. Déposer `data/<nom_media>_articles.csv` (colonne `url`) sur le serveur.
@@ -405,6 +588,18 @@ Puis ouvrir <http://IP_DU_SERVEUR:8000/tendance.html> dans un navigateur.
 ```
 
 `pipeline.py` charge les URLs au démarrage ; `3_creer_csv.py` crée le fichier de sortie. Pour trouver le bon sélecteur CSS, utiliser `exploration/recuperer_html.py`.
+
+**[MAJ 22/07/2026]** La recette complète tient maintenant en quatre fiches de
+configuration, sans écrire un script :
+
+1. une fiche de **mapping** dans [`mapping/catalogue.py`](mapping/catalogue.py)
+   (quelle méthode, quel motif d'URL) → produit le CSV d'URLs ;
+2. `python -m scripts.verser_nouveaux <media>` verse ces URLs dans `urls.db` ;
+3. une fiche de **scraping** dans [`medias.py`](scraping/medias.py) (moteur,
+   attente, sélecteurs) ;
+4. une fiche de **collecte news** dans
+   [`sitemap_news.py`](scripts/sitemap_news.py) pour que le média continue de
+   recevoir ses nouveaux articles chaque jour.
 
 ### Médias ajoutés
 
@@ -441,6 +636,28 @@ Nouveaux médias potentiels :
 - Courrier Picard (à voir)
 - L'Union (2023)
 
+**[MAJ 22/07/2026]** Cette liste de repérage a été en partie consommée :
+
+- **branchés depuis** : Le Parisien, Marianne et La Tribune (batch du
+  06/07/2026), plus cnews et 20 Minutes issus de la prospection du 07/07 ;
+  s'y ajoutent des titres qui n'étaient pas dans cette liste (Ouest-France,
+  Midi Libre, BFMTV, La Croix, La Provence, Gala, Voici, Paris-Normandie,
+  France-Soir, Mediapart) ;
+- **écarté** : L'Express — le repérage disait « suffit de taper année/mois
+  dans le sidebar », ce qui était vrai pour les URLs, mais 9 articles sur 10
+  sont payants et sans corps récupérable ;
+- **fiche de mapping écrite, pas branchés** : Le Progrès et Closer, évalués
+  lors de la prospection du 07/07 ;
+- **toujours des pistes** : Usine Nouvelle, Le Nouvel Économiste, Journal du
+  Net, Les Inrocks, Charlie Hebdo, Causeur, Esprit, Elle, Connaissance des
+  arts, Science et Vie, Sciences et Avenir, L'Équipe, La Nouvelle République,
+  DNA, L'Alsace, L'Est Républicain, La Voix du Nord, Courrier Picard, L'Union.
+
+La mention « (Wayback) » de plusieurs lignes est devenue moins dissuasive : la
+méthode `CdxWayback` est maintenant une des cinq méthodes du catalogue de
+mapping, donc un site sans sitemap exploitable ne demande plus de travail
+spécifique.
+
 ### Batch de 15 nouveaux médias (06/07/2026)
 
 Le mapping des 15 nouveaux médias est terminé : on a la liste complète des URLs
@@ -470,38 +687,11 @@ contournables), **log** (Firefox connecté à un compte abonné). Le champ
 log (validé : 1 s ne tronque pas), et 1 s de politesse pour basic (la requête
 est instantanée, on temporise juste pour ne pas marteler le site).
 
-| Média | Moteur | Attente |
+| Moteur | Attente | Médias |
 |---|---|---|
-| le_monde | log (compte abonné) | 1 s |
-| mediapart | log (compte abonné) | 1 s |
-| le_figaro | firefox (bypass) | 6 s |
-| telerama | firefox (bypass) | 6 s |
-| valeurs_actuelles | firefox (bypass) | 6 s |
-| les_echos | firefox (bypass) | 6 s |
-| paris_match | firefox (bypass) | 6 s |
-| le_nouvel_observateur | firefox (bypass) | 6 s |
-| nice_matin | firefox (bypass) | 6 s |
-| atlantico | firefox (bypass) | 6 s |
-| sud_ouest | firefox (bypass) | 6 s |
-| le_telegramme | firefox (bypass) | 6 s |
-| le_capital | basic | 1 s |
-| challenges | basic | 1 s |
-| l_opinion | basic | 1 s |
-| la_depeche | basic | 1 s |
-| le_journal_du_dimanche | basic | 1 s |
-| gala | basic | 1 s |
-| voici | basic | 1 s |
-| bfmtv | basic | 1 s |
-| ouest_france | basic | 1 s |
-| leparisien | basic | 1 s |
-| la_croix | basic | 1 s |
-| laprovence | basic | 1 s |
-| francesoir | basic | 1 s |
-| marianne | basic | 1 s |
-| midilibre | basic | 1 s |
-| paris_normandie | basic | 1 s |
-| latribune | basic | 1 s |
-| liberation | basic | 1 s |
+| basic | 1 s (politesse) | le_capital, challenges, l_opinion, la_depeche, le_journal_du_dimanche, gala, voici, bfmtv, ouest_france, leparisien, la_croix, laprovence, francesoir, marianne, midilibre, paris_normandie, latribune, liberation |
+| firefox (bypass) | 6 s (chargement) | le_figaro, telerama, valeurs_actuelles, les_echos, paris_match, le_nouvel_observateur, nice_matin, atlantico, sud_ouest, le_telegramme |
+| log (compte abonné) | 1 s (chargement) | le_monde, mediapart |
 
 Soit 18 médias en basic, 10 en firefox et 2 en log.
 
@@ -509,19 +699,24 @@ On a mis de côté **L'Express** et **Le Point** : L'Express est quasi entièrem
 payant sans corps d'article récupérable, et Le Point a trop d'URLs mortes (issues
 des archives Wayback) et un article rendu en JavaScript, invisible sans navigateur.
 
-Vérifier que les archives du monde
+**[MAJ 22/07/2026]** La répartition a bougé avec le pipeline v2 : un quatrième
+moteur, **hybride** (requête HTTP d'abord, Firefox bypass seulement si
+l'article sort tronqué), a récupéré telerama, dont la lenteur venait d'un
+ralentissement ciblant l'empreinte Firefox. Les attentes ont été retestées :
+4 s pour firefox (au lieu de 6, sans perte), 3 s pour log, 1 s de politesse
+pour basic sauf latribune (2 s, rate-limit constaté). État actuel — 32 médias :
 
-Suite :
-- Analyser les prénoms
-- time series
-- comptage de mots (TF-IDF)
-- saut intraséque et interséque (voir article de Mala)
-- MOR (traitement automatique des langues)
+| Moteur | Attente | Médias |
+|---|---|---|
+| basic (20) | 1 s (latribune 2 s) | le_capital, la_depeche, l_opinion, challenges, le_journal_du_dimanche, gala, voici, bfmtv, ouest_france, leparisien, la_croix, laprovence, francesoir, marianne, midilibre, paris_normandie, latribune, liberation *(en pause)*, cnews, 20minutes |
+| firefox (9) | 4 s | le_figaro, valeurs_actuelles, les_echos, paris_match, le_nouvel_observateur, nice_matin, atlantico, sud_ouest, le_telegramme |
+| log (2) | 3 s | le_monde, mediapart |
+| hybride (1) | 2 s | telerama |
 
-- Voir le site web html
-- Faire les premiers comptages de mot sur les 10 000 premiers articles de chaque média
-- Décider de sous quels formats mettre la BDD
-- Voir si on peut utiliser Bert pour l'analyse de sentiment
+*(Les pistes d'analyse notées ici — prénoms, TF-IDF, BERT, sauts intrinsèques
+et extrinsèques… — ont été déplacées dans
+[`paper/to_do.md`](paper/to_do.md), section « Pistes d'analyse notées en
+juin-juillet 2026 », qui est devenu le seul endroit où vivent les tâches.)*
 
 ## Site de suivi
 
@@ -530,6 +725,21 @@ Mise en place d'un site de suivi du scraping avec **Evidence.dev** (dossier `sit
 Hébergé sur **GitHub Pages** en mode *GitHub Actions* (build automatique à chaque push sur `main`, plus de branche `gh-pages`). Les données viennent de deux CSV versionnés dans `site/sources/suivi/` : `suivi_journal.csv` (copié depuis `data/`) et `avancement.csv` (généré par `exporter_avancement()` depuis `urls.db`). Un **cron quotidien** (`scripts/maj_csv_suivi.sh`, 4h) rafraîchit ces CSV et pousse sur `main` → le site se reconstruit seul.
 
 Site : <https://corto2corto.github.io/stage-mids/>
+
+**[MAJ 22/07/2026]** Le site a gagné deux rubriques et un compagnon local :
+
+- une page **Collecte des sitemaps** (11/07), qui trace les nouvelles URLs
+  trouvées à chaque passage du cron — détail dans « Suivi de la collecte des
+  sitemaps sur le site » ;
+- la page d'accueil **Avancement** est désormais alimentée par
+  `avancement.csv`, généré depuis `urls.db` par `exporter_avancement()` ; le
+  cron de 4h régénère les deux CSV (journal + avancement) et ne pousse que
+  s'ils ont changé. Le site couvre les 31 médias branchés, contre 16 au
+  départ ;
+- un **dashboard local** `site/static/dashboard.html` (12/07, sorti du suivi
+  git le 19/07 : il n'est plus publié) : une page HTML unique, mise à jour à
+  la demande, qui rassemble ce que le site ne montre pas — avancement du
+  mémoire, runs serveur en cours, état des bases, tâches en attente.
 
 ## Bases de données n-grammes
 
@@ -543,7 +753,7 @@ Avant de compter, chaque article est découpé en phrases, pour qu'un bigramme o
 
 Chaque journal a sa propre base : un comptage des uni/bi/trigrammes par jour, accompagné du total de mots du jour pour pouvoir calculer des fréquences relatives. Un filtre écarte les n-grammes trop rares (vus moins de 10 fois sur tout le corpus), pour garder des bases plus légères.
 
-### Résultat (2026-07-02)
+### Résultat (02/07/2026)
 
 | Base | Taille | Couverture |
 |---|---|---|
@@ -551,8 +761,34 @@ Chaque journal a sa propre base : un comptage des uni/bi/trigrammes par jour, ac
 | Les Échos | 8,3 Go | 1991-01-02 → 2024-10-20 |
 | Le Monde | 30 Go | reconstruction en cours |
 
+**[MAJ 22/07/2026]** La base Le Monde est terminée, et c'est elle qui porte
+toute la suite du mémoire (phases 2 et 3). État actuel :
+
+| Base | Taille | Couverture | Jours de parution |
+|---|---|---|---:|
+| Le Monde | 59 Go | 1944-12-19 → 2025-12-31 | 26 917 |
+| Les Échos *(sans filtre)* | 12,6 Go | 1991-01-02 → 2025-04-02 | 10 395 |
+| Le Figaro | 10 Go | 2004-12-17 → 2024-03-01 | 6 764 |
+| Les Échos *(filtrée, ancienne)* | 8,2 Go | 1991-01-02 → 2024-10-20 | 10 381 |
+
+Deux évolutions par rapport à la description ci-dessus :
+
+- **le filtre « vu moins de 10 fois » est abandonné**. Il faisait disparaître
+  précisément les mots rares qui nous intéressent pour la détection de
+  ruptures. Coût mesuré sur Les Échos, reconstruits sans filtre : ×1,5 sur la
+  taille (8,2 → 12,6 Go), ce qui est supportable ;
+- chaque corpus a en plus une **base de tops** (`<corpus>_top.db`, reconstruite
+  d'un bloc) : les 500 premiers uni/bi/trigrammes par jour, mois et année, avec
+  un drapeau `stop` sur les mots outils — c'est ce que sert l'API.
+
+La **mise à jour quotidienne** ([`maj_ngram.py`](scripts/maj_ngram.py)) est
+écrite et validée — elle ne recompte que les articles nouveaux du CSV du média,
+par paquets validés en une transaction, l'API continuant de servir pendant
+l'écriture — mais elle n'est pas encore branchée en cron : restent à trancher
+la mise à jour incrémentale des tops et le rattrapage de l'existant.
+
 ### Étape suivante
-- Terminer la reconstruction de la base Le Monde
+
 - Normalisation : famille de mots via Spacy (lemmatisation/REN), garder les 50K unigrammes les plus intéressants
 
 ## Détection de spikes et histogrammes
@@ -575,7 +811,17 @@ script liste les fenêtres au-dessus du seuil et enregistre une figure par
 temps avec les spikes en rouge ; à droite, l'histogramme de ces fréquences —
 la densité empirique du mot — avec le seuil en pointillé qui sépare le régime
 habituel des extrêmes.
-## Pipeline v2 : un rythme par média (2026-07-07)
+
+**[MAJ 22/07/2026]** Ce script est un brouillon dépassé : le seuil par
+quantile empirique (« les 1 % de jours les plus chargés ») dit seulement qu'un
+jour est dans le haut du panier, pas qu'il est *surprenant*. Il a été remplacé
+par le module [`rupture/`](rupture/), qui ajuste une loi au mot et donne une
+p-valeur à chaque jour — cf. « Fiche statistique d'un mot » puis « Phase 2 ».
+Le dossier `exploration/figures/` n'existe plus : les figures sont produites à
+la demande par le skill `/fiche-mot` et par les rapports de
+`paper/donnees_maths/`.
+
+## Pipeline v2 : un rythme par média (07/07/2026)
 
 Le pipeline en batchs synchronisés (chaque batch attendait le média le plus lent
 avant de repartir) est remplacé par **une boucle indépendante par média** : un
@@ -621,12 +867,14 @@ chaque URL a droit à deux tentatives au maximum, ce qui évite de marteler à
 l'infini les payants et les pages mortes. Les états 3 et 5 sont invisibles
 pour le pipeline comme pour le suivi (ni succès, ni échec : hors périmètre).
 
-### Run de validation (nuit du 6 au 7 juillet)
+### Run de validation (nuit du 6 au 7 juillet 2026)
 
 2 h sur 48 500 URLs tirées au hasard, 30 médias : **29 236 articles**, 0 blocage
 base, 0 thread mort, cohérence CSV↔base parfaite, reprise propre après un
 `kill -9` (au plus 1 doublon par média, absorbé par le marquage des doublons).
-Rapport détaillé : `exploration/rapport_test_nuit.md`.
+Le rapport détaillé (`exploration/rapport_test_nuit.md`) a été supprimé au
+ménage de `exploration/` : ses conclusions sont celles résumées ici et dans
+« Décisions médias ».
 
 ### Décisions médias
 
@@ -647,11 +895,26 @@ Rapport détaillé : `exploration/rapport_test_nuit.md`.
   retentés (désormais `WHERE etat IN (0,1)`). Reste un filet de news du jour à
   écarter côté `medias.py` pour une pause complète.
 
+**[MAJ 22/07/2026 — le_monde débloqué]** La pause a été levée le 11/07. Le
+scraping du Monde passe par un **compte abonné** (moteur `log` : Firefox
+ouvre une session connectée avant le run, cf.
+[`connexion.py`](scraping/connexion.py)), et non plus par l'extension de
+bypass, qui échouait systématiquement sur ce site. Le login fonctionnait
+d'ailleurs déjà lors du diagnostic du 09/07 : les ~99,6 % d'échec ne venaient
+pas de l'accès mais de la lecture — le sélecteur de corps ramassait les
+encarts « Lire aussi » et leur mention « Article réservé aux abonnés », que
+`est_bloque` prenait pour un paywall. Corps restreint aux vrais paragraphes
+(`p.article__paragraph`), puis rejeu des échecs : **21 852 articles récupérés,
+37 échecs résiduels, plus aucune URL en attente**. Le Monde est le corpus sur
+lequel s'appuient les phases 2 et 3 du mémoire.
+
 ### Prospection de nouveaux médias
 
-Quatre candidats évalués par équipes d'agents (dossiers dans
+Quatre candidats évalués par équipes d'agents (dossiers de prospection dans
 `exploration/prospection/`, scripts de mapping écrits et testés, **rien de
-branché** — validation à venir) :
+branché** — validation à venir ; ces dossiers ont depuis été supprimés, leurs
+conclusions tenant dans le tableau ci-dessous et leurs scripts étant devenus
+des fiches de [`mapping/catalogue.py`](mapping/catalogue.py)) :
 
 | Média | Verdict | Profondeur |
 |---|---|---|
@@ -664,7 +927,7 @@ branché** — validation à venir) :
 d'archives éditoriales après rachat** (Reworld a vidé le corps des anciens
 articles en gardant URL et titre).
 
-## Collecte quotidienne des sitemaps (2026-07-08)
+## Collecte quotidienne des sitemaps (08/07/2026)
 
 Jusqu'ici le corpus d'URLs était figé : chaque média avait été cartographié une
 fois (section « Pagination »), puis plus rien. Or les journaux publient tous les
@@ -701,7 +964,7 @@ réexécutable, base intacte.
 
 Bilan : le corpus de scraping n'est plus un instantané, il grossit chaque jour.
 
-## Fiche statistique d'un mot : Poisson vs binomiale négative (2026-07-10)
+## Fiche statistique d'un mot : Poisson vs binomiale négative (10/07/2026)
 
 Premier livrable « maths » du mémoire, demandé par le tuteur : avant les modèles
 de rupture, poser proprement le modèle de comptage d'un mot au fil du temps.
@@ -761,7 +1024,7 @@ intermédiaires, redondants avec les trois retenus.
 - Skill `/fiche-mot` : génère à la demande la page PDF d'un nouveau mot (série +
   pics, histogramme vs lois, p-valeurs, moments), sur le modèle du rapport.
 
-## Nettoyage des URLs non-articles (2026-07-11)
+## Nettoyage des URLs non-articles (11/07/2026)
 
 Le chargement des nouveaux médias a embarqué des URLs qui ne sont pas des
 articles. Découvert sur latribune : ~29 000 fragments Wayback
@@ -785,7 +1048,7 @@ doublon dans le CSV (~13 % du fichier, certains articles en triple).
   extension** — jamais sur la présence d'un mot. L'inspection média par média
   qui en tirera une règle par média est notée dans les tâches en attente.
 
-## Suivi de la collecte des sitemaps sur le site (2026-07-11)
+## Suivi de la collecte des sitemaps sur le site (11/07/2026)
 
 Le site de suivi gagne une page **Collecte des sitemaps** : une barre par
 jour (bleu = passage du matin 5h40 UTC, orange = après-midi 17h40, empilés)
@@ -808,7 +1071,7 @@ réapparaissent d'un passage à l'autre) ; « Nouvelles » = les URLs jamais
 vues, celles qui rejoignent la file de scraping — c'est ce que trace le
 graphique.
 
-## Inspection des URLs non-articles : règles par média (2026-07-12)
+## Inspection des URLs non-articles : règles par média (12/07/2026)
 
 L'inspection média par média annoncée le 11/07 est faite. Chaque règle a été
 validée sur échantillons (requêtes indexées + sondes HTTP avec la vraie chaîne
@@ -836,17 +1099,18 @@ on garde — un faux article ne coûte qu'un échec de scraping, un vrai article
   (règles appliquées, règles écartées, motifs à bloquer en amont) ; l'état 5
   est documenté dans [`scraping/stockage.py`](scraping/stockage.py).
 
-## Branchement de cnews et 20minutes (2026-07-15)
+## Branchement de cnews et 20minutes (15/07/2026)
 
-Deux médias de la prospection du 07/07 entrent en production (dossiers dans
-`exploration/prospection/`), tous deux 100 % gratuits en moteur basic :
-**cnews** (json-ld, corps `div.article-body`) et **20minutes** (corps json-ld).
+Deux médias de la prospection du 07/07 entrent en production, tous deux 100 %
+gratuits en moteur basic : **cnews** (json-ld, corps `div.article-body`) et
+**20minutes** (corps json-ld).
 
 - **Rattrapage avant versement** — les mappings sont désormais relançables :
-  [`mapping_cnews.py`](mapping/catalogue.py) passe en append+dédup
-  (re-balayage obligatoire, sitemap non trié par date) et
-  [`mapping_20minutes.py`](mapping/catalogue.py) prend les années
-  en argument. cnews : +562 URLs (fenêtre 07→14/07) → **357 990**. 20minutes :
+  `mapping_cnews.py` passe en append+dédup (re-balayage obligatoire, sitemap
+  non trié par date) et `mapping_20minutes.py` prend les années
+  en argument. *(Ces deux scripts n'existent plus : ils ont été absorbés le
+  21/07 par [`mapping/catalogue.py`](mapping/catalogue.py), où ils sont
+  devenus une fiche `SitemapPagine` et une fiche `ArchivesParJour`.)* cnews : +562 URLs (fenêtre 07→14/07) → **357 990**. 20minutes :
   +18 996 URLs 2026, puis un **trou 2022-2025 découvert par l'audit** (le
   mapping du 07/07 s'était interrompu à 2021 sans le signaler) et comblé dans
   la foulée (+140 560) → **839 923**, corpus continu 2006-2026.
@@ -872,7 +1136,7 @@ Deux médias de la prospection du 07/07 entrent en production (dossiers dans
   07/07 l'avait raté pour ça, `/videos/` exclues). Plus aucun média branché
   sans source de nouvelles URLs, sauf francesoir.
 
-## Phase 2 — détection des pics revue : mélange Bernoulli × NB (2026-07-20)
+## Phase 2 — détection des pics revue : mélange Bernoulli × NB (20/07/2026)
 
 La phase 2 du mémoire (classification des sauts) demande un gros dataset de
 pics : pour chaque couple (mot, jour anormal), une fenêtre de la série sur
@@ -953,7 +1217,7 @@ Pearson jour par jour, résidus, moments, histogrammes.
 - Prochaine étape : câbler la Bern-NB dans les briques `rupture/`, puis la
   NMS (dédoublonnage des fenêtres qui se recouvrent).
 
-## Double fit Bern-NB : purger les outliers avant de réestimer le bruit (2026-07-20)
+## Double fit Bern-NB : purger les outliers avant de réestimer le bruit (20/07/2026)
 
 Suite du mélange Bernoulli × NB : la loi de fond reste estimée sur *tous* les
 jours actifs, y compris les pics eux-mêmes, qui la tirent vers le haut et la
@@ -975,7 +1239,7 @@ purifiée. Testé sur 20 mots, 26 917 jours (1944-2025) —
   entière plutôt que des jours isolés — hors de portée du double fit,
   toujours du ressort de l'étape 4 (modèle autorégressif).
 
-## Le mapping regroupé en un module (2026-07-21)
+## Le mapping regroupé en un module (21/07/2026)
 
 Le *mapping*, c'est l'étape qui dresse, pour chaque journal, la liste de
 toutes les URLs de ses articles — le point de départ, avant de les scrapper.
@@ -1008,7 +1272,7 @@ Au passage, le pipeline quotidien (collecte des sitemaps *news*) a quitté
 `exploration/` pour [`scripts/`](scripts/) : ces fichiers tournent tous les
 jours par cron, ils n'avaient pas leur place dans un dossier d'essais.
 
-## Phase 3 — gros vocabulaire : règle d'absorption des graphies (2026-07-21)
+## Phase 3 — gros vocabulaire : règle d'absorption des graphies (21/07/2026)
 
 Le dataset de sauts démarre sur les unigrammes du Monde : recensement complet
 de la base (441 081 mots, 3 min 20 — `exploration/scan_vocab_lemonde.py`),
@@ -1027,3 +1291,65 @@ désaccentuée que si elle pèse **moins de 1 %** de celle-ci — les doublons O
 les paires réelles restent deux mots. Extraction en masse : `rupture/masse.py`,
 une passe sur `unigram`, matrice dense 10 000 mots × 26 917 jours dans
 `data/vocab_series_lemonde.npz` (~10 min sur gallica).
+
+## Phase 3 — NMS : un représentant par événement (2026-07-22)
+
+La campagne `pics_masse` a rendu **164 254 pics** sur le top-10 000 (9 817
+mots avec au moins un pic, 11 échecs de fit). Beaucoup se suivent à quelques
+jours d'écart : leurs fenêtres ±15 jours se recouvriraient dans la matrice,
+et la PCA compterait plusieurs fois le même événement. L'étape 4 ne garde
+qu'un représentant par événement — une *non-maximal suppression* (NMS),
+implémentée dans [`rupture/nms.py`](rupture/nms.py).
+
+L'idée naïve — fusionner de proche en proche les pics dont les fenêtres se
+recouvrent, puis garder le meilleur de chaque groupe — a été **écartée** :
+c'est du single-linkage, et son effet de chaînage est un défaut documenté
+depuis les années 70 (Jain & Dubes 1988). Il suffit d'un pont de pics
+espacés de moins de 31 jours pour souder des mois entiers en un « groupe
+géant » réduit à un seul datapoint. Mesuré sur nos données : 164 groupes
+s'étendant sur plus de 90 jours de parution, dont « syrienne » (203 pics sur
+760 jours, 2012-2014) ou « jaunes » (177 pics sur 325 jours, 2018-2019) —
+autant d'événements distincts écrasés en un seul.
+
+Trois choix à justifier explicitement dans la partie méthode :
+
+1. **L'algorithme est glouton et non-transitif** — le vrai point
+   différenciant. On trie les pics d'un mot par surprise décroissante ; le
+   plus fort est retenu et supprime ses voisins **directs** (à moins de 31
+   jours de lui) ; un pic supprimé ne supprime personne ; on répète sur les
+   survivants. La suppression ne se propage jamais de proche en proche,
+   donc pas de groupe géant : « syrienne » donne 18 représentants au lieu
+   d'un, « jaunes » 8. C'est le NMS canonique de la détection d'objets
+   (R-CNN ; Soft-NMS, Bodla et al. 2017), qui n'est *pas* un « max par
+   composante connexe » — la différence est exactement la non-transitivité.
+2. **Distance de suppression : 31 jours de parution** (= la largeur d'une
+   fenêtre, 1 + 2×15). Choisie pour garantir par construction qu'aucune
+   paire de fenêtres gardées ne se chevauche jamais dans la matrice. En
+   jours de parution et non calendaires, car les fenêtres de
+   `fenetres.py` sont des lignes de la série (la base saute les jours sans
+   journal).
+3. **Critère de conservation : la surprise maximale** (p-valeur minimale),
+   décidé dès la formulation de l'étape — le jour le plus anormal représente
+   l'événement.
+
+Note pour le mémoire (bas de page) : la sismologie a eu exactement ce débat
+pour ses répliques. Gardner-Knopoff (1974) = fenêtres centrées sur le choc
+principal (notre glouton) ; Reasenberg (1985) = chaînage transitif adaptatif
+(l'approche écartée) ; sur un même catalogue, le déclustering par chaînage
+échoue au test de Poisson là où les fenêtres le passent (GJI 2021).
+
+**Contre-vérification** : `scipy.signal.find_peaks(height=4, distance=31)`
+sur le signal surprise — son paramètre `distance` est un NMS glouton 1D de
+référence, implémentation indépendante de la nôtre. Résultat : accord sur
+**9 771 mots sur 9 817** ; les 46 écarts sont compris — 45 égalités de
+surprise (le CSV arrondit à 2 décimales) départagées différemment, 1 pic
+gardé par nous car à exactement 31 jours du maximum (fenêtres disjointes,
+conforme) mais « dans l'ombre » d'un voisin supprimé plus haut, donc jamais
+candidat chez scipy. Aucun bug.
+
+**Bilan** (test local sur les données du serveur) : 123 465 pics gardés sur
+164 254 (75,2 %), médiane 10 représentants par mot ; 84 % des pics gardés
+sont solo (`n_absorbes` = 0) — le NMS ne mord que sur les périodes denses,
+comme voulu. Record d'absorption : « francisco », 58 pics absorbés autour du
+26/04/1945 — la conférence de San Francisco, fondation de l'ONU. Reste à
+produire la sortie officielle sur gallica.
