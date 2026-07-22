@@ -152,17 +152,17 @@ Si un mot a plusieurs pics à moins de $d$ jours d'écart, les fenêtres se reco
 
 Ne pas faire la PCA sur les occurrences ni les fréquences brutes : elle détecterait juste que certains mots sont plus fréquents que d'autres.
 
-- [ ] Option par défaut : stocker les $z$-scores le long de la fenêtre.
-- [ ] Alternative à tester : normalisation de chaque fenêtre sur $[0,1]$.
-- [ ] Vérifier ce que fait l'option de normalisation intégrée des fonctions de PCA (remarque de Benoît) : elle standardise colonne par colonne, ce qui n'est pas la même chose que normaliser chaque fenêtre.
+- [x] Option par défaut : les $z$-scores le long de la fenêtre — **acté le 22/07/2026** (`rupture/pca.py`, norme `z`).
+- [x] Alternative testée : normalisation de chaque fenêtre sur $[0,1]$ — proche du $z$ au-delà de la composante 1 ; sa composante 1 (27,9 %) capte le niveau d'ensemble de la fenêtre (corr. 0,49 au niveau brut). Gardée comme variante (`pca_lemonde_01.npz`).
+- [x] Vérifié (remarque de Benoît) : la standardisation colonne par colonne donne une composante 1 à **63,5 %** de variance, corrélée à **0,99** au niveau moyen brut — la direction « mots fréquents ». Témoin conservé dans le module (`col`), à ne pas utiliser pour l'analyse.
 
 ### 6. PCA : le modèle zéro
 
 Faire une PCA sur la matrice $N \times D$, sans ondelette ni autre transformation.
 
-- [ ] Lancer la PCA et tracer la variance expliquée par composante.
-- [ ] Visualiser les premières composantes comme des profils temporels. Attendu : des directions simples et peu informatives, genre « activité déjà forte avant le saut et qui continue après » ou « activité nulle avant, forte après », pas trop loin de Sornette.
-- [ ] Consigner les résultats comme *modèle zéro* : analyse à l'aveugle, les mots ne sont que des séries temporelles (on oublie l'identité des mots et les dates). Important pour l'article à venir.
+- [x] PCA lancée (SVD, 123 310 fenêtres, gallica 5 s) et variance tracée (`rupture/sorties/pca_lemonde_variance.png`) : spectre plat en $z$ — 9,1 / 5,9 / 5,0 / 4,8 / 4,2 / 3,7 % (32,7 % à 6 composantes), pas de petit nombre de formes dominantes.
+- [x] Profils temporels tracés (`pca_lemonde_composantes.png`) : 1 = pic isolé d'un jour, 2 = niveau durablement plus élevé après le pic, 3 = bascule avant/après, 4 = creux la veille puis rebond, 5-6 = paire hebdomadaire (période ≈ 7 jours de parution, quadrature) — conformes à l'attendu (« pas trop loin de Sornette »).
+- [x] Consigné comme *modèle zéro* au journal du 22/07/2026 (analyse à l'aveugle, mots et dates oubliés) ; sorties `data/pca_lemonde_{z,01,col}.npz`.
 
 ### 7. CSV des pics à transmettre
 
