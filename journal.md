@@ -1361,3 +1361,42 @@ pour $10^5$ dans `data/fenetres_lemonde.npz`, métadonnées alignées (mot,
 date, $X_t$, $N_t$, $f_t$, $p_t$, surprise, `n_absorbes`), 155 pics à moins
 de 15 jours d'un bord écartés. Le dataset de sauts de l'étape 3 est prêt —
 prochaine étape : la normalisation des fenêtres, puis la PCA du modèle zéro.
+
+## Phase 3 — récapitulatif : de la base ngram au dataset de sauts (22/07/2026)
+
+La chaîne complète, cinq étapes, toutes exécutées sur gallica. Chaque étape
+lit la sortie de la précédente ; les justifications détaillées sont dans les
+entrées du 20 au 22/07.
+
+1. **Vocabulaire** — `exploration/scan_vocab_lemonde.py` →
+   `data/vocab_lemonde_unigram.csv`. Scan complet des unigrammes du Monde
+   (441 081 mots), exclusions (mots outils, tokens numériques ou d'une
+   lettre), sélection **top-10 000 par jours actifs** (coupe ≈ 7 100 jours).
+   Choix : critère = jours actifs et non total d'occurrences (c'est le
+   nombre de jours non nuls qui conditionne le fit) ; noms propres
+   conservés.
+2. **Séries** — `rupture/masse.py` → `data/vocab_series_lemonde.npz`.
+   Matrice dense $X$ (26 917 jours × 10 000 mots) + totaux $N_t$, une passe
+   sur la table `unigram`. Choix : l'unité est la **graphie** ; une graphie
+   < 1 % de la dominante de sa clé désaccentuée est un doublon OCR absorbé,
+   au-delà un mot à part (« retraite »/« retraité » séparés). Validé contre
+   `extraire.serie()` à l'occurrence près.
+3. **Pics** — `rupture/pics_masse.py` → `data/pics_lemonde.csv`.
+   Pour chaque mot : mélange Bernoulli × NB décalée normalisé par $N_t$,
+   double fit (retrait des outliers évidents à $10^{-6}$ puis réajustement),
+   pic si $p_t < 10^{-4}$. Bilan : 164 254 pics sur 9 817 mots, 11 échecs de
+   fit consignés sans arrêter la campagne. Choix : loi et seuils validés en
+   Phase 2 (fiches_bnb, double_fit).
+4. **NMS** — `rupture/nms.py` → `data/pics_lemonde_nms.csv`.
+   Un représentant par événement : glouton non-transitif, portée 31 jours de
+   parution, conservation du pic de surprise maximale ; contre-vérification
+   indépendante `find_peaks`. Bilan : 123 465 pics gardés (75,2 %).
+5. **Fenêtres** — `rupture/fenetres_masse.py` → `data/fenetres_lemonde.npz`.
+   Fenêtre de $f_t$ (pour $10^5$) sur ±15 jours de parution autour de chaque
+   pic gardé, pics à moins de 15 jours d'un bord écartés (155). Bilan :
+   **matrice 123 310 × 31**, métadonnées alignées (mot, date, $X_t$, $N_t$,
+   $f_t$, $p_t$, surprise, `n_absorbes`).
+
+Reste pour la PCA du modèle zéro : normalisation des fenêtres (z-scores le
+long de la fenêtre, variante $[0,1]$ à comparer — pas la standardisation
+colonne par colonne des fonctions PCA), puis PCA et variance expliquée.
