@@ -1,13 +1,30 @@
+# Scraping et mapping
 requests>=2.31.0
-tqdm>=4.66.0
+curl_cffi>=0.7.0
 selenium>=4.20.0
 beautifulsoup4>=4.12.0
-pandas>=2.1.0
-matplotlib>=3.8.0
+tqdm>=4.66.0
+
+# Base de départ (scripts 1 à 4)
 huggingface_hub>=1.16.1
-ipykernel>=6.29.0
-ipywidgets>=8.0.0
-curl_cffi>=0.7.0
-anthropic>=0.115.1
+datasets>=2.19.0
+
+# API ngram
 flask>=3.0.0
 flask-cors>=4.0.0
+
+# Analyse et détection de ruptures (rupture/, paper/donnees_maths/)
+pandas>=2.1.0
+numpy>=1.26.0
+scipy>=1.11.0
+statsmodels>=0.14.0
+matplotlib>=3.8.0
+great_tables>=0.10.0
+
+# Agent de mapping (mapping/mapper_liens.py)
+anthropic>=0.115.1
+
+# Notebooks et tests
+ipykernel>=6.29.0
+ipywidgets>=8.0.0
+pytest>=8.0.0
