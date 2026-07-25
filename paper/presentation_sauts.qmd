@@ -162,17 +162,56 @@ extrêmes viennent de fenêtres contenant un jour à corpus quasi vide (177
 mots publiés un jour de 1994, contre 57 000 en médiane) : ce jour-là, deux
 occurrences suffisent à faire exploser $f_t = X_t/N_t$. 17 % des fenêtres
 contiennent un jour à $N_t < 5\,000$, et la part de projections extrêmes y
-est jusqu'à 18 fois plus élevée que dans les fenêtres saines. C'est un
-chantier de nettoyage identifié (masquer ou plancher ces jours), noté au
-to_do.
+est jusqu'à 18 fois plus élevée que dans les fenêtres saines.
 
 ![Part de fenêtres à projection extrême sur la composante 4 (au-delà de 2,5), selon le jour le plus creux de la fenêtre : l'enrichissement se concentre dans les fenêtres contenant un jour presque sans texte.](figs/pca_lemonde_corpusvide.png){width=80%}
+
+## La V2 : corriger l'artefact sans déformer le résultat
+
+Le second contrôle a débouché le jour même sur une **V2 de l'analyse**
+(implémentée dans `rupture/pca.py`, désormais le défaut ; la V1 reste
+reproductible). Deux gestes, volontairement minimaux :
+
+- dans chaque fenêtre, les jours à $N_t < 5\,000$ sont remplacés par
+  l'**interpolation linéaire** des jours sains voisins (38 532 jours
+  corrigés dans 19 554 fenêtres — 2 par fenêtre touchée en médiane) ;
+- les 1 505 fenêtres (1,2 %) dont le **jour central** est lui-même quasi
+  vide sont écartées : le pic reste statistiquement valide (la détection
+  tient compte de $N_t$), mais la forme de sa fenêtre n'est pas exploitable.
+
+Le seuil de 5 000 est posé à la frontière naturelle de la population
+pathologique (321 jours < 5 000 sur 26 917, puis la pente reprend), et le
+résultat n'y est pas sensible : entre 2 000 et 10 000, les premières
+composantes bougent de moins de 4 degrés.
+
+Le bilan chiffré, avant/après :
+
+| Critère | V1 | V2 |
+|---|---|---|
+| Enrichissement corpus-vide de la comp. 4 | ×17,8 | ×0,5 (disparu) |
+| Spectre (6 premières, %) | 9,1 / 5,9 / 5,0 / 4,8 / 4,2 / 3,7 | 9,2 / 6,2 / 5,3 / 4,6 / 4,2 / 3,8 |
+| Stabilité des composantes (\|cos\| V1-V2) | — | ≥ 0,94 sur les six premières |
+| Archétypes de la comp. 4 | jours à 177 mots (artefact) | « désastre », 19/03/2011 (Fukushima) |
+
+La lecture à retenir : **seule la direction qui portait l'artefact se
+réorganise** (18,7° d'angle, contre moins de 3° pour les autres), le spectre
+et les profils restent en place. Les conclusions du modèle zéro — spectre
+plat, formes simples — sont donc *robustes* au nettoyage, ce qui les
+consolide comme résultat.
+
+![Les six premières composantes après nettoyage V2 : quasi identiques à la V1 — la structure ne tenait pas à l'artefact.](figs/pca_lemonde_composantes_v2.png){width=100%}
+
+Restent notés au to_do pour plus tard : écrire la surprise en pleine
+précision dans les CSV (elle est arrondie à 2 décimales, source de 45 des
+46 écarts de contre-vérification du NMS — cosmétique), et une piste de V3
+discutée avec Benoît : remplir les fenêtres de **résidus standardisés** sous
+la loi ajustée plutôt que de fréquences brutes, ce qui éliminerait la
+sensibilité à $N_t$ par construction.
 
 ## La suite
 
 - transmettre le CSV des pics (mot, date, fréquence, p-valeur) et ses
   statistiques (co-sauts par jour, amplitudes, pics par mot) ;
-- traiter les jours à corpus quasi vide dans les fenêtres ;
 - comparer avec la variante « vocabulaire ≥ 1 000 jours actifs »
   (39 316 mots) ;
 - puis l'objectif réel : refaire la chaîne sur les autres journaux et
