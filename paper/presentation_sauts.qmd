@@ -217,3 +217,215 @@ sensibilité à $N_t$ par construction.
 - puis l'objectif réel : refaire la chaîne sur les autres journaux et
   comparer les fenêtres *par journal* autour des mêmes pics — c'est là que
   la question des rachats se joue.
+
+## Annexe pédagogique — le déroulé mathématique, pas à pas
+
+Tout le modèle zéro tient en quatre idées : *une fenêtre est un vecteur*,
+*le z-score ne garde que la forme*, *la PCA cherche les axes qui étalent le
+plus le nuage*, *la reconstruction dit ce que valent ces axes*. La V2 ajoute
+une cinquième idée, de statistique élémentaire : *une fréquence estimée sur
+un tout petit échantillon ne veut rien dire*. On reprend chaque idée dans
+l'ordre : d'abord la théorie, puis le lien avec notre cas, puis un exemple
+chiffré sur les vraies données.
+
+### A. Une fenêtre est un vecteur de $\mathbb{R}^{31}$
+
+**Théorie.** Une *observation* multivariée est un vecteur
+$x = (x_1, \dots, x_D) \in \mathbb{R}^D$ : $D$ nombres qui décrivent un même
+objet. Un jeu de $n$ observations se range dans une matrice à $n$ lignes et
+$D$ colonnes. Géométriquement, chaque observation est **un point** dans un
+espace à $D$ dimensions — on ne peut pas le dessiner au-delà de $D = 3$,
+mais toutes les intuitions de la géométrie (distances, angles, projections)
+restent valables.
+
+::: {.callout-note title="Dans notre cas"}
+$D = 31$ : la coordonnée $x_j$ est la fréquence $f_t$ du mot au $j$-ième
+jour de sa fenêtre (le pic est au centre, position 16). $n = 123\,310$
+fenêtres en V1, $121\,805$ en V2. La matrice $n \times 31$ est le fichier
+`fenetres_lemonde.npz`.
+:::
+
+::: {.callout-tip title="Exemple réel"}
+La fenêtre « jaunes » du 08/12/2018 (acte IV des gilets jaunes) est le
+vecteur (57,2 ; 105,5 ; … ; 162,1 ; **248,4** ; 233,9 ; … ; 126,6) —
+31 fréquences en occurrences pour 100 000 mots, le
+maximum au jour du pic.
+:::
+
+### B. Centrer-réduire : le z-score
+
+**Théorie.** Soit $X$ une variable aléatoire d'espérance $\mathbb{E}(X)$ et
+de variance $\mathrm{Var}(X) = \mathbb{E}\big[(X - \mathbb{E}(X))^2\big]$ ;
+son écart-type est $\sigma(X) = \sqrt{\mathrm{Var}(X)}$. On centre-réduit en
+posant
+
+$$Z = \frac{X - \mathbb{E}(X)}{\sigma(X)},$$
+
+et alors $\mathbb{E}(Z) = 0$ et $\sigma(Z) = 1$. $Z$ répond à la question
+« *à combien d'écarts-types de la moyenne suis-je ?* » — c'est un nombre
+sans unité, donc comparable d'une variable à l'autre. Version empirique
+pour un vecteur $x \in \mathbb{R}^D$ : la moyenne
+$\bar{x} = \frac{1}{D}\sum_{j=1}^{D} x_j$, l'écart-type
+$s = \sqrt{\frac{1}{D}\sum_{j=1}^{D}(x_j - \bar{x})^2}$, et
+
+$$z_j = \frac{x_j - \bar{x}}{s}, \qquad j = 1, \dots, D.$$
+
+L'intuition : deux courbes de niveaux très différents mais de même allure
+deviennent, après z-score, **la même courbe**. On jette le niveau, on garde
+la forme.
+
+::: {.callout-note title="Dans notre cas"}
+On centre-réduit **chaque fenêtre le long de ses 31 jours**. « guerre »
+(mot fréquent) et « francisco » (mot rare) deviennent comparables : deux
+formes de moyenne 0 et d'écart-type 1. Attention au piège vérifié en
+étape 5 : centrer-réduire *colonne par colonne* (ce que fait l'option par
+défaut des logiciels) ne retire **pas** les écarts de niveau *entre*
+fenêtres — la PCA verrait d'abord « mot fréquent contre mot rare » (63,5 %
+de la variance, corrélation 0,99 au niveau moyen brut : notre témoin
+`col`).
+:::
+
+::: {.callout-tip title="Exemple réel"}
+Fenêtre « jaunes » du 08/12/2018 : $\bar{x}$ = 117,6 et $s$ = 53,9. Au
+centre, $x_{16}$ = 248,4, donc
+
+$$z_{16} = \frac{248.4 - 117.6}{53.9} = 2.43 :$$
+
+le 8 décembre est à 2,4 écarts-types au-dessus du niveau moyen de sa
+quinzaine. À l'inverse, un jour calme de la fenêtre ($x$ = 55,1) donne
+$z$ = (55,1 − 117,6)/53,9 = −1,16.
+:::
+
+### C. La PCA : les directions qui étalent le plus le nuage
+
+**Théorie.** On dispose de $n$ points $z_i \in \mathbb{R}^D$ (nos fenêtres
+z-scorées). On note $\bar{z}$ le point moyen et on centre le nuage
+($z_i - \bar{z}$). La *matrice de covariance* $C$, de taille $D \times D$,
+résume la forme du nuage : son coefficient $C_{jk}$ mesure si les
+coordonnées $j$ et $k$ varient ensemble.
+
+La PCA pose la question : *quel axe étale le plus le nuage ?* Formellement,
+on cherche un vecteur unitaire $v$ ($\lVert v \rVert = 1$) qui maximise la
+variance des projections $z_i \cdot v$, c'est-à-dire qui maximise
+$v^T C v$. Le théorème spectral répond : le maximum est atteint par le
+**vecteur propre** $v_1$ de $C$ associé à la plus grande valeur propre
+$\lambda_1$, et cette variance maximale vaut $\lambda_1$. On recommence
+dans l'orthogonal de $v_1$ : on obtient $v_2$, puis $v_3$, etc., jusqu'à
+une base orthonormée $v_1, \dots, v_D$ avec
+$\lambda_1 \geq \lambda_2 \geq \dots \geq 0$. La *part de variance
+expliquée* par la composante $k$ est $\lambda_k / \sum_{l} \lambda_l$.
+
+Chaque point du nuage se décompose alors exactement comme
+
+$$z = \bar{z} + \sum_{k=1}^{D} c_k\, v_k, \qquad c_k = (z - \bar{z}) \cdot v_k,$$
+
+où $c_k$ (la *projection* sur la composante $k$) est la coordonnée de la
+fenêtre dans la nouvelle base.
+
+L'intuition la plus simple : faire tourner un nuage de points devant une
+lampe et chercher l'angle où **l'ombre est la plus étalée** — cet angle est
+$v_1$ ; puis on fige $v_1$ et on cherche l'ombre la plus étalée dans les
+directions restantes, et ainsi de suite. La PCA fait cela en dimension 31,
+par un calcul exact (décomposition en valeurs singulières).
+
+::: {.callout-note title="Dans notre cas"}
+$D = 31$, donc chaque $v_k$ est lui-même une suite de 31 nombres — **un
+profil temporel qu'on peut tracer** : c'est exactement la figure des
+composantes. $v_1$ = « pic isolé d'un jour » (9,2 % de la variance),
+$v_2$ = « plus actif après le pic » (6,2 %), etc. Le spectre est *plat* :
+aucune forme ne domine, la diversité des sauts est réelle. Détail qui
+surprend sur la figure : $\lambda_{31} \approx 0$, car une fenêtre z-scorée
+a toujours une somme nulle — le nuage vit dans un hyperplan de dimension
+30, la 31e direction est vide par construction.
+:::
+
+::: {.callout-tip title="Exemple réel"}
+Fenêtre « jaunes » du 08/12/2018 : $c_1$ = −3,12, $c_2$ = 0,36,
+$c_3$ = 1,10, $c_4$ = 0,89. Lecture : $c_1$ très négatif = cette
+fenêtre est à *l'opposé* du profil « pic isolé d'un jour » — l'épisode
+gilets jaunes est un massif d'activité étalé, pas un feu de paille (le
+signe d'une composante est arbitraire ; seul compte le contraste entre
+projections positives et négatives). C'est le point rouge « jaunes » à
+gauche du plan des composantes 1-2.
+:::
+
+### D. Reconstruction : ce que valent $K$ composantes
+
+**Théorie.** Si on tronque la décomposition à $K$ composantes,
+
+$$z^{(K)} = \bar{z} + \sum_{k=1}^{K} c_k\, v_k,$$
+
+on obtient la meilleure approximation possible du nuage par $K$ directions
+(au sens des moindres carrés), et l'erreur quadratique moyenne restante
+vaut exactement $\sum_{k > K} \lambda_k$. La « variance expliquée à $K$ »
+est $\sum_{k \leq K} \lambda_k \big/ \sum_l \lambda_l$.
+
+::: {.callout-note title="Dans notre cas"}
+Cumul global (V2) : 9 % à $K = 1$, 21 % à $K = 3$, 33 % à $K = 6$, 62 % à
+$K = 15$. C'est la traduction chiffrée du « spectre plat » : il faut
+beaucoup de directions pour décrire le nuage.
+:::
+
+::: {.callout-tip title="Exemple réel"}
+La fenêtre « jaunes » se reconstruit à 48 % avec une seule composante, 52 %
+avec 3, 62 % avec 6, 89 % avec 15 — c'est la figure de reconstruction
+progressive. Elle se reconstruit mieux que la moyenne du nuage : normal,
+c'est une fenêtre très structurée.
+:::
+
+### E. La V2 : une fréquence estimée sur 177 mots ne veut rien dire
+
+**Théorie.** La fréquence observée $\hat{f} = X/N$ *estime* la vraie
+propension $p$ du jour. Si chaque mot publié est « le mot étudié » avec
+probabilité $p$, alors $X$ suit une loi binomiale et
+
+$$\mathrm{Var}(\hat{f}) = \frac{p(1-p)}{N} \approx \frac{p}{N} :$$
+
+l'incertitude **explose quand $N$ est petit**. C'est l'intuition du
+sondage : estimer un pourcentage sur 177 personnes au lieu de 57 000.
+Ordre de grandeur : pour $p = 20$ pour 100 000 et $N = 177$, on attend
+$\mathbb{E}(X)$ = 0,035 occurrence — on observe presque toujours 0,
+parfois 1 ou 2, et $\hat{f}$ vaut 0, 565 ou 1 130 pour 100 000 :
+l'estimateur ne mesure plus rien.
+
+Le remède V2 est l'**interpolation linéaire** : si le jour $j$ est douteux
+et que $a < j < b$ sont les jours sains les plus proches, on remplace
+
+$$f_j \leftarrow f_a + \frac{j - a}{b - a}\,(f_b - f_a),$$
+
+c'est-à-dire le segment de droite entre les deux voisins sains.
+
+::: {.callout-note title="Dans notre cas"}
+Seuil : $N_t < 5\,000$ (321 jours sur 26 917, une population à part —
+grèves, débuts du journal). Le **centre** de la fenêtre n'est jamais
+interpolé : c'est l'objet d'étude ; s'il est douteux, on écarte la fenêtre
+entière (1 505 cas, 1,2 %).
+:::
+
+::: {.callout-tip title="Exemple réel"}
+Fenêtre « canal », pic du 06/11/1994. Huit jours plus tard, le 14/11/1994,
+Le Monde ne publie que $N = 177$ mots ; « canal » y apparaît $X = 2$ fois,
+d'où $\hat{f} = 1\,130$ pour 100 000 — **25 fois** le reste de la fenêtre,
+pour deux malheureuses occurrences. Ses voisins sains : 13/11,
+$f$ = 43,6 ($N$ = 75 686) et 15/11, $f$ = 11,2 ($N$ = 71 152).
+Interpolation : (43,6 + 11,2)/2 = 27,4. La fenêtre redevient
+lisible. À l'échelle du nuage entier, ce geste fait passer
+l'enrichissement corpus-vide de la composante 4 de ×17,8 à ×0,5 sans
+déplacer les composantes 1-3 de plus de 3 degrés.
+:::
+
+### F. Résumé en cinq phrases (pour la présentation)
+
+1. Chaque saut détecté devient **un point de $\mathbb{R}^{31}$** : sa
+   fenêtre de fréquences sur ±15 jours de parution.
+2. Le **z-score par fenêtre** jette le niveau et garde la forme — sans lui,
+   l'analyse ne verrait que « mot fréquent contre mot rare » (vérifié :
+   63,5 % de variance artefactuelle).
+3. La **PCA** trouve les profils temporels qui étalent le plus le nuage ;
+   en dimension 31, chaque profil se trace et se lit.
+4. Résultat du modèle zéro : **spectre plat** (pas de forme dominante) et
+   profils simples — pic d'un jour, activité durable après, bascule
+   avant/après.
+5. La **V2** répare les jours à journal quasi vide ($\hat{f} = X/N$ trop
+   bruité quand $N$ est minuscule) : l'artefact disparaît, les conclusions
+   ne bougent pas — c'est le signe qu'elles sont solides.
