@@ -63,6 +63,7 @@ position = {int(dt): i for i, dt in enumerate(series["dates"])}
 pos = np.array([position[int(dt)] for dt in source["date"]])
 N_fen = series["N"][pos[:, None] + np.arange(-DEMI, DEMI + 1)]
 
+zscore = {}
 for etiquette, seuil in (("v1", 0), ("v2", SEUIL)):
     if seuil:
         F, idx, n_jours, n_fen = nettoyer(F0, N_fen, seuil)
@@ -80,6 +81,8 @@ for etiquette, seuil in (("v1", 0), ("v2", SEUIL)):
               f"{cos[:30].min():.6f} | ecart max sur la variance "
               f"{np.abs(var - ref['variance']).max():.2e} | "
               f"memes fenetres {np.array_equal(idx[garde], ref['garde'])}")
+        if norme == "z":
+            zscore[etiquette] = Fn
 
 print()
 print("=" * 72)
@@ -92,31 +95,42 @@ print("  << ce mot est-il frequent >>, pas la forme du saut.")
 niveau_tout = F0.astype(np.float64).mean(axis=1)
 for nom, d in livre.items():
     c1 = d["projections"][:, 0].astype(np.float64)
-    r = np.corrcoef(c1, niveau_tout[d["garde"]])[0, 1]
-    verdict = "TEMOIN : artefact de niveau" if abs(r) > 0.9 else "OK : mesure une forme"
-    print(f"  {nom:<12} r = {r:+.3f}   {verdict}")
+    r = abs(np.corrcoef(c1, niveau_tout[d["garde"]])[0, 1])
+    if r > 0.9:
+        verdict = "TEMOIN : artefact de niveau, a rejeter"
+    elif r > 0.4:
+        verdict = "melange forme + niveau residuel"
+    else:
+        verdict = "OK : mesure bien une forme"
+    print(f"  {nom:<12} |r| = {r:.3f}   {verdict}")
+print("  (le signe de r est arbitraire, comme celui d'une composante)")
 
 print()
 print("=" * 72)
-print("6. RECONSTRUCTION D'UNE FENETRE CONNUE")
+print("6. RECONSTRUCTION DE LA FENETRE << jaunes >> (gilets jaunes)")
 print("=" * 72)
-d = livre["v2_zscore"]
-F2, idx2, _, _ = nettoyer(F0, N_fen, SEUIL)
-Z, garde2 = normaliser(F2, "z")
-Zc = Z - Z.mean(axis=0)
-mots, dates = source["mot"][d["garde"]], source["date"][d["garde"]]
-cible = np.where((mots == "jaunes") & (dates == 20181208))[0]
-if len(cible):
-    i = cible[0]
-    print(f"  fenetre << jaunes >> du 08/12/2018 (ligne {i})")
-    print(f"  projections c1..c4 : {np.round(d['projections'][i, :4], 3)}")
+print("  Meme definition que la figure reconstruction_v1.png : on reconstruit")
+print("  moyenne_du_nuage + K composantes, et on rapporte le residu a la")
+print("  somme des carres de la fenetre z-scoree.")
+for etiquette in ("v1", "v2"):
+    d = livre[f"{etiquette}_zscore"]
+    Z = zscore[etiquette]
+    Zmoy = Z.mean(axis=0)
+    mots = source["mot"][d["garde"]]
+    surprise = source["surprise"][d["garde"]]
+    sel = mots == "jaunes"
+    i = np.where(sel)[0][np.argmax(surprise[sel])]
+    date = source["date"][d["garde"]][i]
+    parts = []
     for K in (1, 3, 6, 15):
-        approx = d["composantes"][:K].T @ d["projections"][i, :K]
-        part = 1 - ((Zc[i] - approx) ** 2).sum() / (Zc[i] ** 2).sum()
-        print(f"    avec {K:>2} composantes : {part * 100:>5.1f} % de la forme restituee")
-else:
-    print("  fenetre introuvable (mot ou date absents du jeu V2)")
+        recon = Zmoy + d["projections"][i, :K] @ d["composantes"][:K]
+        part = 1 - ((Z[i] - recon) ** 2).sum() / ((Z[i] - Z[i].mean()) ** 2).sum()
+        parts.append(f"K={K:<2} {part * 100:>4.0f} %")
+    print(f"  {etiquette}  << jaunes >> du {str(date)[6:]}/{str(date)[4:6]}/{str(date)[:4]}"
+          f" | c1..c4 = {np.round(d['projections'][i, :4], 2)}")
+    print(f"      restitue : " + "   ".join(parts))
 
 print()
-print("Fin. Tous les ecarts ci-dessus doivent etre negligeables (< 1e-6),")
-print("sauf la ligne 5 ou seules les variantes << colonne >> doivent depasser 0,9.")
+print("Fin. Aux sections 2 et 4, tous les ecarts doivent etre negligeables")
+print("(< 1e-6). A la section 5, seules les variantes << colonne >> doivent")
+print("depasser 0,9 : ce sont les temoins negatifs.")
