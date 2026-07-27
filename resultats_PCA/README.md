@@ -22,9 +22,12 @@ Contrôle les tailles, l'orthonormalité des composantes, la cohérence
 variances/projections, le rejeu complet, le fait que les composantes
 mesurent une forme et non un niveau, et une reconstruction.
 
-Tous les écarts doivent être < 1e-6. Seule exception attendue : les deux
-variantes `colonne`, témoins négatifs volontaires, doivent afficher une
-corrélation au niveau moyen supérieure à 0,9.
+Ce qu'il faut voir : aux sections 2 et 4, des écarts négligeables (< 1e-6)
+et un rejeu à |cos| = 1,000000. La section 5 est un contrôle de méthode et
+non un test d'égalité — les variantes `colonne` doivent y dépasser 0,9,
+c'est leur défaut et elles sont livrées pour ça, tandis que `zscore` reste
+sous 0,3 et que `minmax` se situe vers 0,5. La section 6 doit retrouver
+48 / 52 / 62 / 89 %, les chiffres de la figure de reconstruction.
 
 ## Les fichiers
 
