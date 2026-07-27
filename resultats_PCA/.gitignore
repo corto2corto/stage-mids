@@ -1,0 +1,5 @@
+# Les données de ce dossier sont régénérables et restent sur gallica.
+# Seuls le README et le script de vérification sont versionnés.
+*.npz
+*.csv
+figures/

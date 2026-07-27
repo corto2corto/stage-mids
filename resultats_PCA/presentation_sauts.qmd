@@ -1,0 +1,207 @@
+---
+title: "Des articles aux sauts lexicaux : chaîne de traitement et modèle zéro"
+subtitle: "Le Monde, 1944-2025 — phase 3 du mémoire"
+author: "Corto"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2cm
+      y: 1.6cm
+---
+
+## Objectif
+
+Question de recherche du mémoire : *les rachats de journaux français
+modifient-ils la couverture thématique ?* Avant de comparer des journaux et
+des dates de rachat, il faut un instrument capable de repérer et de décrire
+**tous** les moments où un mot « saute » dans un journal.
+
+La phase 3 construit cet instrument sur Le Monde (26 917 jours de parution,
+décembre 1944 à 2025) : détecter les sauts de chaque mot, en faire des
+*datapoints* comparables, puis chercher à l'aveugle — sans savoir quel mot
+ni quelle date — quelles **formes** de sauts existent. C'est le « modèle
+zéro » : les mots ne sont que des courbes, et on laisse les données parler
+avant d'y remettre du sens.
+
+## La chaîne
+
+| # | Étape | Script | Sortie | Volume |
+|---|-------|--------|--------|--------|
+| 1 | Choisir le vocabulaire | `scan_vocab.py` | top-10 000 mots | 441 081 mots scannés |
+| 2 | Extraire les séries | `masse.py` | matrice jours × mots | 26 917 × 10 000 |
+| 3 | Détecter les pics | `pics_masse.py` | liste (mot, jour, p-valeur) | 164 254 pics |
+| 4 | Dédoublonner (NMS) | `nms.py` | un représentant par événement | 123 465 gardés |
+| 5 | Découper les fenêtres | `fenetres_masse.py` | matrice des fenêtres ±15 j | 123 310 × 31 |
+| 6 | PCA | `pca.py` | composantes, projections | 31 × 31 |
+
+Chaque étape lit la sortie de la précédente (scripts dans `rupture/`) ;
+tout tourne sur le serveur en quelques secondes à quelques minutes. Les
+choix de vocabulaire — unité = la graphie, top-10 000 par nombre de jours
+actifs, fusion des doublons OCR — sont détaillés dans le journal des
+21-22/07.
+
+## Étape 3 — détection des pics
+
+Pour chaque mot, on compte ses occurrences jour par jour : $X_t$
+occurrences sur $N_t$ mots publiés. On ajuste une loi décrivant le
+comportement *habituel* du mot — un mélange : probabilité $p_0$ de ne pas
+apparaître, sinon une binomiale négative proportionnelle à $N_t$. Un jour
+est déclaré **pic** quand le comptage observé serait quasi impossible sous
+cette loi : $p_t < 10^{-4}$. On appelle **surprise** la quantité
+$-\log_{10}(p_t)$ ; surprise 4 = seuil de détection, surprise 40 = jour
+astronomiquement anormal.
+
+![Le mot « internet » : la série $f_t = X_t/N_t$ (haut), l'histogramme des comptages avec la loi ajustée (bas gauche), les p-valeurs (bas droite). Points rouges : pics détectés — l'irruption du mot entre 1995 et 2001.](figures/pics_internet.png){width=95%}
+
+Sur les 10 000 mots : **164 254 pics**, 9 817 mots avec au moins un pic,
+11 mots dont l'ajustement échoue et qui sont consignés.
+
+## Étape 4 — un événement, un datapoint
+
+Un événement qui dure produit des dizaines de jours-pics d'affilée ; sans
+traitement, il entrerait des dizaines de fois dans l'analyse. L'idée naïve
+— fusionner de proche en proche les pics rapprochés, garder le meilleur de
+chaque paquet — souffre du **chaînage** : un pont de pics espacés de moins
+de 31 jours soude des *années* en un seul bloc. Sur nos données, 164
+groupes géants de ce type ; « syrienne » aurait fondu 760 jours de parution
+(2012-2014) en un point unique.
+
+La solution retenue est la *non-maximal suppression* gloutonne, héritée de
+la détection d'objets en vision par ordinateur : trier les pics du mot par
+surprise décroissante, garder le plus surprenant, supprimer ses voisins à
+moins de 31 jours de parution **de lui**, recommencer. Un pic supprimé ne
+supprime personne : la suppression ne se propage pas, donc pas de groupe
+géant. Et 31 jours étant la largeur d'une fenêtre, deux représentants
+gardés n'ont jamais de fenêtres qui se chevauchent.
+
+![« syrienne » 2011-2014 : 220 pics détectés (bleu), 24 représentants gardés (cercles rouges) — un par sous-événement de la guerre civile, là où le chaînage n'en gardait qu'un seul. Le NMS garde le jour le plus *surprenant*, pas le plus haut en fréquence.](figures/nms_syrienne.png){width=100%}
+
+Contre-vérification indépendante par `scipy.signal.find_peaks` : résultat
+identique sur 9 771 mots sur 9 817, les écarts restants étant des égalités
+de surprise départagées différemment. Bilan : **123 465 représentants**, un
+pic détecté sur quatre était un doublon de fenêtre.
+
+## Étape 5 — mise à l'échelle des fenêtres
+
+Autour de chaque représentant, on découpe la fenêtre des fréquences $f_t$
+sur ±15 jours de parution : une courbe de 31 points, un datapoint. On ne
+peut pas comparer directement la fenêtre de « guerre » et celle de
+« francisco » : l'analyse ne verrait que « certains mots sont plus
+fréquents que d'autres ». Chaque fenêtre est donc **normalisée sur
+elle-même** en z-score — on soustrait sa moyenne, on divise par son
+écart-type, il ne reste que la forme.
+
+C'était l'objet d'une mise en garde de Benoît : l'option de normalisation
+intégrée des fonctions de PCA standardise *colonne par colonne*, ce qui ne
+supprime pas les écarts de niveau entre fenêtres. Vérification faite, avec
+cette option la première composante capte 63,5 % de la variance et sa
+projection est corrélée à 0,99 au niveau moyen brut de la fenêtre : elle
+mesure « le mot est-il fréquent », pas la forme du saut. Cette variante est
+conservée comme témoin négatif.
+
+![Variance expliquée par composante pour les trois normalisations. Le témoin « colonne par colonne » (orange) écrase tout sur une première composante artefactuelle ; le z-score par fenêtre (bleu) étale la variance sur des formes réelles.](figures/spectre_v1.png){width=85%}
+
+## Étape 6 — quelles formes de sauts existent ?
+
+La PCA cherche les profils temporels qui expliquent le mieux les
+différences entre les 123 310 fenêtres. Deux constats.
+
+**Le spectre est plat** : 9,2 %, 6,2 %, 5,3 %, 4,6 %, 4,2 %, 3,8 % — les
+six premières composantes ne portent qu'un tiers de la variance, et il en
+faut quinze pour atteindre 62 %. Le repère qui donne sa force à ce constat :
+la 31e valeur propre étant nulle par construction (une fenêtre z-scorée a
+une somme nulle), le nuage vit dans 30 dimensions ; un nuage **sans aucune
+structure** donnerait donc 3,33 % par composante. Seules les neuf premières
+passent au-dessus de cette ligne, pour un excédent total d'environ 14
+points. Il n'existe pas deux ou trois formes archétypales qui résumeraient
+les sauts : la diversité des fenêtres est réelle, et c'est le premier
+résultat du modèle zéro.
+
+**Les premières formes sont simples et lisibles.** Lues sur les
+composantes elles-mêmes : la composante 1 oppose le jour du pic (+0,55) à
+ses deux voisins immédiats (−0,46 et −0,49) — *le pic tient-il sur un seul
+jour, ou déborde-t-il ?* La composante 2 est négative avant le pic (−0,58
+la veille) et positive durablement après (+0,41, puis ~+0,10 jusqu'à J+15)
+— *le sujet s'installe-t-il ?* La composante 3 fait l'inverse — *le sujet
+se clôt-il ?*
+
+![Les six premières composantes comme profils temporels (bleu : z-score ; vert : variante [0,1]). 1 : pic isolé d'un jour. 2 : niveau durablement plus élevé après le pic. 3 : bascule avant/après. 4 : creux la veille, rebond. 5-6 : oscillations lentes.](figures/composantes_v1.png){width=100%}
+
+Dans le plan des deux premières composantes, les événements historiques se
+placent là où on les attend : les épisodes longs et soutenus du côté
+« activité durable », la masse des petits pics isolés de l'autre.
+
+![Les 123 310 fenêtres dans le plan des composantes 1-2 (densité en bleu, échelle log). Points rouges : la fenêtre la plus surprenante de quelques mots-événements.](figures/plan_c1c2_v1.png){width=88%}
+
+Les fenêtres réelles les plus alignées sur chaque composante confirment la
+lecture, et datent des jours qu'on reconnaît.
+
+![Pour chaque composante, les trois sauts réels les plus alignés. Composante 1 : pics d'un jour. Composante 2 : l'état de siège en Pologne (déc. 1981), les JO d'Athènes, le coup d'État de Pinochet (sept. 1973). Composante 3 : fin des JO de Paris, premier tour de la présidentielle 2022.](figures/archetypes_v1.png){width=92%}
+
+![La fenêtre « jaunes » du 08/12/2018 (acte IV des gilets jaunes) en gris, et sa reconstruction en bleu avec 1, 3, 6 et 15 composantes : 48 %, 52 %, 62 %, 89 % de la forme restituée.](figures/reconstruction_v1.png){width=100%}
+
+## Deux contrôles qui ont appris quelque chose
+
+**L'hypothèse « rythme hebdomadaire » est fausse.** Les composantes 5-6
+ressemblaient à une paire d'oscillations calées sur la semaine. Testé : la
+phase de ces oscillations n'a aucun lien avec le jour de la semaine du pic
+(vecteurs moyens par jour de norme 0,01-0,14, contre une dispersion de
+0,80 ; idem en se restreignant à 2000-2025). Ce sont des modes oscillants
+génériques.
+
+**La composante 4 a débusqué un artefact de données.** Ses projections
+extrêmes viennent de fenêtres contenant un jour à corpus quasi vide — 177
+mots publiés un jour de 1994, contre 57 000 en médiane : ce jour-là, deux
+occurrences suffisent à faire exploser $f_t = X_t/N_t$. 17 % des fenêtres
+contiennent un jour à $N_t < 5\,000$, et la part de projections extrêmes y
+est jusqu'à 18 fois plus élevée que dans les fenêtres saines.
+
+![Part de fenêtres à projection extrême sur la composante 4 (au-delà de 2,5), selon le jour le plus creux de la fenêtre : l'enrichissement se concentre dans les fenêtres contenant un jour presque sans texte.](figures/artefact_corpus_vide_v1.png){width=80%}
+
+## La V2 : corriger l'artefact sans déformer le résultat
+
+Ce second contrôle a débouché le jour même sur une V2 de l'analyse
+(`rupture/pca.py`, désormais le défaut ; la V1 reste reproductible). Deux
+gestes, volontairement minimaux : dans chaque fenêtre, les jours à
+$N_t < 5\,000$ sont remplacés par l'interpolation linéaire des jours sains
+voisins (38 532 jours corrigés dans 19 554 fenêtres) ; les 1 505 fenêtres
+(1,2 %) dont le **jour central** est lui-même quasi vide sont écartées — le
+pic reste statistiquement valide, la détection tenant compte de $N_t$, mais
+la forme de sa fenêtre n'est pas exploitable.
+
+Le seuil de 5 000 est posé à la frontière naturelle de la population
+pathologique (321 jours < 5 000 sur 26 917, puis la pente reprend), et le
+résultat n'y est pas sensible : entre 2 000 et 10 000, les premières
+composantes bougent de moins de 4 degrés.
+
+| Critère | V1 | V2 |
+|---|---|---|
+| Enrichissement corpus-vide de la comp. 4 | ×17,8 | ×0,5 (disparu) |
+| Spectre (6 premières, %) | 9,1 / 5,9 / 5,0 / 4,8 / 4,2 / 3,7 | 9,2 / 6,2 / 5,3 / 4,6 / 4,2 / 3,8 |
+| Stabilité des composantes (\|cos\| V1-V2) | — | ≥ 0,94 sur les six premières |
+| Archétypes de la comp. 4 | jours à 177 mots (artefact) | « désastre », 19/03/2011 (Fukushima) |
+
+Seule la direction qui portait l'artefact se réorganise — 18,7° d'angle,
+contre moins de 3° pour les autres ; le spectre et les profils restent en
+place. Les conclusions du modèle zéro sont donc robustes au nettoyage, ce
+qui les consolide.
+
+![Les six premières composantes après nettoyage V2 : quasi identiques à la V1 — la structure ne tenait pas à l'artefact.](figures/composantes_v2.png){width=100%}
+
+## Limites connues et suite
+
+Deux points notés pour plus tard : écrire la surprise en pleine précision
+dans les CSV — elle est arrondie à 2 décimales, ce qui explique 45 des 46
+écarts de la contre-vérification du NMS ; et une piste de V3 discutée avec
+Benoît, remplir les fenêtres de **résidus standardisés** sous la loi
+ajustée plutôt que de fréquences brutes, ce qui éliminerait la sensibilité
+à $N_t$ par construction.
+
+La suite du travail : transmettre le CSV des pics et ses statistiques
+(co-sauts par jour, amplitudes, pics par mot) ; comparer avec la variante
+« vocabulaire ≥ 1 000 jours actifs » (39 316 mots) ; puis l'objectif réel,
+refaire la chaîne sur les autres journaux et comparer les fenêtres *par
+journal* autour des mêmes pics — c'est là que la question des rachats se
+joue.
