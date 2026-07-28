@@ -208,6 +208,100 @@ discutée avec Benoît : remplir les fenêtres de **résidus standardisés** sou
 la loi ajustée plutôt que de fréquences brutes, ce qui éliminerait la
 sensibilité à $N_t$ par construction.
 
+## Changer d'échelle : la même chaîne sur des blocs de 3 jours
+
+La chaîne entière a été rejouée sur une timeline agrégée
+(`rupture/agreger.py`) : les jours de parution regroupés par 3, consécutifs
+et non chevauchants — $X$ et $N$ sommés par bloc, date du bloc = jour du
+milieu, même vocabulaire de 10 000 mots. Aucun autre réglage ne change :
+les scripts aval tournent tels quels, et les fenêtres couvrent ±15
+*blocs*, soit ±45 jours de parution — l'instrument sonde des formes trois
+fois plus lentes.
+
+| Étape | journalier | blocs de 3 jours |
+|---|---|---|
+| Grille | 26 917 jours | 8 972 blocs |
+| Pics détectés | 164 254 | 76 267 |
+| Gardés après NMS | 123 465 (75 %) | 49 983 (65 %) |
+| Fenêtres | 123 310 | 49 771 |
+
+Trois enseignements.
+
+**L'artefact corpus-vide disparaît par construction.** Le plus petit bloc
+pèse 17 785 mots — 3,5 fois le seuil journalier de 5 000 — et aucun bloc
+n'a ses trois jours quasi vides : chaque jour pathologique est noyé dans
+un bloc avec des voisins sains. La V2 n'a donc rien à nettoyer (tout seuil
+jusqu'à 17 785 donne un résultat identique bit à bit) ; l'agrégation est
+une troisième réponse au problème du corpus quasi vide, à côté de
+l'interpolation (V2) et des résidus standardisés (V3).
+
+**Les formes sont les mêmes aux deux échelles.** Chaque composante de la
+grille 3 jours retrouve sa correspondante journalière (cosinus entre
+profils) : 0,98 pour la composante 1, 0,92 pour la 2, 0,90 pour la 3,
+0,85 pour la 4 — seules les 5 et 6 échangent leur rang. Le pic isolé,
+l'installation durable, la bascule avant/après existent à l'échelle du
+jour comme à celle du bloc : ces formes ne sont pas un artefact de
+l'échantillonnage journalier, et c'est un argument de robustesse de plus
+pour le modèle zéro.
+
+**Le spectre reste plat.** 11,5 / 8,0 / 5,6 / 4,8 / 4,3 / 3,8 % — un peu
+plus concentré qu'en journalier (37,9 % à $K = 6$ contre 33,3 %), mais
+toujours 8 composantes au-dessus de l'isotropie à 3,33 % : pas de
+typologie des sauts à cette échelle non plus.
+
+Les contrôles passent à l'identique : corrélation de la projection 1 au
+niveau moyen brut 0,28 (le témoin « colonne par colonne » monte, lui, à
+75,9 % — la mise en garde vaut a fortiori sur les blocs), aucune
+composante pilotée par une poignée de fenêtres extrêmes.
+
+![Les six premières composantes sur la grille 3 jours : les quatre premières sont celles de la grille journalière (cosinus ≥ 0,85), les 5-6 échangent leur rang. L'axe horizontal est en blocs de 3 jours de parution.](figs/pca_lemonde3j_composantes.png){width=100%}
+
+Deux réserves : moitié moins de datapoints (49 771 — les sous-événements à
+moins de 93 jours de parution l'un de l'autre fusionnent sous le NMS), et
+la phase du découpage (quel jour ouvre le premier bloc) est arbitraire —
+un contrôle en décalant le découpage de 1 et 2 jours reste à faire.
+
+## Et sur des blocs d'une semaine
+
+Même exercice avec des blocs de 7 jours de parution — un peu plus d'une
+semaine calendaire en moyenne, Le Monde ne paraissant pas tous les jours.
+Le plus petit bloc pèse 55 684 mots (corpus-vide toujours sans objet), et
+la fenêtre couvre ±105 jours de parution, soit environ huit mois
+calendaires de bout en bout : l'échelle des crises longues.
+
+| Étape | journalier | 3 jours | 7 jours |
+|---|---|---|---|
+| Grille | 26 917 jours | 8 972 blocs | 3 845 blocs |
+| Pics détectés | 164 254 | 76 267 | 44 955 |
+| Gardés après NMS | 123 465 | 49 983 | 26 784 |
+| Fenêtres | 123 310 | 49 771 | 26 457 |
+| Mots avec au moins un pic | 9 817 | 8 514 | 7 028 |
+
+La hiérarchie des formes tient toujours. Les composantes 1-2-3 de la
+grille hebdomadaire sont celles du journalier à 0,97, 0,96 et 0,98 de
+cosinus (0,99, 0,97 et 0,94 avec la grille 3 jours) ; la 4 s'y retrouve à
+0,80, et l'échange des rangs 5-6 déjà vu en 3 jours se répète à
+l'identique — la composante 5 hebdomadaire est la 6 journalière (cosinus
+0,91). Trois timelines, une seule grammaire de formes.
+
+Le spectre : 11,9 / 9,1 / 6,4 / 5,3 / 4,7 / 3,8 %. Mis côte à côte, les
+trois échelles dessinent une tendance nette — plus la timeline est
+grossière, plus la variance se concentre : 33,3 %, 37,9 %, 41,2 % à
+$K = 6$. Mais la concentration reste modeste : toujours 8 composantes
+au-dessus de l'isotropie à 3,33 %, spectre plat, pas de typologie des
+sauts à l'échelle de la semaine non plus. Les contrôles passent
+(corrélation projection 1–niveau moyen : 0,23 ; le témoin « colonne par
+colonne » monte à 81,5 %).
+
+![Les six premières composantes sur la grille hebdomadaire : les trois premières sont celles du journalier à cosinus ≥ 0,96. L'axe horizontal est en blocs de 7 jours de parution.](figs/pca_lemonde7j_composantes.png){width=100%}
+
+Une réserve propre à cette échelle : l'agrégation agit comme un **filtre
+passe-bas sur la détection elle-même**. Un pic d'un seul jour se dilue
+dans un bloc dont le $N$ est sept fois plus gros et peut passer sous le
+seuil : 2 800 mots qui avaient des pics en journalier n'en ont plus en
+hebdomadaire. Les trois grilles ne voient pas exactement la même
+population d'événements — c'est un choix d'instrument, pas un défaut.
+
 ## La suite
 
 - transmettre le CSV des pics (mot, date, fréquence, p-valeur) et ses
