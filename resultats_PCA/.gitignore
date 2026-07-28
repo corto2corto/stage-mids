@@ -1,5 +1,6 @@
-# Les données de ce dossier sont régénérables et restent sur gallica.
-# Seuls le README et le script de vérification sont versionnés.
+# Les données lourdes de ce dossier se régénèrent avec preparer.py et restent
+# sur gallica ; les figures et les CSV légers (spectre, composantes) sont
+# versionnés pour être consultables depuis GitHub.
 *.npz
-*.csv
-figures/
+pics_*.csv
+fenetres_*.csv

@@ -131,6 +131,33 @@ for etiquette in ("v1", "v2"):
     print(f"      restitue : " + "   ".join(parts))
 
 print()
-print("Fin. Aux sections 2 et 4, tous les ecarts doivent etre negligeables")
+print("=" * 72)
+print("7. GRILLES AGREGEES : blocs de 3 et de 7 jours de parution")
+print("=" * 72)
+print("  Meme chaine sur une timeline regroupee par blocs (rupture/agreger.py).")
+print("  Une seule version livree : aucun bloc n'est quasi vide, le nettoyage")
+print("  V2 y est sans objet. On rejoue la PCA, puis on compare les profils")
+print("  obtenus a ceux de la grille journaliere v2.")
+ref_journalier = livre["v2_zscore"]["composantes"]
+for media, etiquette in (("lemonde3j", "3 jours"), ("lemonde7j", "7 jours")):
+    F0 = np.load(f"{DONNEES}/fenetres_{media}.npz")["fenetres"]
+    print(f"  {etiquette} : {F0.shape[0]} fenetres x {F0.shape[1]} blocs")
+    for norme, suffixe in (("z", "zscore"), ("01", "minmax"), ("col", "colonne")):
+        ref = np.load(f"{ICI}/pca_{media}_{suffixe}.npz")
+        Fn, garde = normaliser(F0, norme)
+        V, var, P = pca(Fn)
+        cos = np.abs((V * ref["composantes"]).sum(axis=1))
+        ortho = np.abs(ref["composantes"] @ ref["composantes"].T - np.eye(31)).max()
+        print(f"    {suffixe:<8} base orthonormee (ecart max) {ortho:.2e} | rejeu "
+              f"|cos| min {cos[:30].min():.6f} | ecart max sur la variance "
+              f"{np.abs(var - ref['variance']).max():.2e} | memes fenetres "
+              f"{np.array_equal(garde, ref['garde'])}")
+    comp = np.load(f"{ICI}/pca_{media}_zscore.npz")["composantes"]
+    cos_j = [abs(comp[k] @ ref_journalier[k]) for k in range(4)]
+    print(f"    profils vs journalier v2, 4 premieres composantes : "
+          f"{np.round(cos_j, 2)} (attendu : les memes formes)")
+
+print()
+print("Fin. Aux sections 2, 4 et 7, tous les ecarts doivent etre negligeables")
 print("(< 1e-6). A la section 5, seules les variantes << colonne >> doivent")
 print("depasser 0,9 : ce sont les temoins negatifs.")
