@@ -256,6 +256,11 @@ composante pilotée par une poignée de fenêtres extrêmes.
 
 ![Les six premières composantes sur la grille 3 jours : les quatre premières sont celles de la grille journalière (cosinus ≥ 0,85), les 5-6 échangent leur rang. L'axe horizontal est en blocs de 3 jours de parution.](figs/pca_lemonde3j_composantes.png){width=100%}
 
+Les fenêtres réelles les plus alignées sur chaque composante disent la même
+chose que celles de la grille journalière, avec des événements plus longs :
+
+![Fenêtres archétypes de la grille 3 jours, à comparer à celles du journalier (le signe de chaque composante est aligné sur son homologue journalière). Composante 2 : le même bloc, celui du 12 septembre 2001, revient avec trois mots différents. Composante 3 : mai 2020, février 1991, novembre 1956 — trois épisodes qui retombent après le pic. Composante 4 : plus aucune fenêtre à corpus quasi vide, l'artefact de la V1 journalière n'a pas d'équivalent ici.](figs/pca_lemonde3j_archetypes.png){width=92%}
+
 Deux réserves : moitié moins de datapoints (49 771 — les sous-événements à
 moins de 93 jours de parution l'un de l'autre fusionnent sous le NMS), et
 la phase du découpage (quel jour ouvre le premier bloc) est arbitraire —
@@ -294,6 +299,11 @@ sauts à l'échelle de la semaine non plus. Les contrôles passent
 colonne » monte à 81,5 %).
 
 ![Les six premières composantes sur la grille hebdomadaire : les trois premières sont celles du journalier à cosinus ≥ 0,96. L'axe horizontal est en blocs de 7 jours de parution.](figs/pca_lemonde7j_composantes.png){width=100%}
+
+Les archétypes suivent l'échelle : là où la grille journalière isolait des
+jours, l'hebdomadaire attrape des épisodes entiers.
+
+![Fenêtres archétypes de la grille hebdomadaire. Composante 2 : le bloc du 14 septembre 2001, puis celui du 13 octobre 2023 (Gaza). Composante 4 : les trois fenêtres les plus alignées sont toutes du printemps 2020 — l'oscillation lente s'installe sur le plateau du confinement, elle ne vient plus d'un jour aberrant.](figs/pca_lemonde7j_archetypes.png){width=92%}
 
 Une réserve propre à cette échelle : l'agrégation agit comme un **filtre
 passe-bas sur la détection elle-même**. Un pic d'un seul jour se dilue
