@@ -31,7 +31,9 @@ LIBELLES = ["pic isolé d'un bloc", "plus actif après le pic",
             "bascule avant/après", "creux la veille, rebond"]
 js = np.arange(-15, 16)
 
-ref = np.load(f"{DOSSIER}/pca_lemonde_z.npz")["composantes"]   # grille journaliere
+# reference : la grille journaliere V2 (celle des cosinus du journal ; la V1
+# porte l'artefact corpus-vide sur la composante 4, cosinus 0,66 au lieu de 0,85)
+ref = np.load(f"{DOSSIER}/pca_lemonde_z_v2.npz")["composantes"]
 
 for media, taille in (("lemonde3j", 3), ("lemonde7j", 7)):
     d = np.load(f"{DOSSIER}/fenetres_{media}.npz")
