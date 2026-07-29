@@ -43,7 +43,8 @@ for etiquette, media, versions in GRILLES:
         "composante").to_csv(f"{ICI}/{nom_csv}", float_format="%.8f")
 
     shutil.copyfile(f"{DONNEES}/fenetres_{media}.npz", f"{ICI}/entree_fenetres_{media}.npz")
-    shutil.copyfile(f"{DONNEES}/pics_{media}_nms.csv", f"{ICI}/pics_{etiquette}.csv")
+    shutil.copyfile(f"{DONNEES}/pics_{media}.csv", f"{ICI}/pics_tous_{etiquette}.csv")
+    shutil.copyfile(f"{DONNEES}/pics_{media}_nms.csv", f"{ICI}/pics_nms_{etiquette}.csv")
 
     d = np.load(f"{DONNEES}/fenetres_{media}.npz")
     table = pd.DataFrame(d["fenetres"], columns=JOURS)
@@ -51,7 +52,8 @@ for etiquette, media, versions in GRILLES:
         table.insert(0, cle, d[cle])
     table.to_csv(f"{ICI}/fenetres_{etiquette}.csv", index=False, float_format="%.2f")
     print(f"{etiquette:<11} {len(table):>6} fenetres | pca_{media}_*.npz, spectre{fin}.csv, "
-          f"{nom_csv}, pics_{etiquette}.csv, fenetres_{etiquette}.csv", flush=True)
+          f"{nom_csv}, pics_tous_{etiquette}.csv, pics_nms_{etiquette}.csv, "
+          f"fenetres_{etiquette}.csv", flush=True)
 
 FIGS = (("pics_lemonde_internet_bnb2.png", "pics_internet.png"),
         ("nms_syrienne.png", "nms_syrienne.png"),

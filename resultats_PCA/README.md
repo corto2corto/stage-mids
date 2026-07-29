@@ -11,10 +11,18 @@ référence), et deux timelines agrégées en **blocs de 3 jours** et de
 lentes.
 
 Emplacement complet : `/data/elias/stage-mids/resultats_PCA/` sur gallica.
-Sur GitHub sont versionnés le README, le document, les scripts, les figures
-et les CSV légers (`spectre*.csv`, `composantes*_zscore.csv`) ; les `.npz`
-(14 Mo pièce) et les gros CSV (`pics_*.csv`, `fenetres_*.csv`) restent sur
-le serveur — ils se régénèrent avec `preparer.py`.
+Sur GitHub sont versionnés le README, le document, les scripts, les figures,
+les **CSV des pics** et les CSV légers (`spectre*.csv`,
+`composantes*_zscore.csv`) ; seuls les `.npz` (14 Mo pièce) et les CSV de
+fenêtres (jusqu'à 24 Mo) restent sur le serveur — ils se régénèrent avec
+`preparer.py`.
+
+**Le CSV des sauts, si c'est tout ce que vous cherchez :**
+[`pics_tous_journalier.csv`](pics_tous_journalier.csv) — les 164 254 pics
+détectés dans Le Monde, une ligne par (mot, jour) : `mot`, `date`
+(AAAAMMJJ), `X_t` occurrences, `N_t` mots publiés ce jour-là, `f_t`
+fréquence pour 100 000 mots, `p_t` p-valeur sous la loi ajustée, `surprise`
+= $-\log_{10}(p_t)$.
 
 ## Vérifier
 
@@ -99,11 +107,14 @@ journalier, `_3j` et `_7j` pour les grilles agrégées) :
 |---|---|
 | `spectre.csv`, `spectre_3j.csv`, `spectre_7j.csv` | les 31 variances expliquées, une colonne par variante |
 | `composantes_v2_zscore.csv`, `composantes_3j_zscore.csv`, `composantes_7j_zscore.csv` | les 31 composantes en lignes, colonnes `j-15` à `j+15` |
-| `pics_journalier.csv`, `pics_3j.csv`, `pics_7j.csv` | un saut gardé par ligne après NMS : `mot`, `date`, `X_t`, `N_t`, `f_t`, `p_t`, `surprise`, `n_absorbes` |
+| `pics_tous_journalier.csv`, `pics_tous_3j.csv`, `pics_tous_7j.csv` | **tous les pics détectés**, un par ligne : `mot`, `date`, `X_t`, `N_t`, `f_t`, `p_t`, `surprise` — 164 254 / 76 267 / 44 955 lignes |
+| `pics_nms_journalier.csv`, `pics_nms_3j.csv`, `pics_nms_7j.csv` | les mêmes après dédoublonnage NMS, **un représentant par événement** : mêmes colonnes plus `n_absorbes`, le nombre de pics que ce représentant résume — 123 465 / 49 983 / 26 784 lignes |
 | `fenetres_journalier.csv`, `fenetres_3j.csv`, `fenetres_7j.csv` | la matrice des fenêtres en clair : `mot`, `date`, `X_t`, `N_t`, `surprise`, puis les 31 fréquences `j-15` … `j+15` (pour 100 000 mots, brutes) |
 
-Les deux premières familles sont légères et versionnées sur GitHub ; les
-deux dernières pèsent de 1 à 24 Mo et restent sur gallica.
+Tout est sur GitHub sauf la dernière famille (jusqu'à 24 Mo), qui reste sur
+gallica. Deux précisions sur les pics : la `surprise` est arrondie à deux
+décimales à l'écriture (la `p_t` garde quatre chiffres significatifs), et
+sur les grilles agrégées la `date` est le jour du milieu du bloc.
 
 ## Chiffres à retrouver
 
