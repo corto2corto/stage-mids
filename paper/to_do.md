@@ -241,3 +241,18 @@ Modes oscillants génériques (périodes dominantes ≈ 8 et ≈ 15 jours de par
 ### V2.4 — Piste pour une V3 : fenêtres en résidus standardisés (à discuter)
 
 Plutôt que $f_t$ brut, remplir les fenêtres avec un résidu standardisé sous la loi ajustée du mot (ex. $\Phi^{-1}(1 - p_t)$ tronqué, ou un score de Pearson $(X_t - \mu N_t)/\sqrt{\mathrm{Var}}$) : la sensibilité à $N_t$ disparaîtrait *par construction* (plus besoin de V2.1), et la fenêtre serait dans l'échelle même de la détection. Coût : recalcul des $p_t$ de tous les jours de fenêtre (une passe type `pics_masse`), et interprétation moins directe qu'une fréquence. À discuter avec Benoît avant d'investir.
+
+### Appel 28/07 
+- Faire le liens avec l'interprétation de Bouchot 
+- Essayer de conserver seulement les noms propres, prénom, pays 
+- Chercher avec d'autres fenêtres (-50, +50) 
+- Voir pourquoi Bouchot à choisi + ou - 70 min, et il faut voir à partir de quand on a de l'excitation 
+- Comment choisir la bonne fenêtre, comment choisir des fenêtres différentes pour des mots différentes
+- Penser aux ruptures temporelles 
+- PCA avec le log, plusieurs fenêtres de temps (1j, 3j, 7j) ou bien ()
+- Débarrasser des verbes conjugués etc  
+- A quel point ça dépend de la surprise ? Là on a choisit 4 pour l'instant 
+- Tracer les pics pour chaque journal 
+- Sur Mediapart 
+
+
