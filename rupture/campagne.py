@@ -26,7 +26,7 @@ CATEGORIES = os.path.join(ICI, "..", "campagne_pca", "vocab_categories.csv")
 COLONNES = ("horodatage,tag,media,demi,seuil,filtre,nettoie,pics,"
             "n_pics_seuil,n_mots,n_nms,n_bords,n_centres_ecartes,n_plates,"
             "n_fenetres,D,K50,K50_frac,rang_eff,rang_eff_frac,"
-            "cum3,cum6,cum10,gain6,v1,v2,v3,v4,v5,v6,duree_s")
+            "cum3,cum6,cum10,gain6,cum6_nul,exces6,v1,v2,v3,v4,v5,v6,duree_s")
 
 p = argparse.ArgumentParser()
 p.add_argument("media")
@@ -93,6 +93,15 @@ F, garde_z = normaliser(F, "z")
 n_plates = (len(lignes) - n_centres) - len(F)
 composantes, variance, _ = pca(F)
 
+# temoin nul : chaque colonne melangee independamment (memes marges, structure
+# temporelle detruite) — a petit echantillon le spectre nul depasse le spectre
+# plat (Marchenko-Pastur), exces6 = cum6/cum6_nul est le gain honnete
+rng = np.random.default_rng(0)
+Fn = F.copy()
+for j in range(Fn.shape[1]):
+    rng.shuffle(Fn[:, j])
+_, v_nul, _ = pca(Fn)
+
 # metriques de concentration (D-1 dimensions utiles apres z-score)
 D = 2 * a.demi + 1
 rang = D - 1
@@ -101,6 +110,8 @@ K50 = int(np.searchsorted(cum, 0.5) + 1)
 rang_eff = float(1.0 / (variance**2).sum())
 cum3, cum6, cum10 = (float(cum[min(k, rang) - 1]) for k in (3, 6, 10))
 gain6 = cum6 / (min(6, rang) / rang)
+cum6_nul = float(np.cumsum(v_nul)[min(6, rang) - 1])
+exces6 = cum6 / cum6_nul
 n_mots = pics.loc[pics.index[complet], "mot"].nunique() if len(pics) else 0
 duree = time.time() - debut
 
@@ -109,7 +120,7 @@ ligne = (f"{time.strftime('%Y-%m-%dT%H:%M:%S')},{tag},{a.media},{a.demi},"
          f"{n_pics_seuil},{n_mots},{n_nms},{n_bords},{n_centres},{n_plates},"
          f"{len(F)},{D},{K50},{K50 / rang:.4f},{rang_eff:.2f},"
          f"{rang_eff / rang:.4f},{cum3:.4f},{cum6:.4f},{cum10:.4f},"
-         f"{gain6:.3f}," +
+         f"{gain6:.3f},{cum6_nul:.4f},{exces6:.3f}," +
          ",".join(f"{v:.6f}" for v in variance[:6]) + f",{duree:.0f}")
 if not os.path.exists(f"{CAMP}/resultats.csv"):
     with open(f"{CAMP}/resultats.csv", "w") as f:
@@ -127,4 +138,5 @@ pd.DataFrame(composantes[:min(8, D)], index=np.arange(1, min(8, D) + 1),
 print(f"{tag} : {n_pics_seuil} pics -> {n_nms} apres NMS -> {len(F)} fenetres "
       f"({n_bords} bords, {n_centres} centres vides, {n_plates} plates) | "
       f"K50={K50} ({K50 / rang:.2f}), rang_eff={rang_eff:.1f}, "
-      f"cum6={cum6 * 100:.1f} %, gain6={gain6:.2f} | {duree:.0f} s", flush=True)
+      f"cum6={cum6 * 100:.1f} %, gain6={gain6:.2f}, exces6={exces6:.2f} | "
+      f"{duree:.0f} s", flush=True)

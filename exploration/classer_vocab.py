@@ -40,7 +40,10 @@ AMBIGUS_VALIDES = {"paris", "tours", "nancy", "nice", "angers", "caen",
                    "reich", "jean", "jacques", "claude", "gilles", "joseph",
                    "jules", "marc", "max", "maxime", "renaud", "robert",
                    "serge", "sophie", "sylvie", "thomas", "tom", "xavier",
-                   "jack"}
+                   "jack",
+                   # audit figaro/echos du 31/07/2026
+                   "blair", "auvergne", "rochelle", "charlotte", "virginie",
+                   "véronique", "universal", "coca", "bull"}
 
 mots = []
 for chemin in sys.argv[1:]:
