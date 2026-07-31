@@ -169,6 +169,21 @@
 - La config crashée rejouée confirme : 84 fenêtres → exces6 1,06, les
   configs minuscules ne portent aucun signal honnête.
 
+### 01/08 01h45 — Nuit : archétypes Mediapart et contrôle boilerplate
+
+- Archétypes de mediapart_d50_s6 (la config de tête) : les extrêmes des
+  composantes 1-3 sont pollués par des mots de boilerplate/artefacts du
+  corpus Mediapart (« articles » 51 fois sur 200, « phrases » 27,
+  « développés », « chèque »… — textes d'interface et refontes du site, qui
+  produisent des marches ancrées sur des dates).
+- **Contrôle** : en excluant les 6 mots à multiplicité ≥ 10, alignement6
+  passe de 2,552 à **2,481** (n=5000) — la métrique globale est robuste, le
+  boilerplate ne fabrique pas le résultat. Caveat pour la synthèse :
+  nettoyer ces mots avant toute interprétation fine des composantes
+  Mediapart ; plus largement, un filtre anti-boilerplate par média serait
+  un chantier utile (hérite du problème « stop words à corriger »).
+- Données mediapart/lesechos rapatriées en data_local (archétypes en local).
+
 ### 31/07 23h35 — Réveil 7 : salve 6 récoltée, alignement6 renverse la lecture
 
 - resultats_rotation.csv : 2 304 configs (1 302 à n=5000 exact), dispersion
