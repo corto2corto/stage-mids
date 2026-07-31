@@ -39,13 +39,16 @@ p.add_argument("--pics", default="")
 p.add_argument("--sous_ech", type=int, default=0,
                help="sous-echantillonner les fenetres a N (tirage seede) — "
                     "compare les configs a taille d'echantillon egale")
+p.add_argument("--log", action="store_true",
+               help="fenetres en log(1+f_t) avant z-score (notes d'appel du "
+                    "28/07 : « PCA avec le log »)")
 a = p.parse_args()
 
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 CAMP = f"{DOSSIER}/campagne"
 os.makedirs(CAMP, exist_ok=True)
 tag = (f"{a.media}_d{a.demi}_s{a.seuil:g}_{a.filtre}_n{a.nettoie}"
-       + (f"_e{a.sous_ech}" if a.sous_ech else ""))
+       + (f"_e{a.sous_ech}" if a.sous_ech else "") + ("_log" if a.log else ""))
 debut = time.time()
 
 d = np.load(f"{DOSSIER}/vocab_series_{a.media}.npz")
@@ -93,6 +96,8 @@ if a.nettoie:
     F, garde_n, _, _ = nettoyer(F, N[lignes], a.nettoie, a.demi)
     n_centres = len(lignes) - len(garde_n)
 
+if a.log:
+    F = np.log1p(F)
 F, garde_z = normaliser(F, "z")
 n_plates = (len(lignes) - n_centres) - len(F)
 if a.sous_ech and len(F) > a.sous_ech:
