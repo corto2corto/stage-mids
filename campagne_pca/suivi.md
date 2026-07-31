@@ -13,14 +13,21 @@
 
 ## État courant (mis à jour à chaque réveil)
 
-- **Phase** : salve 1 en cours de lancement (31/07 ~18h30).
-- **Tmux campagne sur gallica** : `campagne_pca` (balayage 180 configs),
-  `campagne_figaro` et `campagne_echos` (chaînes complètes, s3, dont grilles
-  3j/7j) — à vérifier au prochain réveil.
-- **Configs évaluées** : 0 côté serveur (validation locale : 3).
-- **En attente de lancement** : pics_masse lemonde s3, base Mediapart,
-  catégories vocab Figaro/Échos (après leurs masse.py), variante vocab
-  ≥ 1 000 jours actifs (idée jour 2, cf. to_do « comparaison à faire »).
+- **Phase** : salve 2 en cours (31/07 ~18h45) — re-balayage complet avec
+  témoin nul, 660 configs (lemonde s4-6, lefigaro/lesechos s3-6, 3 grilles
+  chacun) dans `campagne_pca2` ; pics s3 lemonde dans `campagne_s3` ;
+  base + chaîne Mediapart dans `campagne_mediapart`.
+- **Fait** : salve 1 récoltée et analysée (voir journal) ; chaînes Figaro et
+  Échos terminées (grilles + pics s3, 1-2 min par pics_masse : leurs grilles
+  font 6 764 et 10 381 jours) ; vocabulaires Figaro/Échos classés (+2 861
+  mots) ; témoin nul ajouté au runner.
+- **À faire au prochain réveil** : récolte salve 2 (~45-60 min au total),
+  mini-balayage s3 lemonde (60 configs, APRÈS la fin de salve 2 — un seul
+  écrivain de resultats.csv), vocab mediapart à classifier après sa chaîne,
+  choisir nettoie pour mediapart (corpus petit au début).
+- **Idées en réserve** : variante vocab ≥ 1 000 jours actifs (lemonde,
+  cf. to_do) ; inspection des composantes des configs gagnantes ; kernel PCA
+  (notes d'appel) si le temps le permet.
 
 ## Journal
 
@@ -70,3 +77,35 @@
   contre 121 805. À confirmer/croiser en salve 1.
 - Données lemonde rapatriées en local (`campagne_pca/data_local/`, hors git)
   pour valider et comme labo de secours si ssh tombe.
+
+### 31/07 18h45 — Réveil 1 : salve 1 déjà finie, tout relancé avec témoin nul
+
+- **Salve 1 finie en < 20 min** (180 configs, ~3 s pièce) et chaînes Figaro
+  (6 764 jours, 2004→2024, 42 047 pics s3) et Échos (10 381 jours,
+  1991→2024, 33 762 pics s3) **entièrement terminées** — pics_masse tourne
+  en ~1-2 min sur ces grilles courtes, l'estimation « heures » venait du
+  Monde et de ses 26 917 jours.
+- **Enseignements salve 1** (lemonde seul, moyennes par axe) : gain6 monte
+  avec la demi-fenêtre (1,28 à d5 → 4,12 à d50), avec le seuil (2,20 s4 →
+  2,71 s6), avec l'agrégation (2,21 journalier → 2,64 hebdo) et avec le
+  filtre noms_propres (2,86 vs 2,31 tous). Les axes se cumulent : top =
+  3j/7j × d50 × s6 × noms_propres, gain6 ≈ 6. MAIS n_fenetres y tombe à
+  ~900-2 700.
+- **Garde-fou ajouté — témoin nul** (`exces6`) : colonnes mélangées
+  indépendamment (mêmes variances marginales par jour, corrélations
+  temporelles détruites). Verdict : la référence (gain6 1,66) garde
+  exces6 1,17 ; l'extrême d50×s6×noms_propres (gain6 5,23) retombe à
+  exces6 1,29. Une grande part du gain6 brut vient donc des variances
+  marginales (le jour du pic varie plus que les bords) et de la petite
+  taille d'échantillon — l'ordre des configs semble néanmoins conservé.
+  D'où la salve 2 : tout rejoué avec le témoin (schéma unique, l'ancien
+  resultats.csv archivé en resultats_salve1_sans_nul.csv sur gallica).
+- Vocabulaires Figaro/Échos classés (2 861 nouveaux mots, 567 noms propres
+  — leurs corpus récents font entrer les noms d'actualité) ; 9 homographes
+  arbitrés à la main (blair, auvergne, rochelle, universal, bull, coca,
+  charlotte, virginie, véronique).
+- **Mediapart lancé** : `scripts/ngram_mediapart.py` (CSV du pipeline,
+  478 Mo, 53 095 articles 2008→2026) puis chaîne complète en tmux
+  `campagne_mediapart`.
+- Serveur : pic de charge à 15,9 au lancement simultané, redescendu à ~14 ;
+  tous mes jobs en nice 10, priorité cédée aux autres utilisateurs.
