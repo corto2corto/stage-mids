@@ -163,6 +163,25 @@
 - La config crashée rejouée confirme : 84 fenêtres → exces6 1,06, les
   configs minuscules ne portent aucun signal honnête.
 
+### 31/07 20h55 — Réveil 5 : inspection des composantes de tête
+
+- `campagne_pca/inspection_composantes.py` (indicateurs : croisements de
+  zéro, part d'énergie au centre |j| ≤ D/8, corrélation à une rampe) +
+  figures dans `campagne_pca/figures/`.
+- **lefigaro7j × d50 (le top)** : composantes 1-3 = pic sec central PLUS
+  plateaux avant/après — des **marches de régime ancrées sur l'événement**
+  (le mot change durablement de niveau à son pic), pas de la dérive
+  générique pure. L'indicateur « corr rampe » (0,55-0,72) lisait la marche
+  comme une rampe ; la figure tranche. Structure à l'échelle de l'année,
+  ancrée sur j=0 → le nul par décalage circulaire pourra le confirmer
+  (une marche ancrée ne survit pas au décalage).
+- **lemonde ±15** : indicateurs retrouvent les profils livrés (87 % centre
+  pour le pic isolé, marche de niveau, bascule) — validation.
+- **mediapart ±15** : composantes 1-3 à 90-100 % d'énergie au centre — des
+  pics « secs » sans montée ni retombée ; cohérent avec exces6 1,07. Fait
+  éditorial en soi (événements sans traîne chez Mediapart).
+- Salve 5 : 187/288 configs 40k au réveil, se termine.
+
 ### 31/07 20h20 — Réveil 4 : salve 4 récoltée, le comparatif propre
 
 - Salves 3b (97) et 4 (384) finies, chaîne 40k complète (313 927 pics s3
