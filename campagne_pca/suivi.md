@@ -21,14 +21,18 @@
   Échos terminées (grilles + pics s3, 1-2 min par pics_masse : leurs grilles
   font 6 764 et 10 381 jours) ; vocabulaires Figaro/Échos classés (+2 861
   mots) ; témoin nul ajouté au runner.
-- **À faire au prochain réveil** : récolte salve 3 (396 configs : mediapart
-  complet, s3 lemonde, fenêtres ±35/±70) et chaîne 40k (variante vocab
-  ≥ 1 000 jours actifs) ; classifier le vocab 40k (scp
-  vocab_lemondev40k_top39316.csv puis classer_vocab) ; concevoir la
-  **salve 4 à n apparié** (--sous_ech dans campagne.py) — les comparaisons
-  d'axes ne sont fiables qu'à n égal, cf. réveil 2.
-- **Idées en réserve** : inspection des composantes des configs gagnantes ;
-  kernel PCA (notes d'appel) si le temps le permet.
+- **À faire au prochain réveil** : récolter salves 3b+4 et chaîne 40k puis
+  **lancer salve 5** (`campagne_pca/salve5_40k_log.sh`, prête et déployée :
+  balayage 40k plein n + n apparié, 288 configs ~2-3 h à cause du npz de
+  4,2 Go, plus 24 configs de jauge --log). Vocab 40k classé et committé
+  (+25 697 mots, 4 298 noms propres ; audit de 1 889 cas non arbitré —
+  queue de vocabulaire quasi entièrement commune, biais mineur accepté sur
+  le filtre noms_propres 40k). Ensuite : analyse à n apparié de salve 4
+  (le comparatif d'axes propre).
+- **Idées en réserve (jour 2)** : variante log (« PCA avec le log » des
+  notes d'appel — fenêtres en log(f_t+ε) avant z-score, à ajouter au
+  runner) ; inspection des composantes des configs gagnantes (figures) ;
+  kernel PCA si le temps le permet ; synthèse finale en PDF.
 
 ## Journal
 
@@ -138,3 +142,23 @@
 - Salve 3 lancée (mediapart 240, s3 lemonde 60, ±35/±70 partout 96) +
   chaîne 40k (masse.py paramétré en nom de sortie, X dense 4,2 Go, sorties
   lemondev40k*). Vocab mediapart classé (+866 mots, rien à arbitrer).
+
+### 31/07 19h45 — Réveil 3 : crash réparé, salves 3b+4 lancées
+
+- **Salve 3 : crash à la config 300/396** — mediapart7j × d50 × s6 ×
+  noms_propres n'a que 84 fenêtres pour D=101 : l'écriture du spectre
+  supposait n ≥ D. Corrigé (le runner écrit min(n, D) valeurs, métriques
+  blindées, v1..v6 rembourrées à 0 si n < 6). Sections s3-lemonde (60) et
+  mediapart (240) intactes ; la section ±35/±70 n'avait pas commencé.
+  Rejouée en salve 3b (96 configs + rejeu de la config crashée — sa ligne
+  est en double dans resultats.csv, **dédupliquer par tag en gardant la
+  dernière** à l'analyse).
+- **Option --sous_ech ajoutée** (tirage seedé, suffixe _e<N> dans le tag) et
+  validée en local : lemonde d15 à n=5 000 → exces6 1,16 (stable vs 1,17 à
+  n complet) ; le cas n<D passe (80 fenêtres pour D=101 sans crash).
+- **Salve 4 à n apparié lancée** à la suite de 3b dans le même tmux (un
+  écrivain à la fois) : 384 configs, tout à --sous_ech 5000.
+- Chaîne 40k : masse + pics journalier finis, grilles 3j/7j en cours ;
+  vocab (39 316 mots) rapatrié, classification en tâche de fond sur le Mac.
+- La config crashée rejouée confirme : 84 fenêtres → exces6 1,06, les
+  configs minuscules ne portent aucun signal honnête.
