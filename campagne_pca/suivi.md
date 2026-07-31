@@ -21,14 +21,14 @@
   Échos terminées (grilles + pics s3, 1-2 min par pics_masse : leurs grilles
   font 6 764 et 10 381 jours) ; vocabulaires Figaro/Échos classés (+2 861
   mots) ; témoin nul ajouté au runner.
-- **À faire au prochain réveil** : récolter salves 3b+4 et chaîne 40k puis
-  **lancer salve 5** (`campagne_pca/salve5_40k_log.sh`, prête et déployée :
-  balayage 40k plein n + n apparié, 288 configs ~2-3 h à cause du npz de
-  4,2 Go, plus 24 configs de jauge --log). Vocab 40k classé et committé
-  (+25 697 mots, 4 298 noms propres ; audit de 1 889 cas non arbitré —
-  queue de vocabulaire quasi entièrement commune, biais mineur accepté sur
-  le filtre noms_propres 40k). Ensuite : analyse à n apparié de salve 4
-  (le comparatif d'axes propre).
+- **En cours** : salve 5 (40k + jauge log, ~2-3 h, tmux `campagne_salve5`).
+- **À faire aux prochains réveils** : (a) inspection des composantes des
+  configs de tête (CSV déjà écrits dans data/campagne/) → figures dans
+  campagne_pca/figures/ ; (b) demain : nul par décalage circulaire
+  (--nul_rotation, sortie séparée resultats_rotation.csv) pour trancher
+  « formes d'événement vs dérives lentes » sur les configs de tête ;
+  (c) récolte salve 5 puis comparaison 10k/40k et effet log ;
+  (d) après ~24 h (vendredi soir) : choisir la direction (consigne Corto).
 - **Idées en réserve (jour 2)** : variante log (« PCA avec le log » des
   notes d'appel — fenêtres en log(f_t+ε) avant z-score, à ajouter au
   runner) ; inspection des composantes des configs gagnantes (figures) ;
@@ -162,3 +162,27 @@
   vocab (39 316 mots) rapatrié, classification en tâche de fond sur le Mac.
 - La config crashée rejouée confirme : 84 fenêtres → exces6 1,06, les
   configs minuscules ne portent aucun signal honnête.
+
+### 31/07 20h20 — Réveil 4 : salve 4 récoltée, le comparatif propre
+
+- Salves 3b (97) et 4 (384) finies, chaîne 40k complète (313 927 pics s3
+  sur la grille 7j, 45 échecs). Salve 5 lancée. resultats.csv : 1 441
+  configs (dédupliquer par tag, garder la dernière).
+- **Salve 4, n apparié à 5 000 (217 configs valides)** :
+  - **médias** : lefigaro 1,306 > lemonde 1,245 > lesechos 1,196 >
+    mediapart 1,068 — l'effet le plus net de la campagne. Mediapart n'a
+    presque aucune corrélation temporelle au-delà des marges.
+  - **grille** : 1j 1,164 → 3j 1,225 → 7j 1,313 (monotone).
+  - **demi-fenêtre** : ±10 1,190 → ±50 1,260 (monotone).
+  - **seuil** : s4 1,223 vs s6 1,206 — petit et de signe instable selon le
+    média (le test lemonde-seul du réveil 2 donnait s6 > s4). Non robuste.
+  - **filtre** : plat (1,215-1,221) ; seules 5 configs noms_propres
+    atteignent n=5000, l'effet +0,07 vu sur lemonde d15 (réveil 2) ne se
+    généralise pas clairement. À requalifier « petit, localisé ».
+  - Top : lefigaro7j × d50 × s4 × vocab large, exces6 1,61.
+- **Réserve d'interprétation (pour la synthèse et le nul de demain)** :
+  grille 7j × d50 = fenêtres de ±350 jours de parution — la structure
+  captée peut être de la dérive lente (tendances, époques) autant que des
+  formes d'événement. Le nul par décalage circulaire par ligne (préserve
+  l'autocorrélation de chaque fenêtre, détruit l'alignement sur le pic)
+  départagera : prévu en resultats_rotation.csv sur les configs de tête.
