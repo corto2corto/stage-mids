@@ -42,13 +42,22 @@ p.add_argument("--sous_ech", type=int, default=0,
 p.add_argument("--log", action="store_true",
                help="fenetres en log(1+f_t) avant z-score (notes d'appel du "
                     "28/07 : « PCA avec le log »)")
+p.add_argument("--graine", type=int, default=1,
+               help="graine du sous-echantillonnage (replicats pour barres "
+                    "d'erreur) ; suffixe _g<N> si != 1")
+p.add_argument("--nul_rotation", action="store_true",
+               help="calcule aussi le nul par decalage circulaire par ligne "
+                    "(structure ancree sur le pic vs autocorrelation "
+                    "generique) et ecrit la ligne dans resultats_rotation.csv "
+                    "au lieu de resultats.csv")
 a = p.parse_args()
 
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 CAMP = f"{DOSSIER}/campagne"
 os.makedirs(CAMP, exist_ok=True)
 tag = (f"{a.media}_d{a.demi}_s{a.seuil:g}_{a.filtre}_n{a.nettoie}"
-       + (f"_e{a.sous_ech}" if a.sous_ech else "") + ("_log" if a.log else ""))
+       + (f"_e{a.sous_ech}" if a.sous_ech else "") + ("_log" if a.log else "")
+       + (f"_g{a.graine}" if a.graine != 1 else ""))
 debut = time.time()
 
 d = np.load(f"{DOSSIER}/vocab_series_{a.media}.npz")
@@ -101,7 +110,7 @@ if a.log:
 F, garde_z = normaliser(F, "z")
 n_plates = (len(lignes) - n_centres) - len(F)
 if a.sous_ech and len(F) > a.sous_ech:
-    F = F[np.random.default_rng(1).choice(len(F), a.sous_ech, replace=False)]
+    F = F[np.random.default_rng(a.graine).choice(len(F), a.sous_ech, replace=False)]
 composantes, variance, _ = pca(F)
 
 # temoin nul : chaque colonne melangee independamment (memes marges, structure
@@ -112,6 +121,17 @@ Fn = F.copy()
 for j in range(Fn.shape[1]):
     rng.shuffle(Fn[:, j])
 _, v_nul, _ = pca(Fn)
+
+# nul par decalage circulaire (option) : chaque ligne roulee d'un offset
+# aleatoire — autocovariance (circulaire) de chaque fenetre preservee,
+# alignement sur le pic detruit. alignement6 = cum6/cum6_rot > 1 <=> la
+# structure est ancree sur l'evenement, pas de l'autocorrelation generique.
+if a.nul_rotation:
+    rng_r = np.random.default_rng(2)
+    Fr = np.empty_like(F)
+    for i, dec in enumerate(rng_r.integers(0, F.shape[1], len(F))):
+        Fr[i] = np.roll(F[i], dec)
+    _, v_rot, _ = pca(Fr)
 
 # metriques de concentration (D-1 dimensions utiles apres z-score)
 D = 2 * a.demi + 1
@@ -134,10 +154,19 @@ ligne = (f"{time.strftime('%Y-%m-%dT%H:%M:%S')},{tag},{a.media},{a.demi},"
          f"{rang_eff / rang:.4f},{cum3:.4f},{cum6:.4f},{cum10:.4f},"
          f"{gain6:.3f},{cum6_nul:.4f},{exces6:.3f}," +
          ",".join(f"{v:.6f}" for v in v6) + f",{duree:.0f}")
-if not os.path.exists(f"{CAMP}/resultats.csv"):
-    with open(f"{CAMP}/resultats.csv", "w") as f:
-        f.write(COLONNES + "\n")
-with open(f"{CAMP}/resultats.csv", "a") as f:
+cible, entete = f"{CAMP}/resultats.csv", COLONNES
+if a.nul_rotation:
+    cum6_rot = float(np.cumsum(v_rot)[min(6, rang, len(v_rot)) - 1])
+    alignement6 = cum6 / cum6_rot
+    cible, entete = (f"{CAMP}/resultats_rotation.csv",
+                     COLONNES + ",cum6_rot,alignement6")
+    ligne += f",{cum6_rot:.4f},{alignement6:.3f}"
+    print(f"  nul rotation : cum6_rot={cum6_rot * 100:.1f} %, "
+          f"alignement6={alignement6:.2f}", flush=True)
+if not os.path.exists(cible):
+    with open(cible, "w") as f:
+        f.write(entete + "\n")
+with open(cible, "a") as f:
     f.write(ligne + "\n")
 
 # n < D possible sur les configs extremes : variance et composantes n'ont
