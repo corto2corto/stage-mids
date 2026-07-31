@@ -21,13 +21,14 @@
   Échos terminées (grilles + pics s3, 1-2 min par pics_masse : leurs grilles
   font 6 764 et 10 381 jours) ; vocabulaires Figaro/Échos classés (+2 861
   mots) ; témoin nul ajouté au runner.
-- **À faire au prochain réveil** : récolte salve 2 (~45-60 min au total),
-  mini-balayage s3 lemonde (60 configs, APRÈS la fin de salve 2 — un seul
-  écrivain de resultats.csv), vocab mediapart à classifier après sa chaîne,
-  choisir nettoie pour mediapart (corpus petit au début).
-- **Idées en réserve** : variante vocab ≥ 1 000 jours actifs (lemonde,
-  cf. to_do) ; inspection des composantes des configs gagnantes ; kernel PCA
-  (notes d'appel) si le temps le permet.
+- **À faire au prochain réveil** : récolte salve 3 (396 configs : mediapart
+  complet, s3 lemonde, fenêtres ±35/±70) et chaîne 40k (variante vocab
+  ≥ 1 000 jours actifs) ; classifier le vocab 40k (scp
+  vocab_lemondev40k_top39316.csv puis classer_vocab) ; concevoir la
+  **salve 4 à n apparié** (--sous_ech dans campagne.py) — les comparaisons
+  d'axes ne sont fiables qu'à n égal, cf. réveil 2.
+- **Idées en réserve** : inspection des composantes des configs gagnantes ;
+  kernel PCA (notes d'appel) si le temps le permet.
 
 ## Journal
 
@@ -109,3 +110,31 @@
   `campagne_mediapart`.
 - Serveur : pic de charge à 15,9 au lancement simultané, redescendu à ~14 ;
   tous mes jobs en nice 10, priorité cédée aux autres utilisateurs.
+
+### 31/07 19h15 — Réveil 2 : salve 2 récoltée, Mediapart fini, leçon de méthode
+
+- **Tout est fini en avance** : salve 2 (660 configs), pics s3 lemonde
+  (2,4 min pour 111 624 pics — pics_masse est rapide partout, l'espace de
+  configs coûte bien moins que prévu), chaîne Mediapart complète (6 630
+  jours 2008→2026, N médian 9 092, 19 268 pics s3). nettoie mediapart = 2000
+  (5000 toucherait 25 % des jours de ce petit corpus).
+- **Salve 2 (avec témoin nul) — première lecture** : en exces6 moyen par
+  axe, seuil et filtre semblent plats (~1,25 partout), seuls résistent la
+  demi-fenêtre (1,19→1,33), l'agrégation (1,20→1,31) et le média (Figaro
+  1,30 > Monde 1,24 > Échos 1,21). Nouveau top brut : lefigaro7j × d50 ×
+  s3-4 × vocab large, exces6 1,64 à n confortable (8-15k fenêtres).
+- **MAIS test à n apparié (local, lemonde d15)** : la référence
+  sous-échantillonnée à n=9 647 donne exces6 1,164 ± 0,003 quand
+  noms_propres y est à **1,231** ; à n=31 232 elle donne 1,169 quand s6 est
+  à **1,204**. Les effets seuil et noms_propres sont donc **réels** — les
+  moyennes plates par axe étaient un artefact de composition (les configs à
+  petit n, où exces6 s'écrase, tirent les moyennes vers le bas). Corollaire
+  utile : exces6 de la référence est quasi stable de n=122k à n=10k (à
+  D=31) — les comparaisons appariées sont fiables dans cette gamme.
+- **Conséquence** : salve 4 = comparaisons systématiques à n apparié
+  (option --sous_ech à ajouter au runner, tirage seedé, taille cible dans le
+  tag), pour requalifier proprement chaque axe. En attendant, ne pas
+  conclure des moyennes brutes de resultats.csv.
+- Salve 3 lancée (mediapart 240, s3 lemonde 60, ±35/±70 partout 96) +
+  chaîne 40k (masse.py paramétré en nom de sortie, X dense 4,2 Go, sorties
+  lemondev40k*). Vocab mediapart classé (+866 mots, rien à arbitrer).
