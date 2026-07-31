@@ -21,14 +21,20 @@
   Échos terminées (grilles + pics s3, 1-2 min par pics_masse : leurs grilles
   font 6 764 et 10 381 jours) ; vocabulaires Figaro/Échos classés (+2 861
   mots) ; témoin nul ajouté au runner.
-- **En cours** : salve 5 (40k + jauge log, ~2-3 h, tmux `campagne_salve5`).
-- **À faire aux prochains réveils** : (a) inspection des composantes des
-  configs de tête (CSV déjà écrits dans data/campagne/) → figures dans
-  campagne_pca/figures/ ; (b) demain : nul par décalage circulaire
-  (--nul_rotation, sortie séparée resultats_rotation.csv) pour trancher
-  « formes d'événement vs dérives lentes » sur les configs de tête ;
-  (c) récolte salve 5 puis comparaison 10k/40k et effet log ;
-  (d) après ~24 h (vendredi soir) : choisir la direction (consigne Corto).
+- **En cours (nuit)** : salve 6 (`campagne_salve6`, ~2h30) — grille
+  appariée × {brut, log} × 3 graines, tout au double nul → tout dans
+  `data/campagne/resultats_rotation.csv` (chaque ligne : exces6 ET
+  alignement6). resultats.csv est figé à 1 753 configs.
+- **Direction choisie (fin des 24 h d'exploration)** : requalifier tous les
+  axes sous log et sous alignement6 — le log est le plus gros levier
+  d'exces6 (+0,13 à +0,76) mais le test local montre qu'à grande fenêtre il
+  révèle surtout de l'autocorrélation générique (alignement6 1,01) ;
+  alignement6 devient la métrique de tête (structure ancrée sur le pic).
+- **Samedi (jour 2)** : récolte salve 6 → tableau final des axes (les deux
+  nuls, barres d'erreur par graines) → synthèse : rapport PDF (qmd),
+  figures, recommandation de configs pour la suite du mémoire → commit
+  final avant 18h. Kernel PCA : probablement écarté (temps), à justifier
+  dans la synthèse.
 - **Idées en réserve (jour 2)** : variante log (« PCA avec le log » des
   notes d'appel — fenêtres en log(f_t+ε) avant z-score, à ajouter au
   runner) ; inspection des composantes des configs gagnantes (figures) ;
@@ -162,6 +168,25 @@
   vocab (39 316 mots) rapatrié, classification en tâche de fond sur le Mac.
 - La config crashée rejouée confirme : 84 fenêtres → exces6 1,06, les
   configs minuscules ne portent aucun signal honnête.
+
+### 31/07 21h30 — Réveil 6 : 40k dilue, le log est le levier, double nul lancé
+
+- **Salve 5 récoltée** (1 753 configs cumulées). Deux verdicts :
+  - **40k vs 10k à n apparié : −0,084 ± 0,026 d'exces6** (76 paires, toutes
+    grilles) — la queue du vocabulaire (mots à 1 000-7 000 jours actifs)
+    dilue la structure. Réponse à la question du to_do : ne pas étendre le
+    vocabulaire pour la PCA.
+  - **Log : +0,13 à +0,76 d'exces6** (24 jauges, monotone en fenêtre,
+    maximal sur Figaro ±50 : 1,61 → 2,37). La note d'appel de Benoît était
+    la bonne piste.
+- **MAIS nul par décalage circulaire (implémenté, testé)** : lemonde ±15
+  brut → alignement6 1,27 (structure ancrée sur le pic) ; lemonde ±50 log →
+  alignement6 1,01 (le spectre est reproduit par les fenêtres décalées :
+  autocorrélation générique, pas de forme d'événement). Décomposition
+  propre : marges (nul colonne) + texture autocorrélée (rotation vs
+  colonne) + structure ancrée (observé vs rotation).
+- Salve 6 lancée pour la nuit : grille appariée × {brut, log} × graines
+  1-3, double nul partout (~2 300 configs).
 
 ### 31/07 20h55 — Réveil 5 : inspection des composantes de tête
 
