@@ -7,11 +7,14 @@
 # sur serie(). Les candidats sont le top 2K de la borne basse du recensement ;
 # le classement final utilise les jours actifs exacts, la marge est loggee.
 #
-# Usage (sur gallica) : python -m rupture.masse [media] [K]
-# Sorties dans data/ :
-# - vocab_series_<media>.npz : X (jours x K, int32), dates (YYYYMMDD), N (total
+# Usage (sur gallica) : python -m rupture.masse [media] [K] [sortie]
+# Sorties dans data/ (nommees <sortie>, defaut = media — un 3e argument permet
+# les variantes de vocabulaire sans toucher aux fichiers officiels, ex.
+# `masse lemonde 39316 lemondev40k` pour la variante >= 1000 jours actifs) :
+# - vocab_series_<sortie>.npz : X (jours x K, int32), dates (YYYYMMDD), N (total
 #   du jour), mots (graphies-unites), cles (desaccentuees, indicatives)
-# - vocab_<media>_top<K>.csv : mot, cle, jours_actifs, total
+# - vocab_<sortie>_top<K>.csv : mot, cle, jours_actifs, total
+import os
 import sqlite3
 import sys
 import time
@@ -24,7 +27,8 @@ from scripts.tokenisation import MOTS_OUTILS
 
 media = sys.argv[1] if len(sys.argv) > 1 else "lemonde"
 K = int(sys.argv[2]) if len(sys.argv) > 2 else 10_000
-DOSSIER = "/data/elias/stage-mids/data"
+sortie = sys.argv[3] if len(sys.argv) > 3 else media
+DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 PAS = 500  # ids par tranche
 debut = time.time()
 
@@ -88,10 +92,10 @@ print(f"coupe exacte au rang {K} : {coupe} jours actifs ; un exclu des candidats
 mots_f = candidats[ordre].to_numpy().astype(str)
 cles_f = np.array([unicodedata.normalize("NFD", m).encode("ascii", "ignore").decode()
                    for m in mots_f])
-np.savez_compressed(f"{DOSSIER}/vocab_series_{media}.npz",
+np.savez_compressed(f"{DOSSIER}/vocab_series_{sortie}.npz",
                     X=X[:, ordre], dates=dates, N=N, mots=mots_f, cles=cles_f)
 pd.DataFrame({"mot": mots_f, "cle": cles_f, "jours_actifs": ja[ordre],
               "total": totaux[mots_f].to_numpy()}
-             ).to_csv(f"{DOSSIER}/vocab_{media}_top{K}.csv", index=False)
-print(f"FINI : {K} mots x {len(dates)} jours -> vocab_series_{media}.npz "
+             ).to_csv(f"{DOSSIER}/vocab_{sortie}_top{K}.csv", index=False)
+print(f"FINI : {K} mots x {len(dates)} jours -> vocab_series_{sortie}.npz "
       f"en {(time.time() - debut) / 60:.1f} min", flush=True)
