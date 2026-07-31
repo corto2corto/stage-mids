@@ -169,6 +169,30 @@
 - La config crashée rejouée confirme : 84 fenêtres → exces6 1,06, les
   configs minuscules ne portent aucun signal honnête.
 
+### 31/07 23h35 — Réveil 7 : salve 6 récoltée, alignement6 renverse la lecture
+
+- resultats_rotation.csv : 2 304 configs (1 302 à n=5000 exact), dispersion
+  inter-graines médiane 0,0045 → tout est significatif.
+- **alignement6 (part ancrée sur l'événement), brut, n apparié :**
+  - médias : mediapart 1,618 > lesechos 1,386 > lemonde 1,315 > lefigaro
+    1,246 — **ordre inverse d'exces6**. Figaro = texture lente abondante peu
+    ancrée ; Mediapart = peu de texture mais presque tout est ancré.
+  - grille : 1j 1,535 > 3j 1,264 > 7j 1,173 (l'agrégation floute
+    l'alignement) — inverse d'exces6 aussi.
+  - demi : 1,21 (±10) → 1,585 (±50) ; seuil : s4 1,283 → s6 1,525 — les
+    grands pics ont de vraies formes, visibles loin autour (cohérent avec
+    les marches de régime vues au réveil 5).
+  - filtre : quasi plat (1,363-1,392).
+  - **log : alignement6 ≈ 0,94-1,09 partout** — le log noie la part ancrée
+    (parfois < 1 : le nul décalé se concentre plus que l'observé). Brut
+    pour les formes d'événement, log pour la texture.
+  - top : mediapart_d50_s6 → **2,58** ; lesechos_d50_s6 → 2,07.
+- **Lecture d'ensemble pour la synthèse** : deux lentilles complémentaires.
+  (1) Formes d'événement (objectif classification des sauts) : journalier,
+  brut, ±25-50, s6 ; Mediapart/Échos en tête. (2) Texture/régimes (bonne
+  entrée pour les breakpoints de rachat) : log, grilles agrégées, Figaro en
+  tête. La « meilleure PCA » dépend de la question — c'est LE message.
+
 ### 31/07 21h30 — Réveil 6 : 40k dilue, le log est le levier, double nul lancé
 
 - **Salve 5 récoltée** (1 753 configs cumulées). Deux verdicts :
