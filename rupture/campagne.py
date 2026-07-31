@@ -36,12 +36,16 @@ p.add_argument("--filtre", default="tous",
                choices=("tous", "sans_verbes", "noms", "noms_propres"))
 p.add_argument("--nettoie", type=int, default=5000)
 p.add_argument("--pics", default="")
+p.add_argument("--sous_ech", type=int, default=0,
+               help="sous-echantillonner les fenetres a N (tirage seede) — "
+                    "compare les configs a taille d'echantillon egale")
 a = p.parse_args()
 
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 CAMP = f"{DOSSIER}/campagne"
 os.makedirs(CAMP, exist_ok=True)
-tag = f"{a.media}_d{a.demi}_s{a.seuil:g}_{a.filtre}_n{a.nettoie}"
+tag = (f"{a.media}_d{a.demi}_s{a.seuil:g}_{a.filtre}_n{a.nettoie}"
+       + (f"_e{a.sous_ech}" if a.sous_ech else ""))
 debut = time.time()
 
 d = np.load(f"{DOSSIER}/vocab_series_{a.media}.npz")
@@ -91,6 +95,8 @@ if a.nettoie:
 
 F, garde_z = normaliser(F, "z")
 n_plates = (len(lignes) - n_centres) - len(F)
+if a.sous_ech and len(F) > a.sous_ech:
+    F = F[np.random.default_rng(1).choice(len(F), a.sous_ech, replace=False)]
 composantes, variance, _ = pca(F)
 
 # temoin nul : chaque colonne melangee independamment (memes marges, structure
@@ -108,10 +114,11 @@ rang = D - 1
 cum = np.cumsum(variance)
 K50 = int(np.searchsorted(cum, 0.5) + 1)
 rang_eff = float(1.0 / (variance**2).sum())
-cum3, cum6, cum10 = (float(cum[min(k, rang) - 1]) for k in (3, 6, 10))
+cum3, cum6, cum10 = (float(cum[min(k, rang, len(cum)) - 1]) for k in (3, 6, 10))
 gain6 = cum6 / (min(6, rang) / rang)
-cum6_nul = float(np.cumsum(v_nul)[min(6, rang) - 1])
+cum6_nul = float(np.cumsum(v_nul)[min(6, rang, len(v_nul)) - 1])
 exces6 = cum6 / cum6_nul
+v6 = list(variance[:6]) + [0.0] * max(0, 6 - len(variance))
 n_mots = pics.loc[pics.index[complet], "mot"].nunique() if len(pics) else 0
 duree = time.time() - debut
 
@@ -121,16 +128,20 @@ ligne = (f"{time.strftime('%Y-%m-%dT%H:%M:%S')},{tag},{a.media},{a.demi},"
          f"{len(F)},{D},{K50},{K50 / rang:.4f},{rang_eff:.2f},"
          f"{rang_eff / rang:.4f},{cum3:.4f},{cum6:.4f},{cum10:.4f},"
          f"{gain6:.3f},{cum6_nul:.4f},{exces6:.3f}," +
-         ",".join(f"{v:.6f}" for v in variance[:6]) + f",{duree:.0f}")
+         ",".join(f"{v:.6f}" for v in v6) + f",{duree:.0f}")
 if not os.path.exists(f"{CAMP}/resultats.csv"):
     with open(f"{CAMP}/resultats.csv", "w") as f:
         f.write(COLONNES + "\n")
 with open(f"{CAMP}/resultats.csv", "a") as f:
     f.write(ligne + "\n")
 
-pd.DataFrame({"variance": variance}, index=np.arange(1, D + 1)).rename_axis(
-    "rang").to_csv(f"{CAMP}/spectre_{tag}.csv", float_format="%.8f")
-pd.DataFrame(composantes[:min(8, D)], index=np.arange(1, min(8, D) + 1),
+# n < D possible sur les configs extremes : variance et composantes n'ont
+# alors que min(n, D) entrees, on ecrit ce qui existe
+pd.DataFrame({"variance": variance}, index=np.arange(1, len(variance) + 1)
+             ).rename_axis("rang").to_csv(f"{CAMP}/spectre_{tag}.csv",
+                                          float_format="%.8f")
+k8 = min(8, len(composantes))
+pd.DataFrame(composantes[:k8], index=np.arange(1, k8 + 1),
              columns=[f"j{j:+d}" for j in range(-a.demi, a.demi + 1)]
              ).rename_axis("composante").to_csv(
     f"{CAMP}/composantes_{tag}.csv", float_format="%.8f")
