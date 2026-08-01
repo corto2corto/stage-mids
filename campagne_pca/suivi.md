@@ -21,20 +21,16 @@
   Échos terminées (grilles + pics s3, 1-2 min par pics_masse : leurs grilles
   font 6 764 et 10 381 jours) ; vocabulaires Figaro/Échos classés (+2 861
   mots) ; témoin nul ajouté au runner.
-- **En cours (nuit)** : salve 6 (`campagne_salve6`, ~2h30) — grille
-  appariée × {brut, log} × 3 graines, tout au double nul → tout dans
-  `data/campagne/resultats_rotation.csv` (chaque ligne : exces6 ET
-  alignement6). resultats.csv est figé à 1 753 configs.
-- **Direction choisie (fin des 24 h d'exploration)** : requalifier tous les
-  axes sous log et sous alignement6 — le log est le plus gros levier
-  d'exces6 (+0,13 à +0,76) mais le test local montre qu'à grande fenêtre il
-  révèle surtout de l'autocorrélation générique (alignement6 1,01) ;
-  alignement6 devient la métrique de tête (structure ancrée sur le pic).
-- **Samedi (jour 2)** : récolte salve 6 → tableau final des axes (les deux
-  nuls, barres d'erreur par graines) → synthèse : rapport PDF (qmd),
-  figures, recommandation de configs pour la suite du mémoire → commit
-  final avant 18h. Kernel PCA : probablement écarté (temps), à justifier
-  dans la synthèse.
+- **SYNTHÈSE LIVRÉE (01/08 ~6h45)** : `campagne_pca/rapport.pdf` (4 pages,
+  qmd source à côté) + figures de synthèse (`synthese_axes.png`,
+  `synthese_carte_medias.png`, script `figures_synthese.py`). Message
+  central : la « meilleure PCA » dépend de la question — formes d'événement
+  (brut, journalier, ±25-50, s6 ; Mediapart/Échos les plus ancrés) vs
+  texture/régimes (log, agrégé, Figaro ; piste breakpoints/rachats).
+- **Reste (buffer jusqu'à dimanche 18h)** : compléments ciblés si utile
+  (archétypes nettoyés Échos/Monde, autres inspections), bilan final +
+  mise à jour de la mémoire projet, éventuel ménage disque
+  (data/campagne/ : ~2,5k petits CSV de spectres/composantes).
 - **Idées en réserve (jour 2)** : variante log (« PCA avec le log » des
   notes d'appel — fenêtres en log(f_t+ε) avant z-score, à ajouter au
   runner) ; inspection des composantes des configs gagnantes (figures) ;

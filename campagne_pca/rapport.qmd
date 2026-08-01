@@ -1,0 +1,136 @@
+---
+title: "Campagne PCA 48 h — hyperparamètres des fenêtres de sauts"
+subtitle: "Quatre médias, six salves, ~2 400 configurations (31/07–01/08/2026)"
+lang: fr
+format:
+  typst:
+    margin:
+      x: 2.2cm
+      y: 2.4cm
+    fontsize: 10.5pt
+---
+
+## La question et le dispositif
+
+La PCA du modèle zéro (Le Monde, fenêtres ±15 jours, seuil de surprise 4)
+donnait un spectre plat : 33 % de variance à 6 composantes. La campagne
+évalue une fonction `PCA(média, grille, fenêtre, seuil, filtre, vocabulaire,
+transformation) → qualité du spectre` sur tout l'espace des réglages :
+
+| Axe | Valeurs explorées |
+|---|---|
+| média | Le Monde, Le Figaro, Les Échos, **Mediapart** (base ngram construite pour l'occasion, 53 095 articles 2008→2026) |
+| grille | journalier, blocs de 3 jours, blocs de 7 jours de parution |
+| demi-fenêtre | ±5, ±10, ±15, ±25, ±35, ±50, ±70 pas de grille |
+| seuil de surprise | 3, 4, 5, 6 (pics recalculés à s ≥ 3 partout) |
+| filtre grammatical | tous, sans verbes, noms seulement, noms propres (Lexique383 + spaCy sur les vocabulaires) |
+| vocabulaire | top-10 000 par jours actifs ; variante ≥ 1 000 jours actifs (39 316 mots) |
+| transformation | fréquences brutes ; log(1+f) |
+
+Le runner (`rupture/campagne.py`) rejoue la fin de chaîne en mémoire
+(pics filtrés → NMS à portée 2d+1 → fenêtres → nettoyage V2 → z-score par
+fenêtre → PCA) en 2 à 10 s par configuration. 1 753 configurations au
+balayage principal, 2 304 au balayage final à double témoin, toutes
+journalisées (`resultats.csv`, `resultats_rotation.csv`).
+
+## Mesurer honnêtement : les trois pièges
+
+Le score naïf — la variance cumulée à 6 composantes — s'est révélé faux
+trois fois, et sa correction est le premier résultat de la campagne.
+
+1. **La dimension.** Une fenêtre ±5 vit dans 10 dimensions, une ±50 dans
+   100 : à structure égale, la petite fenêtre « gagne » mécaniquement. On
+   normalise par le spectre plat (`gain6`).
+2. **Les marges et la petite matrice.** Un témoin nul par **mélange de
+   chaque colonne** (mêmes variances marginales par jour, corrélations
+   temporelles détruites) définit `exces6` = cum6/cum6~nul~. Les scores
+   spectaculaires des petites configurations (900 fenêtres, gain6 ≈ 6)
+   retombent à 1,05 : c'était du bruit de petite matrice et des variances
+   marginales.
+3. **La composition.** Les moyennes par axe mélangent effet et taille
+   d'échantillon : les comparaisons se font **à n apparié** (5 000 fenêtres
+   sous-échantillonnées, tirage seedé, 3 graines — dispersion inter-graines
+   médiane 0,0045, tous les écarts commentés sont significatifs).
+
+Enfin un second témoin, le **décalage circulaire de chaque fenêtre**
+(l'autocorrélation de la série est préservée, l'alignement sur le pic est
+détruit), sépare deux choses que `exces6` confond : la **texture** (de
+l'autocorrélation générique, présente n'importe où dans la série) et la
+**part ancrée sur l'événement** (`alignement6` = cum6/cum6~rotation~).
+
+## Résultats par axe
+
+![Effets des axes sur les deux métriques (brut, n apparié, grille équilibrée sur 39 cellules × 4 médias).](figures/synthese_axes.png)
+
+- **Média — l'effet le plus fort, et il s'inverse selon la métrique.**
+  Texture : Figaro 1,28 > Monde 1,22 > Échos 1,17 > Mediapart 1,07.
+  Part ancrée : **Mediapart 1,62** > Échos 1,44 > Monde 1,33 > Figaro 1,28.
+- **Grille.** L'agrégation (3 j, 7 j) ajoute de la texture mais **floute
+  l'alignement** : la part ancrée passe de 1,54 (journalier) à 1,12 (hebdo).
+- **Fenêtre.** La part ancrée **croît fortement avec la fenêtre** (1,22 à
+  ±10 → 1,70 à ±50) à texture quasi constante : autour d'un grand pic, la
+  série porte des formes longues — les composantes montrent des **marches
+  de régime** (plateau avant, pic, plateau après).
+- **Seuil.** Même logique : s6 porte plus de forme ancrée que s4 (1,65
+  contre 1,31), à texture égale. Les grands pics ont de vraies silhouettes.
+- **Filtre grammatical : quasi plat** à n apparié (1,36–1,39). Le filtre
+  noms propres avait un léger avantage sur Le Monde seul ; il ne se
+  généralise pas. Non décisif.
+- **Vocabulaire : la queue dilue.** La variante ≥ 1 000 jours actifs
+  (39 316 mots) fait perdre 0,084 ± 0,026 d'exces6 sur 76 paires appariées.
+  Le top-10 000 est le bon choix.
+- **Log : un levier, mais pour la texture seulement.** log(1+f) ajoute
+  jusqu'à +0,76 d'exces6 (Figaro ±50 : 1,61 → 2,37) mais ramène
+  l'alignement à ~1,0 partout : il révèle l'autocorrélation lente et **noie
+  les formes d'événement**.
+
+## La carte des médias
+
+![Chaque point est un média × grille à la configuration de référence. La diagonale négative résume la campagne : la part ancrée s'échange contre la texture.](figures/synthese_carte_medias.png)
+
+Deux profils de médias se dégagent. **Mediapart** : peu de structure totale,
+mais presque toute ancrée sur l'événement — ses composantes sont des pics
+« secs », sans montée ni retombée (90-100 % de l'énergie au centre). **Le
+Figaro** (et Le Monde agrégé) : beaucoup de structure, majoritairement de la
+texture lente. Les Échos journalier est le meilleur compromis des deux axes.
+
+## Recommandations
+
+La « meilleure PCA » dépend de la question — c'est le message central.
+
+**Pour les formes d'événement** (objectif : le dataset de sauts et leur
+classification) : **journalier, fréquences brutes, ±25 à ±50, seuil 6**,
+top-10 000, tous les mots. C'est la configuration qui maximise la part
+ancrée (Mediapart : alignement6 = 2,58 ; Échos : 2,07) tout en gardant des
+effectifs sains. Le seuil 4 en variante pour l'effectif (× 3), les filtres
+grammaticaux en option d'interprétation, pas de log.
+
+**Pour la texture et les régimes** (objectif : les ruptures durables — la
+question des rachats) : **log(1+f), grilles agrégées, grandes fenêtres**,
+Figaro en tête. Ce qui était un « défaut » pour les formes d'événement est
+exactement le signal qu'un détecteur de breakpoints voudra.
+
+## Réserves et chantiers ouverts
+
+- **Boilerplate Mediapart** : les extrêmes de ses composantes sont pollués
+  par des mots d'interface (« articles », « phrases »…). Contrôle fait : les
+  exclure ne change presque rien à la métrique (2,55 → 2,48), mais un
+  nettoyage s'impose avant toute interprétation fine (chantier commun avec
+  les stop words).
+- **NMS couplé à la fenêtre** : la portée du dédoublonnage vaut la largeur
+  de fenêtre ; comparer des fenêtres compare donc aussi des datasets. Le
+  n apparié neutralise l'effet de taille, pas celui de sélection.
+- **Kernel PCA** : non exploré — la priorité est allée aux témoins nuls, et
+  la PCA linéaire n'est pas épuisée (les formes longues viennent d'être
+  découvertes). À reprendre si la classification bute sur du non-linéaire.
+- **Fenêtres par mot** (remarque Bouchot) et **périodes d'activité
+  anormale** : hors périmètre, notées au to_do.
+
+## Reproduction
+
+Tout est versionné dans `campagne_pca/` (GitHub) : runner
+(`rupture/campagne.py`), scripts de salves (`salve*.sh`), journal complet
+(`suivi.md`), récoltes (`resultats.csv`, 1 753 configs ;
+`resultats_rotation.csv`, 2 304 configs au double témoin), figures et
+scripts de figures. Les données intermédiaires (pics s3, séries 40k, base
+ngram Mediapart) sont sur gallica dans `data/`.
