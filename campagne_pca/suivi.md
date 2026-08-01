@@ -165,6 +165,15 @@
 - La config crashée rejouée confirme : 84 fenêtres → exces6 1,06, les
   configs minuscules ne portent aucun signal honnête.
 
+### 01/08 07h35 — Buffer : archétypes Les Échos (sains)
+
+- lesechos d50 s6 (10 520 fenêtres) : multiplicité max 8 dans les top-200
+  des composantes 1-3 (« grèce ») — pas de boilerplate, contrairement à
+  Mediapart. Archétypes = vrais événements : crise grecque (05/2012),
+  Fukushima (« l'archipel » 03/2011), Covid (« mesures » 03/2020), séisme
+  d'Albanie (11/2019). La config recommandée « formes d'événement » est
+  saine sur ce corpus ; Mediapart reste à nettoyer avant interprétation.
+
 ### 01/08 01h45 — Nuit : archétypes Mediapart et contrôle boilerplate
 
 - Archétypes de mediapart_d50_s6 (la config de tête) : les extrêmes des
