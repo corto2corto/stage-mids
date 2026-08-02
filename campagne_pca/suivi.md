@@ -11,30 +11,47 @@
 > en tmux dédié + git en autonomie, fin le 02/08 ~18h (Paris). Surveiller la
 > charge serveur (pause de la file si load > 16).
 
-## État courant (mis à jour à chaque réveil)
+## CAMPAGNE CLOSE — bilan final (02/08/2026 ~18h)
 
-- **Phase** : salve 2 en cours (31/07 ~18h45) — re-balayage complet avec
-  témoin nul, 660 configs (lemonde s4-6, lefigaro/lesechos s3-6, 3 grilles
-  chacun) dans `campagne_pca2` ; pics s3 lemonde dans `campagne_s3` ;
-  base + chaîne Mediapart dans `campagne_mediapart`.
-- **Fait** : salve 1 récoltée et analysée (voir journal) ; chaînes Figaro et
-  Échos terminées (grilles + pics s3, 1-2 min par pics_masse : leurs grilles
-  font 6 764 et 10 381 jours) ; vocabulaires Figaro/Échos classés (+2 861
-  mots) ; témoin nul ajouté au runner.
-- **SYNTHÈSE LIVRÉE (01/08 ~6h45)** : `campagne_pca/rapport.pdf` (4 pages,
-  qmd source à côté) + figures de synthèse (`synthese_axes.png`,
-  `synthese_carte_medias.png`, script `figures_synthese.py`). Message
-  central : la « meilleure PCA » dépend de la question — formes d'événement
-  (brut, journalier, ±25-50, s6 ; Mediapart/Échos les plus ancrés) vs
-  texture/régimes (log, agrégé, Figaro ; piste breakpoints/rachats).
-- **Reste (buffer jusqu'à dimanche 18h)** : compléments ciblés si utile
-  (archétypes nettoyés Échos/Monde, autres inspections), bilan final +
-  mise à jour de la mémoire projet, éventuel ménage disque
-  (data/campagne/ : ~2,5k petits CSV de spectres/composantes).
-- **Idées en réserve (jour 2)** : variante log (« PCA avec le log » des
-  notes d'appel — fenêtres en log(f_t+ε) avant z-score, à ajouter au
-  runner) ; inspection des composantes des configs gagnantes (figures) ;
-  kernel PCA si le temps le permet ; synthèse finale en PDF.
+**Livrable principal : `campagne_pca/rapport.pdf`** (4 pages, source qmd,
+figures). Journal complet ci-dessous, tout est committé et poussé.
+
+**Chiffres.** 7 salves + compléments, ~4 000 configurations évaluées
+(1 753 au balayage principal `resultats.csv`, 2 304 au double témoin
+`resultats_rotation.csv`), 4 médias × 3 grilles × fenêtres ±5→±70 ×
+seuils 3-6 × 4 filtres × 2 vocabulaires × brut/log. Aucun incident serveur
+(un crash de script réparé et rejoué ; scrapping jamais touché).
+
+**Résultats clés** (détail au rapport et aux réveils 4-7) :
+1. La « meilleure PCA » dépend de la question : **formes d'événement**
+   (brut, journalier, ±25-50, s6 — Mediapart 1,62 > Échos 1,44 > Monde
+   1,33 > Figaro 1,28 en part ancrée) vs **texture/régimes** (log, agrégé,
+   grandes fenêtres — hiérarchie des médias inverse ; piste pour les
+   breakpoints de rachat).
+2. La métrique naïve (cum6) piège trois fois : dimension, marges/petite
+   matrice, composition — d'où gain6, exces6 (nul colonnes), n apparié,
+   alignement6 (nul rotation). Dispersion inter-graines 0,0045.
+3. Vocabulaire 40k : dilue (−0,08). Filtres grammaticaux : non décisifs.
+   Log : +0,76 d'exces6 au maximum, mais noie l'ancrage sur l'événement.
+4. Boilerplate Mediapart : métrique robuste (2,55 → 2,48 sans les mots
+   suspects), nettoyage requis pour l'interprétation fine.
+
+**Acquis d'infra réutilisables** : base ngram Mediapart
+(`scripts/ngram_mediapart.py`), pics s ≥ 3 pour les 4 médias × 3 grilles
+(`pics_*_s3.csv`), chaînes complètes Figaro/Échos/Mediapart, variante 40k
+(`lemondev40k*`), runner `rupture/campagne.py` (--log, --sous_ech,
+--graine, --nul_rotation), catégories grammaticales de 39,5k mots
+(`vocab_categories.csv`), `masse.py`/`pics_masse.py` paramétrés sans
+toucher aux sorties officielles.
+
+**Questions laissées à Corto** :
+- Ménage : `data/campagne/` sur gallica ne fait que 41 Mo (2,5k petits
+  CSV) — laissé tel quel, dis-moi si tu veux que je supprime.
+  `campagne_pca/data_local/` sur le Mac (~700 Mo de npz) peut être vidé
+  quand tu veux.
+- Suites possibles (notées au rapport) : nettoyage anti-boilerplate par
+  média, kernel PCA si le linéaire bute, fenêtres par mot (Bouchot),
+  breakpoints sous la lentille texture.
 
 ## Journal
 
