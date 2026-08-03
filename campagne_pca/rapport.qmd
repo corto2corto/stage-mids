@@ -149,6 +149,16 @@ exactement le signal qu'un détecteur de breakpoints voudra.
 - **NMS couplé à la fenêtre** : la portée du dédoublonnage vaut la largeur
   de fenêtre ; comparer des fenêtres compare donc aussi des datasets. Le
   n apparié neutralise l'effet de taille, pas celui de sélection.
+- **n apparié fixé à 5 000 : conservateur, mais sans coût mesuré.** Cette
+  cible est bien en dessous de la plupart des configurations (jusqu'à
+  342 787 fenêtres à seuil 3) — une cible plus généreuse (8 000-9 000)
+  aurait préservé plus de données. Contrôle fait sur la référence :
+  `exces6` ne bouge que de 1,170 (n complet, 121 805) à 1,155 (n = 5 000),
+  un écart négligeable face aux effets rapportés (0,05 à 0,7) — aucune
+  conclusion n'aurait changé avec une cible plus haute. Les configurations
+  les plus extrêmes (jusqu'à 79 fenêtres, Mediapart ±70/seuil 6/noms
+  propres) restent de toute façon sous 5 000 et sont exclues des
+  comparaisons plutôt que gonflées artificiellement.
 - **Kernel PCA** : non exploré — la priorité est allée aux témoins nuls, et
   la PCA linéaire n'est pas épuisée (les formes longues viennent d'être
   découvertes). À reprendre si la classification bute sur du non-linéaire.
