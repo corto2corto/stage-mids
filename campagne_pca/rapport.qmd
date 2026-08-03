@@ -33,6 +33,70 @@ fenêtre → PCA) en 2 à 10 s par configuration. 1 753 configurations au
 balayage principal, 2 304 au balayage final à double témoin, toutes
 journalisées (`resultats.csv`, `resultats_rotation.csv`).
 
+## Ce que donnent les PCA : les chiffres bruts
+
+Avant toute correction, voici la mesure demandée au départ — le nombre de
+composantes pour atteindre 50 % de variance (`K50`) et la variance expliquée
+à nombre de composantes fixé. Toutes les valeurs ci-dessous sont à
+**n apparié (5 000 fenêtres)**, fréquences sans transformation, moyennées sur
+les trois graines de tirage.
+
+**Effet de la taille de fenêtre** (D = 2d+1 colonnes) :
+
+| Fenêtre | D | K50 | variance à 3 comp. | à 6 comp. | à 10 comp. | comp. 1 |
+|---|---|---|---|---|---|---|
+| ±10 | 21 | **6,4** | 33,2 % | **50,4 %** | 67,6 % | 14,2 % |
+| ±15 | 31 | 9,2 | 27,0 % | 40,5 % | 54,0 % | 12,1 % |
+| ±25 | 51 | 14,8 | 21,0 % | 31,2 % | 41,2 % | 9,9 % |
+| ±50 | 101 | 29,5 | 15,0 % | 22,0 % | 28,6 % | 7,4 % |
+
+Les petites fenêtres dominent — mais **mécaniquement**, puisqu'elles ont
+moins de dimensions à couvrir (piège 1 ci-dessous). Ce classement ne dit
+donc rien sur la richesse réelle du signal ; il faut comparer à fenêtre
+fixée.
+
+**À fenêtre fixée (±15, D = 31), effet de chaque axe :**
+
+| Axe | Valeur | K50 | variance à 6 comp. | à 10 comp. |
+|---|---|---|---|---|
+| **seuil** | 6 | **7,8** | **45,2 %** | 58,4 % |
+| | 4 | 10,0 | 37,8 % | 51,6 % |
+| **grille** | 7 jours | 8,3 | 43,3 % | 56,6 % |
+| | 3 jours | 9,3 | 40,2 % | 53,8 % |
+| | journalier | 9,5 | 39,2 % | 52,9 % |
+| **média** | Le Figaro | 8,3 | 43,3 % | 57,1 % |
+| | Le Monde | 8,7 | 42,3 % | 55,7 % |
+| | Les Échos | 9,5 | 39,1 % | 52,7 % |
+| | Mediapart | 11,0 | 34,9 % | 48,2 % |
+| **filtre** | noms propres | 9,0 | 41,6 % | 55,3 % |
+| | tous | 9,3 | 40,1 % | 53,6 % |
+
+**Le seuil de surprise est le levier le plus fort** : passer de 4 à 6 gagne
+7,4 points de variance à 6 composantes et fait tomber `K50` de 10 à 7,8.
+Viennent ensuite l'agrégation temporelle (+4 points en hebdomadaire) et le
+média (8 points d'écart entre Le Figaro et Mediapart). Le filtre grammatical
+reste marginal (1,5 point).
+
+**Les meilleures configurations**, en cumulant ces effets :
+
+| Configuration | D | K50 | à 6 comp. | à 10 comp. |
+|---|---|---|---|---|
+| Le Monde, hebdo, ±10, seuil 6 | 21 | **4** | **60,8 %** | 76,3 % |
+| Le Monde, hebdo, ±15, seuil 6 | 31 | 6 | 50,9 % | 63,7 % |
+| Le Figaro, 3 jours, ±15, seuil 6 | 31 | 6 | 50,1 % | 63,3 % |
+| Le Monde, 3 jours, ±15, seuil 6 | 31 | 7 | 48,4 % | 61,2 % |
+| Le Figaro, journalier, ±15, seuil 6 | 31 | 7 | 46,3 % | 60,0 % |
+
+À comparer au modèle zéro (Le Monde, journalier, ±15, seuil 4) : `K50` = 11,
+33,3 % à 6 composantes. **Le meilleur réglage divise donc `K50` par plus de
+deux et fait passer la variance à 6 composantes de 33 % à 61 %.**
+
+**Le log dégrade ces chiffres bruts**, contrairement à ce que sa lecture en
+ratio suggère : la variance à 6 composantes tombe de 40,5 % à 33,1 % (±15)
+et de 22,0 % à 15,9 % (±50). Il aplatit le spectre tout en le rendant plus
+concentré *relativement à son propre témoin nul* — les deux lectures
+s'opposent, et c'est précisément ce qu'analyse la section suivante.
+
 ## Mesurer honnêtement : les trois pièges
 
 Le score naïf — la variance cumulée à 6 composantes — s'est révélé faux
@@ -125,19 +189,42 @@ texture lente. Les Échos journalier est le meilleur compromis des deux axes.
 
 ## Recommandations
 
-La « meilleure PCA » dépend de la question — c'est le message central.
+La « meilleure PCA » dépend de la question — c'est le message central. Et
+les deux lectures ne pointent pas au même endroit : ce qui concentre le plus
+de variance en valeur brute n'est pas ce qui capte le mieux les formes
+d'événement.
+
+| Axe | Meilleur en variance brute (K50, cum6) | Meilleur en part ancrée (alignement6) |
+|---|---|---|
+| seuil | **6** | **6** |
+| fenêtre | ±10 à ±15 | ±50 |
+| grille | hebdomadaire | journalier |
+| média | Le Monde, Le Figaro | Mediapart, Les Échos |
+| transformation | sans log | sans log |
+
+**Seuls le seuil 6 et l'absence de log font consensus** — ce sont les deux
+réglages à retenir quelle que soit la suite. Les trois autres axes doivent
+être choisis selon l'objectif.
+
+**Pour un spectre compact** (objectif : réduire la dimension, décrire chaque
+saut par peu de coordonnées) : **hebdomadaire, ±10 à ±15, seuil 6**, Le
+Monde ou Le Figaro, sans log — `K50` = 4 à 6 et 51 à 61 % de variance à
+6 composantes. Attention : à cette échelle, une partie de la concentration
+vient de la texture lente, pas de la forme du pic (`alignement6` ≈ 1,17 à
+1,24 seulement).
 
 **Pour les formes d'événement** (objectif : le dataset de sauts et leur
-classification) : **journalier, fréquences brutes, ±25 à ±50, seuil 6**,
-top-10 000, tous les mots. C'est la configuration qui maximise la part
-ancrée (Mediapart : alignement6 = 2,58 ; Échos : 2,07) tout en gardant des
-effectifs sains. Le seuil 4 en variante pour l'effectif (× 3), les filtres
-grammaticaux en option d'interprétation, pas de log.
+classification) : **journalier, ±25 à ±50, seuil 6**, sans log, top-10 000.
+C'est la configuration qui maximise la part ancrée (Mediapart :
+alignement6 = 2,58 ; Échos : 2,07), au prix d'un spectre nettement plus
+étalé (`K50` ≈ 30 à ±50). Le seuil 4 en variante pour l'effectif (× 3), les
+filtres grammaticaux en option d'interprétation.
 
 **Pour la texture et les régimes** (objectif : les ruptures durables — la
 question des rachats) : **log(1+f), grilles agrégées, grandes fenêtres**,
 Figaro en tête. Ce qui était un « défaut » pour les formes d'événement est
-exactement le signal qu'un détecteur de breakpoints voudra.
+exactement le signal qu'un détecteur de breakpoints voudra — en acceptant
+que le spectre brut y soit le plus plat de tous (16 % à 6 composantes).
 
 ## Réserves et chantiers ouverts
 
