@@ -64,10 +64,22 @@ trois fois, et sa correction est le premier résultat de la campagne.
    variance. Les scores spectaculaires des petites configurations
    (900 fenêtres, gain6 ≈ 6) retombent ainsi à 1,05 : c'était du bruit de
    petite matrice et des variances marginales, pas une vraie forme.
-3. **La composition.** Les moyennes par axe mélangent effet et taille
-   d'échantillon : les comparaisons se font **à n apparié** (5 000 fenêtres
-   sous-échantillonnées, tirage seedé, 3 graines — dispersion inter-graines
-   médiane 0,0045, tous les écarts commentés sont significatifs).
+3. **La composition.** Mécaniquement, exiger une surprise plus élevée ou
+   restreindre le vocabulaire (par exemple ne garder que les noms propres)
+   réduit drastiquement le nombre de fenêtres disponibles : sur Le Monde,
+   ±15 jours, tous les mots, on a 342 787 fenêtres à seuil 3 contre
+   seulement 31 232 à seuil 6 — un facteur 11 rien qu'en changeant le
+   seuil ; ne garder que les noms propres (à seuil 4) descend à
+   9 647 fenêtres. Comparer la moyenne d'`exces6` par axe mélange donc,
+   sans le vouloir, l'effet de l'axe étudié et celui de la taille
+   d'échantillon qui varie avec lui. Les comparaisons se font donc **à
+   n apparié** : on ramène systématiquement *toute* configuration à
+   5 000 fenêtres (tirage seedé) — une taille fixe, inférieure à la plus
+   restrictive rencontrée (les 9 647 des noms propres), pour que tous les
+   axes, pas seulement deux niveaux d'un même axe, restent comparables
+   entre eux. Trois graines de tirage donnent une dispersion inter-graines
+   médiane de 0,0045 : tous les écarts commentés dans le rapport sont
+   significatifs au regard de ce bruit.
 
 Enfin un second témoin, le **décalage circulaire de chaque fenêtre**
 (l'autocorrélation de la série est préservée, l'alignement sur le pic est
