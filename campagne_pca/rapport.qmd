@@ -48,12 +48,22 @@ trois fois, et sa correction est le premier résultat de la campagne.
    hypothèse nulle, qui compare le ratio entre ce qui est observé et ce
    qu'on attendrait sous l'hypothèse nulle : plus ce ratio est élevé, plus
    la variance réellement expliquée dépasse la variance attendue.
-2. **Les marges et la petite matrice.** Un témoin nul par **mélange de
-   chaque colonne** (mêmes variances marginales par jour, corrélations
-   temporelles détruites) définit `exces6` = cum6/cum6~nul~. Les scores
-   spectaculaires des petites configurations (900 fenêtres, gain6 ≈ 6)
-   retombent à 1,05 : c'était du bruit de petite matrice et des variances
-   marginales.
+2. **Les marges et la petite matrice.** Une seconde hypothèse nulle : « les
+   jours d'une même fenêtre ne sont pas réellement liés entre eux, seuls
+   certains jours sont, en moyenne, plus ou moins variables que d'autres »
+   (le jour du pic, par construction, plus agité que les bords). Si c'est
+   vrai, on peut échanger au hasard les valeurs d'un même jour entre
+   fenêtres différentes — par exemple le `j+3` de la 14ᵉ fenêtre avec le
+   `j+3` de la 5ᵉ. La variance de chaque colonne ne bouge pas (on ne
+   permute des valeurs qu'au sein d'une même colonne), mais la structure
+   temporelle — le lien entre jours voisins d'une même fenêtre — est
+   détruite. Si cette structure n'apportait aucune information, la
+   variance cumulée resterait semblable avec ou sans ce mélange : on
+   définit `exces6` = cum6/cum6~nul~, où plus ce ratio est élevé, plus le
+   lien réel entre jours pèse au-delà de cette simple inégalité de
+   variance. Les scores spectaculaires des petites configurations
+   (900 fenêtres, gain6 ≈ 6) retombent ainsi à 1,05 : c'était du bruit de
+   petite matrice et des variances marginales, pas une vraie forme.
 3. **La composition.** Les moyennes par axe mélangent effet et taille
    d'échantillon : les comparaisons se font **à n apparié** (5 000 fenêtres
    sous-échantillonnées, tirage seedé, 3 graines — dispersion inter-graines
