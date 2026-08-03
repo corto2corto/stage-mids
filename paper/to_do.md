@@ -254,5 +254,6 @@ Plutôt que $f_t$ brut, remplir les fenêtres avec un résidu standardisé sous 
 - A quel point ça dépend de la surprise ? Là on a choisit 4 pour l'instant 
 - Tracer les pics pour chaque journal 
 - Sur Mediapart 
+- Kernel PCA
 
 
