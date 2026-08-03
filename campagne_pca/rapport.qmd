@@ -39,8 +39,15 @@ Le score naïf — la variance cumulée à 6 composantes — s'est révélé fau
 trois fois, et sa correction est le premier résultat de la campagne.
 
 1. **La dimension.** Une fenêtre ±5 vit dans 10 dimensions, une ±50 dans
-   100 : à structure égale, la petite fenêtre « gagne » mécaniquement. On
-   normalise par le spectre plat (`gain6`).
+   100 : à structure égale, la petite fenêtre « gagne » mécaniquement. Sous
+   l'hypothèse nulle « la variance se répartit également entre les
+   composantes », le nombre de composantes disponibles dépend
+   structurellement de la taille de la fenêtre, et la variance cumulée à
+   6 composantes n'est donc plus une mesure comparable d'une fenêtre à
+   l'autre. On utilise à la place `gain6` = cum6 / cum6 attendu sous cette
+   hypothèse nulle, qui compare le ratio entre ce qui est observé et ce
+   qu'on attendrait sous l'hypothèse nulle : plus ce ratio est élevé, plus
+   la variance réellement expliquée dépasse la variance attendue.
 2. **Les marges et la petite matrice.** Un témoin nul par **mélange de
    chaque colonne** (mêmes variances marginales par jour, corrélations
    temporelles détruites) définit `exces6` = cum6/cum6~nul~. Les scores

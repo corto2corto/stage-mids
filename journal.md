@@ -1507,3 +1507,42 @@ direction artefactuelle sans altérer la structure. Restent notés au to_do :
 la précision de la surprise dans les CSV (V2.2, cosmétique), le statut des
 composantes oscillantes (V2.3, acté) et la piste « fenêtres en résidus
 standardisés » pour une V3 (V2.4, à discuter avec Benoît).
+
+## Campagne PCA 48 h : quels réglages de fenêtre pour quelle question (31/07–01/08/2026)
+
+Le modèle zéro donnait un spectre plat (33 % à 6 composantes) sur un seul
+jeu de réglages. La campagne (`campagne_pca/`, runner `rupture/campagne.py`)
+balaye tout l'espace des hyperparamètres — média (Le Monde, Figaro, Échos,
+et **Mediapart**, base ngram construite pour l'occasion), grille, largeur de
+fenêtre, seuil de surprise, filtre grammatical, vocabulaire, transformation
+— sur ~2 400 configurations, en rejouant la fin de chaîne en mémoire (2-10 s
+par config).
+
+Premier résultat, avant même les effets : le score naïf (variance cumulée à
+6 composantes) est trompeur trois fois — il favorise mécaniquement les
+petites fenêtres (dimension), il confond structure et bruit de petite
+matrice (corrigé par un témoin nul à colonnes mélangées), et il mélange
+effet et taille d'échantillon (corrigé en comparant à nombre de fenêtres
+apparié). Un second témoin, le décalage circulaire, sépare ensuite deux
+choses que le score corrigé confondait encore : la **texture** générique de
+la série et la **part réellement ancrée sur l'événement**.
+
+Sur cette mesure propre, deux profils de médias opposés se dégagent :
+Mediapart a peu de structure totale mais elle est presque toute ancrée sur
+l'événement (pics secs) ; Le Figaro et Le Monde ont beaucoup de structure
+mais surtout de la texture lente. La fenêtre et le seuil jouent dans le même
+sens que l'ancrage (grande fenêtre + seuil élevé = formes plus nettement
+liées à l'événement) ; le log(1+f) fait l'inverse, il fait ressortir la
+texture au prix de l'ancrage. Filtre grammatical : sans effet net. Vocabulaire :
+le top-10 000 bat la variante à longue traîne.
+
+Conclusion à deux vitesses selon l'objectif du mémoire : pour le **dataset
+de sauts et leur classification**, journalier + fréquences brutes + grande
+fenêtre (±25 à ±50) + seuil 6 ; pour la **question des rachats** (ruptures
+durables, régimes), c'est l'inverse — log(1+f), grilles agrégées, grandes
+fenêtres, avec Le Figaro comme meilleur candidat. Synthèse complète dans
+[`campagne_pca/rapport.qmd`](campagne_pca/rapport.qmd) → `rapport.pdf`.
+Restent en réserve : un chantier de nettoyage du boilerplate d'interface
+Mediapart, le couplage NMS/largeur de fenêtre (non résolu par l'appariement
+en n), et le Kernel PCA, non exploré, à reprendre si la classification bute
+sur du non-linéaire.
