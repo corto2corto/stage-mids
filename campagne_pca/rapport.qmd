@@ -187,6 +187,58 @@ mais presque toute ancrée sur l'événement — ses composantes sont des pics
 Figaro** (et Le Monde agrégé) : beaucoup de structure, majoritairement de la
 texture lente. Les Échos journalier est le meilleur compromis des deux axes.
 
+## La configuration optimale en détail
+
+Les vues du modèle zéro, rejouées sur la configuration qui concentre le plus
+la variance : **Le Monde, blocs de 7 jours, fenêtres ±10 blocs (±70 jours de
+parution), seuil de surprise 6**, fréquences sans transformation, z-score par
+fenêtre. La chaîne donne **8 764 fenêtres** de 21 blocs
+(`campagne_pca/figures_optimale.py`).
+
+![Variance expliquée par composante. La ligne rouge est le repère d'un nuage sans structure (100/20 = 5 %) : cinq composantes la dépassent.](figures/optimale_spectre.png){width=80%}
+
+Le spectre n'est plus plat : la première composante porte **18,5 %** de la
+variance contre 9,2 % dans le modèle zéro, et il suffit de **4 composantes
+pour atteindre 50 %** (contre 11). Le prix à payer est un échantillon quatorze
+fois plus petit — 8 764 fenêtres contre 123 310 — puisque le seuil 6 et
+l'agrégation hebdomadaire écartent beaucoup d'événements.
+
+![Les six premières composantes comme profils temporels.](figures/optimale_composantes.png){width=100%}
+
+Les quatre premières formes sont lisibles et se rattachent à celles du modèle
+zéro, transposées à l'échelle de la semaine. La composante 1 (18,5 %) oppose
+le bloc du saut à ses deux voisins immédiats — *l'activité tient-elle dans une
+seule semaine, ou déborde-t-elle ?* La composante 2 (15,2 %) monte
+progressivement jusqu'au pic puis s'effondre — *un sujet qui s'installe puis
+retombe d'un coup*. La composante 3 (9,7 %) est un **changement de niveau** :
+plateau bas avant, plateau haut après. La composante 4 (6,9 %) est un pic
+élargi encadré de deux creux ; les composantes 5-6 sont des oscillations
+génériques, comme en journalier.
+
+![Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements.](figures/optimale_plan12.png){width=88%}
+
+![Pour chacune des quatre premières composantes, les trois sauts réels les plus alignés.](figures/optimale_archetypes.png){width=92%}
+
+Les archétypes valident les lectures et tombent sur des dates
+reconnaissables. Composante 1 : « parvient » au 25/02/2022 (invasion de
+l'Ukraine) — un pic net d'une semaine. Composante 2 : « régionales » au
+26/03/1992, montée de campagne puis chute au lendemain du scrutin.
+Composante 3 : **« fermées » et « distance » au 20/03/2020** — le
+confinement, exemple manuel d'un changement de niveau durable, exactement la
+forme que la question des rachats cherchera.
+
+![Reconstruction d'une fenêtre par les premières composantes.](figures/optimale_reconstruction.png){width=100%}
+
+La reconstruction chiffre le gain : **72 % de la forme restitués avec une
+seule composante, 89 % avec trois, 96 % avec six**, là où le modèle zéro
+demandait quinze composantes pour atteindre 89 %.
+
+**Réserve.** Cette configuration est optimale au sens de la concentration de
+variance, pas de l'ancrage sur l'événement : son `alignement6` ne vaut que
+1,18, contre 1,70 pour les grandes fenêtres journalières. Une partie de ce
+que capte son spectre est de la texture lente — ce qui est cohérent avec la
+composante 3, un changement de régime plutôt qu'un pic.
+
 ## Recommandations
 
 La « meilleure PCA » dépend de la question — c'est le message central. Et
