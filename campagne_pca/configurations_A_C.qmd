@@ -1,0 +1,52 @@
+---
+title: "PCA des sauts — deux configurations à plus grand volume"
+subtitle: "Le Monde, blocs de 3 jours, fenêtres ±15 blocs — seuil de surprise 6 (A) ou 5 (C)"
+lang: fr
+format:
+  typst:
+    margin:
+      x: 2cm
+      y: 2cm
+    fontsize: 10.5pt
+---
+
+Deux configurations candidates, choisies pour offrir plus de données que
+l'optimale de la campagne (8 764 fenêtres) à concentration comparable, mesurée
+par **K50_frac** (part du rang total qu'il faut pour atteindre 50 % de la
+variance — comparable entre tailles de fenêtre, contrairement à K50 ou cum6
+bruts).
+
+| | Config A | Config C |
+|---|---|---|
+| Seuil de surprise | 6 | 5 |
+| Fenêtres | 14 102 | 24 593 |
+| K50 | 7 | 8 |
+| K50_frac | 0,23 | 0,27 |
+| cum6 | 47,6 % | 43,3 % |
+
+## Config A — seuil 6
+
+![Spectre.](figures/configA_spectre.png){width=82%}
+
+![Les six premières composantes.](figures/configA_composantes.png){width=100%}
+
+![Plan des deux premières composantes.](figures/configA_plan12.png){width=90%}
+
+![Archétypes des quatre premières composantes.](figures/configA_archetypes.png){width=94%}
+
+![Reconstruction d'une fenêtre réelle.](figures/configA_reconstruction.png){width=100%}
+
+## Config C — seuil 5
+
+![Spectre.](figures/configC_spectre.png){width=82%}
+
+![Les six premières composantes.](figures/configC_composantes.png){width=100%}
+
+![Plan des deux premières composantes.](figures/configC_plan12.png){width=90%}
+
+![Archétypes des quatre premières composantes.](figures/configC_archetypes.png){width=94%}
+
+![Reconstruction d'une fenêtre réelle.](figures/configC_reconstruction.png){width=100%}
+
+*Figures produites par `campagne_pca/figures_config.py`. Méthode complète :
+`campagne_pca/rapport.pdf`.*
