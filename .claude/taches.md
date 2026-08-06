@@ -153,6 +153,194 @@ Contrainte de fond : GitHub Pages ne sert que du statique — il ne peut ni exé
 Me demander avant de lancer ou d'installer quoi que ce soit sur le serveur.
 ```
 
+## campagne-frequence-minimale — Ajouter la fréquence minimale comme hyperparamètre à part entière de la campagne PCA
+
+- Ajoutée : 2026-08-05
+- Branche : main
+
+**Contexte** : `rupture/campagne.py` a déjà un paramètre CLI `--nettoie` (seuil N_t de tokens sous lequel un jour est jugé non fiable et interpolé — le nettoyage V2). Jusqu'ici, il n'a été utilisé qu'avec des valeurs fixes : `5000` sur les grilles journalières, `0` (désactivé) sur les grilles agrégées par blocs (3j/7j, où chaque point agrège déjà plusieurs jours). Dans `campagne_pca/configurations_A_C.qmd`, la colonne « Nettoyage » du tableau comparatif reflète ça : `n5000` ou `—`, un interrupteur binaire plutôt qu'un axe balayé comme média/grille/fenêtre/seuil de surprise/filtre grammatical.
+
+**Piste envisagée** : traiter la fréquence minimale comme un axe de balayage à part entière — tester plusieurs valeurs (ex. 2000, 5000, 10000...) sur les grilles journalières et mesurer l'effet sur K50_frac et le nombre de fenêtres écartées (`n_centres_ecartes` dans la sortie de `campagne.py`). Vérifier aussi si ça vaut la peine de le balayer sur les grilles agrégées (les blocs ont déjà un total de tokens bien plus élevé qu'un jour seul, l'effet du seuil y est peut-être négligeable — à mesurer plutôt qu'à supposer).
+
+**Prompt** :
+
+```
+Dans rupture/campagne.py, le paramètre --nettoie (seuil N_t de tokens sous lequel un jour est interpolé, nettoyage V2) existe déjà mais a toujours été utilisé avec une valeur fixe : 5000 sur les grilles journalières, 0 (désactivé) sur les grilles agrégées 3j/7j. Je veux le traiter comme un vrai axe de balayage de la campagne, au même titre que média/grille/fenêtre/seuil de surprise/filtre grammatical, pas comme un interrupteur binaire.
+
+Contexte récent : campagne_pca/configurations_A_C.qmd compare plusieurs configurations (Le Monde, Le Figaro, Les Échos, Mediapart) avec une colonne "Nettoyage" qui vaut n5000 ou "—" selon la grille — ça montre bien que ce paramètre est traité à part, pas balayé.
+
+À faire :
+1. Sur les grilles journalières (lemonde, lesechos, mediapart), balayer --nettoie sur plusieurs valeurs (par exemple 2000, 5000, 10000, et éventuellement 0 pour comparer à l'absence de nettoyage) à demi/seuil fixés sur une config déjà connue (ex. reprendre les configs D/F de configurations_A_C.qmd), et mesurer l'effet sur K50_frac et sur le nombre de fenêtres réellement conservées (n_fenetres, n_centres_ecartes dans la sortie du runner).
+2. Sur au moins une grille agrégée (3j ou 7j), vérifier si le seuil a un effet mesurable une fois qu'un point agrège déjà plusieurs jours de tokens (hypothèse à date : négligeable, mais à vérifier plutôt qu'à supposer) plutôt que de le laisser désactivé par défaut.
+3. Présenter les résultats sous forme de tableau comparatif (comme les autres balayages de la campagne), avant de décider s'il faut l'intégrer aux configurations déjà retenues (A/C/D/F...) ou en proposer de nouvelles.
+
+Pas de calcul sur le serveur sans me demander avant si ça implique de rapatrier de nouvelles données ou de lancer quoi que ce soit de long.
+```
+
+## cooccurrence-mots-archetypes — Afficher les mots associés au mot cible sur les graphes d'archétypes (idée Benoît)
+
+- Ajoutée : 2026-08-05
+- Branche : main
+
+**Contexte** : suggestion de Benoît — une fois qu'on a un pic (mot cible détecté comme saut), chercher quels mots l'accompagnent le plus souvent pour aider à interpréter les archétypes des graphes PCA. Exemple donné : sur Le Figaro, l'archétype « zone » a mis longtemps à être compris avant de réaliser qu'il s'agissait en fait de « zone euro » — l'info était dans le texte mais invisible sur le graphe.
+
+**Piste envisagée** : la version que Benoît préfère lui-même (« ça augmenterait de fou l'intelligibilité ») — sur chaque graphe d'archétype, afficher systématiquement les 4 mots qui apparaissent le plus souvent avec le mot cible, plutôt que la variante à seuil conditionnel (afficher seulement si >80 % des occurrences sont suivies du même syntagme). Nécessite de revenir au texte brut des articles (colonne `contenu` des CSV par média) pour calculer la co-occurrence autour de chaque pic — les matrices `vocab_series_*` déjà agrégées, utilisées dans `figures_config.py`/`figures_optimale.py`, ne suffisent pas. Idée neuve, pas encore explorée : pas de fichier ni de méthode de calcul déjà arrêtés.
+
+**Prompt** :
+
+```
+Benoît a proposé une amélioration des graphes d'archétypes de la PCA (voir figures_config.py et figures_optimale.py, panneau "archétypes" : les 3 fenêtres réelles les plus alignées par composante) : afficher, sur chaque sous-graphe d'archétype, les mots qui accompagnent le plus souvent le mot cible autour de son pic. Exemple qui a motivé la demande : sur Le Figaro, l'archétype "zone" a été incompréhensible jusqu'à réaliser que c'était en fait "zone euro" — l'info était dans le texte de l'article mais invisible sur le graphe (qui ne montre qu'une courbe de fréquence).
+
+Version retenue par Benoît (plus simple qu'une règle à seuil) : sur chaque sous-graphe d'archétype, afficher systématiquement les 4 mots qui co-occurrent le plus souvent avec le mot cible dans la fenêtre du pic.
+
+Point important : les scripts de figures actuels (figures_config.py, figures_optimale.py) ne travaillent que sur les matrices vocab_series_<media>.npz déjà agrégées (comptes mot x jour) — pas de texte brut, donc pas de notion de "mots voisins dans le même article". Pour calculer une vraie co-occurrence, il faudra remonter aux CSV sources par média (data/csv/<media>.csv, colonne contenu) et, pour chaque pic archétype affiché, regarder les articles publiés dans sa fenêtre temporelle (ou contenant le mot cible) et compter les mots qui y apparaissent le plus souvent à ses côtés.
+
+À faire, dans l'ordre :
+1. Définir précisément ce qu'est "un mot qui accompagne" : co-occurrence dans le même article, ou dans les articles du même jour/bloc que le pic ? Trancher avec Corto avant de coder — ça change le calcul.
+2. Prototyper le calcul de co-occurrence sur UN mot cible connu (ex. "zone" sur Le Figaro) pour vérifier qu'on retrouve bien "euro" en tête, avant de généraliser.
+3. Intégrer l'affichage (4 mots en légende ou annotation sous chaque sous-graphe d'archétype) dans figures_config.py, en gardant le script lisible — pas de couplage fort avec le calcul de co-occurrence si ça peut rester une fonction séparée.
+4. Vérifier le rendu sur une des configurations déjà produites (campagne_pca/configurations_A_C.qmd) avant de régénérer toutes les figures existantes.
+
+Pas de piste de fichier ni de méthode déjà validée — c'est une idée neuve à explorer, pas un bug diagnostiqué. Me proposer une approche avant de coder.
+```
+
+## critere-frequence-archetypes — Ajouter un critère de fréquence minimale pour la sélection des archétypes
+
+- Ajoutée : 2026-08-05
+- Branche : main
+
+**Contexte** : dans `figures_config.py` et `figures_optimale.py`, les archétypes affichés pour chaque composante sont choisis uniquement sur la valeur de projection (`np.argsort(proj[:, k])[-3:][::-1]` — les 3 fenêtres les plus « pures »/alignées sur la composante), sans aucun critère de fréquence du mot. Constaté (échange avec Benoît) : « pas hyper parlant tout ça » — un mot très rare (ex. « nettoyage », maximum de l'ordre de 100 occurrences) peut dominer un archétype juste parce que sa projection est extrême, alors que le z-score par fenêtre n'efface que l'échelle absolue, pas le bruit d'échantillonnage sur des comptages journaliers minuscules (0, 1, 2 occurrences → sauts relatifs énormes par hasard).
+
+**Piste envisagée** : ajouter un plancher de fréquence en amont de la sélection des 3-4 meilleures fenêtres par composante, pour écarter les mots trop rares du choix des archétypes — reste à trancher la mesure exacte (fréquence max sur la fenêtre, total d'occurrences sur tout le corpus, ou occurrences au jour du pic) et la valeur du seuil. Documenter aussi, en commentaire ou dans le doc, comment les archétypes sont choisis aujourd'hui (mécanisme peu clair en l'état, d'où la confusion).
+
+**Prompt** :
+
+```
+Aujourd'hui, dans figures_config.py et figures_optimale.py (panneau "archétypes"), les 3 (ou 4) fenêtres affichées par composante sont choisies uniquement par np.argsort(proj[:, k])[-3:][::-1] — les projections les plus fortes sur la composante k, sans aucun critère de fréquence du mot. Problème constaté (échange avec Benoît) : des mots très rares (ex. "nettoyage", ~100 occurrences max) peuvent dominer un archétype juste parce que leur z-score par fenêtre est bruité (comptages journaliers minuscules → sauts relatifs énormes par hasard), pas parce que la forme est un vrai motif éditorial représentatif.
+
+À faire :
+1. Écrire dans le script (commentaire clair, ou dans campagne_pca/configurations_A_C.qmd / rapport.qmd) une explication courte du mécanisme actuel de sélection des archétypes, pour que ce soit clair pour qui relit le code.
+2. Ajouter un critère de fréquence minimale avant la sélection des archétypes : décider avec Corto de la mesure (fréquence max atteinte dans la fenêtre, total d'occurrences du mot dans tout le corpus, ou N_t au jour du pic) et du seuil (proposer une valeur en regardant la distribution réelle des fréquences des mots actuellement sélectionnés comme archétypes, pas une valeur arbitraire).
+3. Comparer les archétypes avant/après sur une configuration déjà connue (ex. config D ou F de configurations_A_C.qmd) pour vérifier que le nouveau critère écarte bien les cas bruités type "nettoyage" sans perdre les archétypes réellement parlants (type "jaunes", "fermées"/"distance" pour le confinement).
+
+Proposer l'approche à Corto avant de coder le critère de fréquence (le seuil exact n'est pas encore tranché).
+```
+
+## jours-semaine-stopwords — Ajouter les jours de la semaine aux mots outils du vocabulaire
+
+- Ajoutée : 2026-08-06
+- Branche : main
+
+**Contexte** : les sept jours de la semaine (`lundi` … `dimanche`) passent le filtre des mots outils et occupent le haut du vocabulaire de tous les médias, Mediapart en tête (`mercredi` rang 133, `samedi` 185, puis jeudi/lundi/mardi/vendredi/dimanche entre les rangs 519 et 730 de `vocab_mediapart_top10000.csv`). Ce sont des marqueurs de calendrier, pas du contenu éditorial : leur série temporelle porte surtout une périodicité hebdomadaire de publication, qui pollue la PCA sans rien dire du sujet traité. `pics_mediapart_s3.csv` contient déjà 191 pics portés par ces mots. Deux filtres existent et les laissent passer : `MOTS_OUTILS` dans `scripts/tokenisation.py` (ligne 10, appliqué dans `rupture/masse.py:37`) ne les liste pas, et le filtre grammatical les classe `nom` dans `campagne_pca/vocab_categories.csv` — donc conservés.
+
+**Piste envisagée** : ajouter les sept jours à `MOTS_OUTILS`, ce qui les exclut à la construction du vocabulaire. Les fichiers `vocab_*_top10000.csv` et `vocab_series_*.npz` déjà produits n'étant pas régénérables sans repasser `rupture/masse.py` sur gallica, prévoir un filtrage en aval côté campagne pour les données locales déjà en place, plutôt qu'une reconstruction. À vérifier aussi : le problème vaut pour les quatre médias (Le Monde, Le Figaro, Les Échos, Mediapart), pas seulement Mediapart.
+
+**Prompt** :
+
+```
+Les sept jours de la semaine (lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche) polluent le vocabulaire des campagnes PCA : ce sont des marqueurs de calendrier, pas du contenu éditorial, et leur série porte surtout la périodicité hebdomadaire de publication du média.
+
+Constat (06/08/2026), le plus marqué sur Mediapart : dans campagne_pca/data_local/vocab_mediapart_top10000.csv, « mercredi » est au rang 133 et « samedi » au 185, les cinq autres entre les rangs 519 et 730. Et campagne_pca/data_local/pics_mediapart_s3.csv contient 191 pics portés par ces mots. Le problème existe aussi sur lemonde, lefigaro et lesechos (les sept jours sont dans leurs top-10000) — à traiter pour les quatre, pas seulement Mediapart.
+
+Pourquoi ils passent : les deux filtres existants les laissent tous les deux passer.
+- scripts/tokenisation.py, liste MOTS_OUTILS (ligne 10), appliquée dans rupture/masse.py ligne 37 (v = v[~v["mot"].isin(set(MOTS_OUTILS))]) : les jours n'y sont pas.
+- Le filtre grammatical : campagne_pca/vocab_categories.csv les classe « nom » (source lexique), donc conservés.
+
+À faire :
+1. Ajouter les sept jours à MOTS_OUTILS dans scripts/tokenisation.py. Vérifier avant de le faire que cette liste ne sert pas ailleurs à quelque chose qui casserait (elle est aussi utilisée côté tops n-grammes) — si l'exclusion ne doit pas être globale, prévoir plutôt une liste d'exclusion propre à la campagne PCA.
+2. Pour les données locales déjà produites (campagne_pca/data_local/vocab_*_top10000.csv et les vocab_series_*.npz) : ne PAS reconstruire via rupture/masse.py sur gallica. Filtrer en aval, côté campagne, en écartant les colonnes correspondantes.
+3. Rejouer une configuration déjà connue (config D ou F de campagne_pca/configurations_A_C.qmd) avant/après pour mesurer ce que le retrait change : K50_frac, et surtout les archétypes — vérifier si des archétypes actuels étaient portés par un jour de la semaine.
+4. Regarder au passage s'il y a d'autres marqueurs de calendrier du même genre à traiter en même temps (mois : janvier, février... ; « hier », « aujourd'hui », « demain») et me proposer la liste avant de l'ajouter.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
+## saisonnalite-modele-nb — Introduire une saisonnalité dans les paramètres de la loi NB (lambda_t)
+
+- Ajoutée : 2026-08-06
+- Branche : main
+
+**Contexte** : les χ² d'adéquation (`rupture/pics.py`, fonction `adequation`, exposée dans `/fiche` de `api/app.py`) sont mauvais même pour NB et BNB, pas seulement Poisson — le modèle actuel ajuste un paramètre constant dans le temps (`lam` pour Poisson, `mu`/`r` pour NB, `p0`/`mu_b`/`r_b` pour BNB, cf `ajuster()` ligne 54), normalisé seulement par l'exposition `N_t`. Une saisonnalité (hebdomadaire notamment, cf tâche [[jours-semaine-stopwords]] sur la périodicité de publication) n'est pas capturée par un paramètre constant, ce qui peut expliquer le mauvais ajustement.
+
+**Piste envisagée** : faire évoluer le paramètre de la loi dans le temps plutôt que de le garder constant — fitter une Poisson (ou NB) de paramètre `lambda_t` avec `t` qui évolue doucement (lissage/tendance lente, pas un saut jour à jour), au lieu d'un `lam`/`mu` unique sur toute la période.
+
+**Prompt** :
+
+```
+Les χ² d'adéquation du modèle probabiliste sont mauvais, y compris pour NB et BNB (pas seulement Poisson) — constaté via la route /fiche de api/app.py, qui affiche chi2/ddl/p-valeur pour les trois lois (ajoutés en 07/2026, cf tâche faite chi2-fit-fiche).
+
+Le cœur du modèle est dans rupture/pics.py :
+- ajuster() (ligne 54) fit un paramètre CONSTANT sur toute la période : lam pour poisson, mu/r pour nb, p0/mu_b/r_b pour bnb — normalisé seulement par l'exposition N_t (le volume de tokens du jour).
+- adequation() (ligne 90) calcule le χ² de Pearson jour par jour à partir de ce paramètre constant.
+- densite() (ligne 103) et pvaleurs() (ligne 40) utilisent aussi ce paramètre constant.
+
+Objectif : introduire une saisonnalité dans le paramètre de la loi plutôt que de le garder constant — fitter un lambda_t (ou mu_t) qui évolue doucement dans le temps (tendance lente / lissage), pas un saut jour à jour. Exemple de départ : Poisson de paramètre lambda_t, X_t ~ P(lambda_t * N_t), avec lambda_t obtenu par un lissage (à définir : moyenne mobile, spline, GAM, ou modèle à effet saisonnier hebdomadaire + tendance lente — comparer plusieurs options avant de trancher).
+
+À faire, dans l'ordre :
+1. Vérifier d'abord l'hypothèse : sur un mot et un média connus (reprendre un cas déjà étudié dans une fiche existante), regarder si les résidus de Pearson (z dans adequation()) montrent un motif temporel (cycle hebdomadaire, dérive lente) plutôt que du bruit pur — ça confirme que la saisonnalité est bien le problème avant de recoder le fit.
+2. Proposer à Corto 2-3 approches pour faire évoluer lambda_t dans le temps (lissage non paramétrique type moyenne mobile/spline, ou modèle paramétrique avec effet jour-de-semaine + tendance), avec les avantages/inconvénients de chacune (nombre de paramètres, risque de sur-ajustement, ddl restants pour le χ²), avant de coder.
+3. Adapter ajuster()/pvaleurs()/adequation()/densite() dans rupture/pics.py pour un paramètre variable dans le temps — attention à K_PARAMS et ddl (le nombre de degrés de liberté du χ² doit refléter le nombre réel de paramètres estimés, potentiellement bien plus élevé qu'avec un paramètre constant).
+4. Comparer les χ²/ddl avant/après sur plusieurs mots et médias déjà utilisés dans des fiches existantes, vérifier que l'ajustement s'améliore réellement et que /fiche (api/app.py) continue de fonctionner.
+
+Pas de calcul long sur le serveur sans me demander avant.
+```
+
+## quantile-residuals-pca — Remplacer la normalisation z-score par des résidus quantiles (Dunn-Smyth) avant la PCA
+
+- Ajoutée : 2026-08-06
+- Branche : main
+
+**Contexte** : idée de Benoît (échange du 31/07/2026) — la PCA (`rupture/pca.py`) travaille aujourd'hui sur des fenêtres normalisées par z-score le long de la fenêtre (`normaliser()`, ligne 44, option `"z"` par défaut), ou en variante minmax (`"01"`)/standardisation colonne (`"col"`, témoin). Ce sont des normalisations arbitraires (échelle et méthode choisies à la main). Benoît propose les résidus quantiles (Dunn-Smyth, quantile residuals) : une transformation qui, à partir d'un modèle statistique de la donnée (ici Poisson/NB/BNB déjà ajustés mot par mot dans `rupture/pics.py`), rend les résidus gaussiens — plus élégant et sans échelle arbitraire, à condition d'avoir un modèle stat derrière (qu'on a déjà).
+
+**Piste envisagée** : calculer les résidus quantiles à partir des lois déjà ajustées (`ajuster()`/`pvaleurs()` dans `rupture/pics.py`, fonction de répartition inverse d'une gaussienne appliquée à la p-valeur PIT), et faire la PCA sur ces résidus plutôt que sur les fenêtres z-scorées — comparer aux 3 normalisations déjà en place (`z`/`01`/`col`) sur au moins une configuration connue avant de basculer.
+
+**Prompt** :
+
+```
+Idée de Benoît (échange du 31/07/2026, capture d'écran + vocal) : remplacer la normalisation actuelle des fenêtres avant la PCA par des résidus quantiles (Dunn-Smyth / quantile residuals), plutôt que le z-score ou le minmax.
+
+Contexte technique existant :
+- rupture/pca.py, fonction normaliser() (ligne 44) : normalise chaque fenêtre en z-score ("z", option par défaut), minmax ("01"), ou standardisation colonne ("col", témoin réservé à la remarque de Benoît, pas une normalisation candidate).
+- rupture/pics.py : ajuster() (ligne 54) fit déjà une loi de comptage (Poisson/NB/BNB) par mot, normalisée par l'exposition N_t ; pvaleurs() (ligne 40) calcule p_t = P(X >= X_t) sous la loi ajustée.
+
+Principe des résidus quantiles (Dunn-Smyth) : pour une donnée discrète X_t avec un modèle stat ajusté, calculer la valeur de la fonction de répartition (PIT, en gérant l'aléatorisation pour les distributions discrètes — tirer uniformément entre F(X_t - 1) et F(X_t)), puis appliquer l'inverse de la fonction de répartition d'une gaussienne standard. Le résultat est gaussien si le modèle est correct, sans notion d'échelle arbitraire (contrairement au z-score sur une fenêtre ou au minmax) — commencer par lire une référence claire sur le calcul exact (l'article original de Dunn & Smyth 1996 est aride, préférer une source pédagogique récente ou vulgarisée) avant de coder.
+
+À faire, dans l'ordre :
+1. Étudier la méthode exacte de calcul des résidus quantiles aléatorisés pour des lois discrètes (Poisson, NB), et comment gérer le cas BNB (mélange avec masse en 0).
+2. Prototyper le calcul sur UN mot déjà bien caractérisé (reprendre un cas connu d'une fiche existante), en réutilisant les lois déjà ajustées par rupture/pics.py — vérifier visuellement (QQ-plot) que les résidus obtenus sont bien approximativement gaussiens quand le modèle est bon.
+3. Adapter rupture/pca.py pour ajouter une 4e option de normalisation (résidus quantiles) dans normaliser(), en gardant les 3 existantes pour comparaison.
+4. Comparer la PCA obtenue (variance expliquée, composantes, archétypes) entre résidus quantiles et z-score sur une configuration déjà connue (campagne_pca/configurations_A_C.qmd), avant de basculer les configurations retenues.
+
+Pas de calcul long sur le serveur sans me demander avant.
+```
+
+## resolution-detection-vs-classification — Séparer la résolution de détection des pics de celle de classification des fenêtres
+
+- Ajoutée : 2026-08-06
+- Branche : main
+
+**Contexte** : échange avec Benoît (31/07/2026) sur la comparaison des configurations de `configurations_A_C.qmd` — remarque de Corto que les configs comparées n'ont pas le même taux de surprise/fenêtre, donc pas directement comparables. Benoît fait remarquer que c'est en partie une question de zoom : en résolution mensuelle, « covid » est un pic évident, alors qu'à résolution journalière il peut se diluer. Aujourd'hui, `rupture/campagne.py` utilise UNE seule largeur de fenêtre (`--demi`, portée `2*demi+1`) à la fois pour repérer les pics (seuil de surprise) et pour découper les fenêtres données à la PCA. Benoît propose de séparer les deux : détecter un pic à une résolution plus large (ex. mois anormal, critère généreux), mais ensuite classifier la forme de la série avec des fenêtres plus fines (ex. 3 jours) — l'idée sous-jacente étant que si le mois englobant n'est pas anormal, ce n'est probablement pas un vrai événement.
+
+**Piste envisagée** : introduire deux paramètres de résolution distincts dans la chaîne pics → NMS → fenêtres → PCA : une résolution grossière pour la détection (marquer les mois/blocs anormaux), une résolution fine pour la fenêtre classifiée (ex. 3 jours autour du pic déjà détecté). À définir avec Corto : le critère exact du « mois anormal » (agrégation de la surprise ? nouveau test sur les comptes mensuels ?) et comment articuler les deux échelles sans dupliquer toute la chaîne.
+
+**Prompt** :
+
+```
+Idée de Benoît (échange du 31/07/2026, à la suite d'une remarque sur configurations_A_C.qmd où les configs comparées n'avaient pas le même taux de surprise/fenêtre) : séparer la résolution utilisée pour DÉTECTER un pic de celle utilisée pour CLASSIFIER la forme de la série autour de ce pic.
+
+Constat de Benoît : la détection de pic dépend beaucoup du zoom temporel — en résolution mensuelle, "covid" est un pic écrasant, ce qui peut se diluer en résolution journalière. Proposition : détecter d'abord à une résolution large (ex. un MOIS anormal, avec un critère éventuellement plus généreux qu'aujourd'hui), puis, seulement pour les pics ainsi validés, classifier la time series avec des fenêtres fines (ex. 3 jours) comme aujourd'hui. Intuition de Corto, à vérifier : si le mois englobant n'est pas anormal, le "pic" journalier n'est probablement pas un vrai événement — plutôt du bruit d'échantillonnage.
+
+État actuel de la chaîne, dans rupture/campagne.py : les pics viennent de pics_<media>.csv (déjà détectés en amont, cf rupture/pics.py, à résolution journalière), filtrés par surprise >= --seuil, puis NMS (rupture/nms.py, portée 2*--demi+1) et découpés en fenêtres +/-  --demi pour la PCA (rupture/pca.py). Une seule résolution (--demi) sert donc aux deux usages : espacement des pics ET largeur de la fenêtre classifiée.
+
+À faire, dans l'ordre :
+1. Discuter avec Corto le critère exact du "mois anormal" : sur quelle grille agréger (mensuelle stricte, ou fenêtre glissante plus large que le --demi actuel), avec quel test (réutiliser le test de surprise déjà en place sur des comptes agrégés, ou un nouveau critère) et quel seuil ("éventuellement plus généreux" reste à quantifier).
+2. Proposer une architecture à deux résolutions dans la chaîne pics → NMS → fenêtres → PCA, en réutilisant au maximum le code existant (rupture/pics.py, rupture/nms.py, rupture/campagne.py, rupture/pca.py) plutôt que de dupliquer la chaîne.
+3. Prototyper sur UN média déjà connu (comparer avec une config existante de configurations_A_C.qmd) : combien de pics journaliers survivent au filtre "mois anormal", et si les archétypes obtenus sont plus propres/interprétables.
+4. Si concluant, comparer proprement dans un tableau (comme les autres balayages de la campagne) avant de proposer une nouvelle configuration retenue.
+
+Pas de calcul long sur le serveur sans me demander avant.
+```
+
 ## Faites
 
 ## inspection-urls-non-articles — Inspection par média des URLs non-articles + état dédié en base

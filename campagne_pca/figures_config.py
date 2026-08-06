@@ -9,12 +9,13 @@ import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 
 from rupture.nms import nms
-from rupture.pca import normaliser, pca
+from rupture.pca import nettoyer, normaliser, pca
 
-BLEU, ROUGE, GRILLE, ENCRE2, GRIS = "#2a78d6", "#e34948", "#e1e0d9", "#52514e", "#c9ced6"
+GRILLE, ENCRE2, GRIS = "#e1e0d9", "#52514e", "#c9ced6"
 plt.rcParams.update({
     "font.family": "sans-serif", "font.size": 9,
     "axes.edgecolor": "#c3c2b7", "axes.linewidth": 0.8, "axes.labelcolor": ENCRE2,
@@ -28,6 +29,22 @@ ap.add_argument("--demi", type=int, required=True)
 ap.add_argument("--seuil", type=float, required=True)
 ap.add_argument("--pas_jours", type=int, required=True, help="taille d'un bloc, pour les libelles")
 ap.add_argument("--prefixe", required=True, help="prefixe des fichiers png de sortie")
+ap.add_argument("--media_nom", required=True, help="nom du media pour les titres (ex. 'Les Échos')")
+ap.add_argument("--couleur", required=True, help="couleur de charte du media (hex), pour les courbes")
+ap.add_argument("--accent", required=True,
+                 help="couleur d'accent pour les annotations (repere, points) — "
+                      "distincte de --couleur pour rester lisible")
+ap.add_argument("--pics", default="", help="suffixe du fichier pics (ex. _s3)")
+ap.add_argument("--nettoie", type=int, default=0,
+                 help="seuil N_t sous lequel un jour est interpole (V2) ; 0 = desactive")
+ap.add_argument("--vol_q", type=float, default=50,
+                 help="quantile de volume (occurrences brutes, max de la fenetre) sous "
+                      "lequel une fenetre est ecartee du CHOIX DES ARCHETYPES ; "
+                      "0 = pas de filtre. N'affecte pas la PCA.")
+ap.add_argument("--vol_min", type=int, default=50,
+                 help="plancher absolu d'occurrences au pic pour un archetype, combine "
+                      "au quantile par un max : sur un corpus court la mediane elle-meme "
+                      "peut etre trop basse (Mediapart : 21 occurrences)")
 a = ap.parse_args()
 
 ICI = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +52,8 @@ DONNEES = os.environ.get("VOCAB_DIR", os.path.join(ICI, "data_local"))
 FIGURES = os.path.join(ICI, "figures")
 os.makedirs(FIGURES, exist_ok=True)
 MEDIA, DEMI, SEUIL, PAS_JOURS, PREFIXE = a.media, a.demi, a.seuil, a.pas_jours, a.prefixe
+BLEU, ROUGE = a.couleur, a.accent   # noms conserves : BLEU = courbe principale, ROUGE = accent
+CMAP_MEDIA = mcolors.LinearSegmentedColormap.from_list("media", ["#ffffff", BLEU])
 
 # --- chaine : pics filtres -> NMS (portee 2d+1) -> fenetres -> z-score -> PCA
 g = np.load(f"{DONNEES}/vocab_series_{MEDIA}.npz")
@@ -42,7 +61,7 @@ X, grille_dates, grille_N = g["X"], g["dates"], g["N"]
 position = {int(dt): i for i, dt in enumerate(grille_dates)}
 colonne = {m: j for j, m in enumerate(g["mots"])}
 
-p = pd.read_csv(f"{DONNEES}/pics_{MEDIA}.csv")
+p = pd.read_csv(f"{DONNEES}/pics_{MEDIA}{a.pics}.csv")
 p = p[p["surprise"] >= SEUIL].assign(pos=lambda x: x["date"].map(position))
 gardes = [gr.index.to_numpy()[nms(gr["pos"].to_numpy(), gr["surprise"].to_numpy(),
                                  2 * DEMI + 1)[0]]
@@ -52,10 +71,15 @@ pos, col = p["pos"].to_numpy(), p["mot"].map(colonne).to_numpy(int)
 complet = (pos - DEMI >= 0) & (pos + DEMI < len(grille_dates))
 p, pos, col = p[complet], pos[complet], col[complet]
 lignes = pos[:, None] + np.arange(-DEMI, DEMI + 1)
-F = (1e5 * X[lignes, col[:, None]] / grille_N[lignes]).astype(np.float64)
+brut = X[lignes, col[:, None]]          # occurrences brutes, avant tout rapport a N_t
+F = (1e5 * brut / grille_N[lignes]).astype(np.float64)
 
+if a.nettoie:
+    F, garde_n, _, _ = nettoyer(F, grille_N[lignes], a.nettoie, DEMI)
+    p, brut = p.iloc[garde_n], brut[garde_n]
 Z, garde_z = normaliser(F, "z")
-p = p.iloc[garde_z]
+p, brut = p.iloc[garde_z], brut[garde_z]
+volume = brut.max(axis=1)               # volume d'une fenetre = son pic en occurrences
 mots, dates, surprise = (p["mot"].to_numpy(), p["date"].to_numpy(),
                          p["surprise"].to_numpy())
 composantes, variance, proj = pca(Z)
@@ -78,8 +102,14 @@ for k in range(6):
           f"signe(apres)={np.sign(v[DEMI + 1:].mean()):+.0f}")
 
 LIBELLES = [f"composante {k + 1}" for k in range(6)]   # a affiner apres inspection
-TITRE = (f"Le Monde, blocs de {PAS_JOURS} jours, fenêtres ±{DEMI} blocs "
-         f"(±{DEMI * PAS_JOURS} jours de parution), seuil de surprise {SEUIL:g}")
+if PAS_JOURS == 1:
+    GRILLE_LIBELLE = f"journalier, fenêtres ±{DEMI} jours"
+    UNITE_AXE = "jours autour du pic"
+else:
+    GRILLE_LIBELLE = (f"blocs de {PAS_JOURS} jours, fenêtres ±{DEMI} blocs "
+                       f"(±{DEMI * PAS_JOURS} jours de parution)")
+    UNITE_AXE = f"blocs de {PAS_JOURS} jours autour du pic"
+TITRE = f"{a.media_nom}, {GRILLE_LIBELLE}, seuil de surprise {SEUIL:g}"
 
 # --- 1. spectre : variance expliquee par composante (z-score seul) -----------
 fig, ax = plt.subplots(figsize=(6.8, 3.8))
@@ -93,6 +123,14 @@ ax.annotate(f"{v[0]:.1f} %".replace(".", ","), (1, v[0]), xytext=(7, 2),
 ax.axhline(isotrope, lw=1.0, ls="--", color=ROUGE,
            label=f"nuage sans structure ({isotrope:.1f} %)".replace(".", ","))
 ax.set_yscale("log")
+# graduations en chiffres simples : matplotlib ecrit "2 x 10^1" sous la decade
+bas, haut = v.min() * 0.9, v.max() * 1.15
+echelle = [c * 10 ** p for p in range(-2, 3) for c in (1, 1.5, 2, 3, 5, 7)]
+ticks = [t for t in echelle if bas <= t <= haut]
+ax.set_yticks(ticks)
+ax.set_yticks([], minor=True)
+ax.set_yticklabels([f"{t:g}".replace(".", ",") for t in ticks])
+ax.set_ylim(bas, haut)
 ax.set_xlabel("rang de la composante")
 ax.set_ylabel("variance expliquée (%)")
 ax.set_xlim(0.5, D - 0.5)
@@ -118,7 +156,7 @@ for k, ax in enumerate(axes.flat):
     ax.grid(True, axis="y", lw=.5, color=GRILLE)
     ax.set_axisbelow(True)
 for ax in axes[1]:
-    ax.set_xlabel(f"blocs de {PAS_JOURS} jours autour du pic")
+    ax.set_xlabel(UNITE_AXE)
 fig.suptitle(f"Les six premières composantes comme profils temporels\n{TITRE}",
              fontsize=10, color=ENCRE2)
 fig.tight_layout(rect=(0, 0, 1, 0.94))
@@ -136,7 +174,7 @@ CANDIDATS = [("francisco", "conf. de San Francisco (ONU), 1945"),
              ("syrienne", "guerre civile syrienne")]
 fig, ax = plt.subplots(figsize=(7.6, 5.6))
 hb = ax.hexbin(proj[:, 0], proj[:, 1], gridsize=60, bins="log",
-               cmap="Blues", linewidths=0.2)
+               cmap=CMAP_MEDIA, linewidths=0.2)
 fig.colorbar(hb, ax=ax, label="fenêtres par case (échelle log)", shrink=0.85)
 places = []
 for mot, libelle in CANDIDATS:
@@ -163,9 +201,25 @@ fig.savefig(f"{FIGURES}/{PREFIXE}_plan12.png", bbox_inches="tight", dpi=200)
 plt.close(fig)
 
 # --- 4. archetypes : les 3 fenetres reelles les plus alignees par composante -
+# Filtre de volume : le z-score efface l'echelle, si bien qu'un mot a 30
+# occurrences peut s'aligner parfaitement sur une composante et s'afficher
+# comme archetype alors qu'il ne pese rien. On restreint donc le CHOIX des
+# archetypes aux fenetres dont le pic depasse le quantile --vol_q des
+# occurrences brutes ; la PCA, elle, reste calculee sur toutes les fenetres.
+seuil_vol = max(np.percentile(volume, a.vol_q) if a.vol_q > 0 else 0, a.vol_min)
+eligibles = np.where(volume >= seuil_vol)[0]
+if len(eligibles) < 3:                  # corpus trop maigre : on renonce au filtre
+    print(f"  (archetypes) filtre de volume ignore : seuil {seuil_vol:.0f} ne laisse "
+          f"que {len(eligibles)} fenetres")
+    seuil_vol, eligibles = 0, np.arange(len(Z))
+elif seuil_vol > 0:
+    print(f"  (archetypes) filtre de volume : >= {seuil_vol:.0f} occurrences au pic "
+          f"(q{a.vol_q:g} = {np.percentile(volume, a.vol_q):.0f}, plancher {a.vol_min}) : "
+          f"{len(eligibles)} fenetres eligibles sur {len(Z)}")
+
 fig, axes = plt.subplots(4, 3, figsize=(9.2, 9.6), sharex=True)
 for k in range(4):
-    meilleurs = np.argsort(proj[:, k])[-3:][::-1]
+    meilleurs = eligibles[np.argsort(proj[eligibles, k])[-3:][::-1]]
     for c, i in enumerate(meilleurs):
         ax = axes[k, c]
         ax.axhline(0, lw=.6, color=GRILLE)
@@ -173,27 +227,35 @@ for k in range(4):
         ax.plot(js, Z[i], lw=1.4, color=BLEU)
         ax.scatter([0], [Z[i, DEMI]], s=16, color=ROUGE, zorder=3)
         quand = pd.to_datetime(str(dates[i])).strftime("%d/%m/%Y")
-        ax.set_title(f"{mots[i]} — {quand}", fontsize=8.5, color=ENCRE2)
+        ax.set_title(f"{mots[i]} — {quand}\n{int(volume[i])} occ. au pic",
+                     fontsize=8.5, color=ENCRE2)
         ax.grid(True, axis="y", lw=.5, color=GRILLE)
         ax.set_axisbelow(True)
         if c == 0:
             ax.set_ylabel(f"comp. {k + 1}\n({LIBELLES[k]})", fontsize=8.5)
     print(f"  (archetypes) comp {k + 1} : "
-          + ", ".join(f"{mots[i]} {int(dates[i])}" for i in meilleurs))
+          + ", ".join(f"{mots[i]} {int(dates[i])} ({int(volume[i])} occ.)"
+                      for i in meilleurs))
 for ax in axes[-1]:
     ax.set_xticks([-DEMI, 0, DEMI])
-    ax.set_xlabel(f"blocs de {PAS_JOURS} jours autour du pic")
+    ax.set_xlabel(UNITE_AXE)
+filtre_libelle = (f",\nparmi les fenêtres d'au moins {seuil_vol:.0f} occurrences au pic"
+                  if seuil_vol > 0 else "")
 fig.suptitle("Fenêtres archétypes : les 3 sauts réels les plus alignés sur chaque "
-             f"composante (z-score)\n{TITRE}", fontsize=10, color=ENCRE2)
-fig.tight_layout(rect=(0, 0, 1, 0.96))
+             f"composante (z-score){filtre_libelle}\n{TITRE}", fontsize=10, color=ENCRE2)
+fig.tight_layout(rect=(0, 0, 1, 0.95 if seuil_vol > 0 else 0.96))
 fig.savefig(f"{FIGURES}/{PREFIXE}_archetypes.png", bbox_inches="tight", dpi=200)
 plt.close(fig)
 
-# --- 5. reconstruction progressive d'une fenetre celebre --------------------
+# --- 5. reconstruction progressive d'une fenetre celebre (repli : la plus
+# surprenante de la config si aucun mot-evenement connu n'y figure) ---------
+sel = np.zeros(len(mots), dtype=bool)
 for mot_cible in ("jaunes", "attentats", "covid", "chirac"):
     sel = mots == mot_cible
     if sel.any():
         break
+if not sel.any():
+    sel = np.ones(len(mots), dtype=bool)
 i = np.where(sel)[0][np.argmax(surprise[sel])]
 w, Zmoy = Z[i], Z.mean(axis=0)
 paliers = sorted({1, 3, K50, 6})           # K50 inclus, en ordre croissant
@@ -208,7 +270,7 @@ for ax, K in zip(axes, paliers):
     ax.set_title(f"{K} composante{'s' if K > 1 else ''} — {restitue * 100:.0f} % restitués",
                  fontsize=9, color=ENCRE2)
     ax.set_xticks([-DEMI, 0, DEMI])
-    ax.set_xlabel(f"blocs de {PAS_JOURS} jours")
+    ax.set_xlabel(UNITE_AXE)
     ax.grid(True, axis="y", lw=.5, color=GRILLE)
     ax.set_axisbelow(True)
 quand = pd.to_datetime(str(dates[i])).strftime("%d/%m/%Y")
