@@ -99,5 +99,3 @@ rupture/sorties/
 
 # Campagne PCA 48h — copies locales de donnees serveur, hors git
 campagne_pca/data_local/
-# Spectres kernel PCA : sorties de calcul, reproduites par kernel_hebdo.py
-campagne_pca/kernel_spectres/
