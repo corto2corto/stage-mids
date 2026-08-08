@@ -99,3 +99,6 @@ rupture/sorties/
 
 # Campagne PCA 48h — copies locales de donnees serveur, hors git
 campagne_pca/data_local/
+
+# Figures regenerables par les scripts figures_*.py (les logos sont des sources)
+campagne_pca/figures/*.png

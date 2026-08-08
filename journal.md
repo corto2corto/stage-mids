@@ -1546,3 +1546,68 @@ Restent en réserve : un chantier de nettoyage du boilerplate d'interface
 Mediapart, le couplage NMS/largeur de fenêtre (non résolu par l'appariement
 en n), et le Kernel PCA, non exploré, à reprendre si la classification bute
 sur du non-linéaire.
+
+## La configuration optimale de la campagne, en détail (03–04/08/2026)
+
+Le rapport de la campagne 48 h isolait une configuration qui concentre
+nettement mieux la variance que le modèle zéro : Le Monde, blocs de
+7 jours, fenêtres ±10 blocs, seuil de surprise 6. Rejouée en détail
+(spectre, composantes, plan PC1-PC2, archétypes, reconstruction —
+[`campagne_pca/configuration_optimale.qmd`](campagne_pca/configuration_optimale.qmd)),
+elle donne **8 764 fenêtres**, un spectre bien moins plat (18,5 % de
+variance sur la première composante contre 9,2 % au modèle zéro, K50 = 4
+contre 11) et des formes retrouvées sur des dates réelles : le
+confinement de mars 2020, l'invasion de l'Ukraine (25/02/2022).
+L'échantillon reste quatorze fois plus petit que celui du modèle zéro —
+ce qui a orienté la suite vers des configurations à plus grand volume
+plutôt que vers l'exploitation fine de celle-ci.
+
+## Configurations à plus grand volume : un candidat par média (05–06/08/2026)
+
+Objectif : à concentration comparable, beaucoup plus de fenêtres, une
+configuration par média — Le Monde en blocs de 3 jours à deux seuils
+(configs A et C, 14 102 et 24 593 fenêtres), Les Échos et Mediapart en
+journalier (D et F), Le Figaro en journalier et en blocs de 3 jours (G
+et H) —
+[`campagne_pca/configurations_A_C.qmd`](campagne_pca/configurations_A_C.qmd),
+[`configurations_figaro.qmd`](campagne_pca/configurations_figaro.qmd).
+Deux soucis de qualité des données sont ressortis au passage. Un
+**boilerplate d'interface** contamine Le Figaro (composante 2 : marches
+d'escalier sur « source »/« service », des changements de gabarit du
+site plutôt que des événements) et Mediapart (« articles », « phrases »)
+; un filtre de volume (occurrences au pic ≥ médiane du journal) écarte
+ces mots des archétypes affichés, sans nettoyer la PCA elle-même. Sur Le
+Figaro, la composante 1 montre par ailleurs une **encoche** au lieu d'un
+pic au jour du saut (−0,54 en journalier, −0,34 par blocs de 3 jours) —
+un motif qui résiste à l'agrégation, décalage de date ou vrai creux de
+collecte non tranché.
+
+## Kernel PCA : le RBF ne concentre pas mieux la variance (07–08/08/2026)
+
+Une dernière configuration hebdomadaire, strictement comparable d'un
+média à l'autre (même fenêtre ±10 blocs, même seuil 4 —
+[`campagne_pca/configurations_hebdo.qmd`](campagne_pca/configurations_hebdo.qmd)),
+a servi de base à la question laissée ouverte par la campagne : une
+**kernel PCA** (noyau RBF) concentrerait-elle mieux la variance que la
+PCA linéaire ? Le paramètre γ du noyau a été calé sur l'échelle réelle
+des distances entre fenêtres plutôt que sur une convention arbitraire —
+γ_méd = 1/(2·médiane(‖zᵢ−zⱼ‖²)), médiane estimée sur 4 millions de
+paires de fenêtres tirées au hasard — et mesuré média par média : 0,0501
+(Mediapart, 5 483 fenêtres), 0,0347 (Les Échos, 8 633), 0,0299 (Le
+Figaro, 11 311).
+
+Sur les 9 comparaisons (3 médias × 3 réglages de γ : 0,1·γ_méd le plus
+proche du linéaire, γ_méd le réglage « optimal » mesuré sur les données,
+30·γ_méd le régime dégénéré), **la composante 1 du noyau ne dépasse
+jamais celle de la PCA linéaire** — au Figaro par exemple, 14,12 % en
+linéaire contre 13,69 %, 10,73 % puis 1,01 % à mesure que γ grandit — et
+**K90** (composantes nécessaires pour 90 % de variance) **explose d'un
+facteur 200 à 500** dès le régime dégénéré (17 en linéaire contre 4 050
+à 8 936 selon le média). Lecture : le RBF ne concentre la variance que
+si les fenêtres vivent sur une surface courbe ; ici la seule variation
+entre elles est une amplitude et une largeur autour de la même forme de
+saut — un continuum, pas une courbure — et le noyau n'a donc rien à
+déplier. Ferme l'item Kernel PCA laissé ouvert fin juillet : la PCA
+linéaire reste l'outil retenu pour la suite du mémoire. Détail :
+[`campagne_pca/kernel_hebdo.qmd`](campagne_pca/kernel_hebdo.qmd) →
+`kernel_hebdo.pdf`.
