@@ -37,6 +37,9 @@ ap.add_argument("--seuil", type=float, default=4.0)
 ap.add_argument("--pics", default="")
 ap.add_argument("--n_vec", type=int, default=50, help="vecteurs propres gardes")
 ap.add_argument("--paires", type=int, default=4_000_000, help="paires tirees pour la mediane")
+ap.add_argument("--mults", default="", help="sous-ensemble de multiplicateurs, "
+                 "separes par des virgules (ex. '1' pour calibrer sur gamma_med "
+                 "seul avant de lancer les 8) ; vide = les 8 par defaut")
 a = ap.parse_args()
 
 ICI = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +47,8 @@ DONNEES = os.environ.get("VOCAB_DIR", os.path.join(ICI, "data_local"))
 SORTIE = os.path.join(ICI, "kernel_spectres")
 os.makedirs(SORTIE, exist_ok=True)
 MEDIA, DEMI, SEUIL, N_VEC = a.media, a.demi, a.seuil, a.n_vec
-MULTIPLES = (0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 10.0, 30.0)
+MULTIPLES = tuple(float(m) for m in a.mults.split(",")) if a.mults else \
+    (0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 10.0, 30.0)
 
 # --- chaine : pics filtres -> NMS -> fenetres -> z-score
 g = np.load(f"{DONNEES}/vocab_series_{MEDIA}.npz")
