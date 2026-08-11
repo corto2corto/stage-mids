@@ -46,7 +46,9 @@ def construire(prefixe, force=False):
     np.savez_compressed(
         sortie,
         Z=d.Z.astype(np.float32), composantes=d.composantes, variance=d.variance,
-        proj=d.proj.astype(np.float32), mots=d.mots, dates=d.dates,
+        # mots vient de pandas en dtype object : le forcer en texte permet de
+        # relire le cache avec allow_pickle=False (pas de code arbitraire execute)
+        proj=d.proj.astype(np.float32), mots=d.mots.astype(str), dates=d.dates,
         surprise=d.surprise, volume=d.volume,
         # metadonnees : de quoi relire le cache sans configs.py
         media=c["media"], demi=c["demi"], seuil=c["seuil"], pas_jours=c["pas_jours"])

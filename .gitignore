@@ -1,6 +1,7 @@
 # --- Données scrappées ---
 # On ne pousse JAMAIS les données brutes (volume + droits d'auteur)
-data/
+# Barre initiale : uniquement le data/ de la racine, pas campagne_pca/data/
+/data/
 exploration/*.html
 exploration/*.csv
 exploration/figures/
