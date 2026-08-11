@@ -8,7 +8,30 @@ format:
       x: 2.2cm
       y: 2.4cm
     fontsize: 10.5pt
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
 ---
+
+```{python}
+# Figures calculees ici : synthese_* depuis data/resultats_rotation.csv (calcul
+# leger), optimale_* depuis le cache PCA (data/cache_pca/). Aucun png sur le
+# disque. Cache construit sur le serveur par scripts/construire_cache.py.
+import sys, os
+sys.path.insert(0, os.path.abspath("../.."))
+
+import campagne_pca.scripts.figures_lib as lib
+from campagne_pca.scripts.configs import parametres
+
+p = parametres("optimale")
+d = lib.depuis_cache("optimale")
+pres = lib.presentation(p["media_nom"], p["demi"], p["seuil"], p["pas_jours"],
+                        p["couleur"], p["accent"], p["libelles"])
+seuil_vol, eligibles = lib.filtre_volume(d.volume, p["vol_q"], p["vol_min"], 3)
+```
 
 ## La question et le dispositif
 
@@ -153,7 +176,12 @@ l'autocorrélation générique, présente n'importe où dans la série) et la
 
 ## Résultats par axe
 
-![Effets des axes sur les deux métriques (brut, n apparié, grille équilibrée sur 39 cellules × 4 médias).](figures/synthese_axes.png)
+```{python}
+#| label: fig-synthese-axes
+#| fig-cap: "Effets des axes sur les deux métriques (brut, n apparié, grille équilibrée sur 39 cellules × 4 médias)."
+r_synthese = lib.donnees_synthese()
+lib.vue_synthese_axes(r_synthese, None)
+```
 
 - **Média — l'effet le plus fort, et il s'inverse selon la métrique.**
   Texture : Figaro 1,28 > Monde 1,22 > Échos 1,17 > Mediapart 1,07.
@@ -179,7 +207,11 @@ l'autocorrélation générique, présente n'importe où dans la série) et la
 
 ## La carte des médias
 
-![Chaque point est un média × grille à la configuration de référence. La diagonale négative résume la campagne : la part ancrée s'échange contre la texture.](figures/synthese_carte_medias.png)
+```{python}
+#| label: fig-synthese-carte
+#| fig-cap: "Chaque point est un média × grille à la configuration de référence. La diagonale négative résume la campagne : la part ancrée s'échange contre la texture."
+lib.vue_synthese_carte(r_synthese, None)
+```
 
 Deux profils de médias se dégagent. **Mediapart** : peu de structure totale,
 mais presque toute ancrée sur l'événement — ses composantes sont des pics
@@ -195,7 +227,11 @@ parution), seuil de surprise 6**, fréquences sans transformation, z-score par
 fenêtre. La chaîne donne **8 764 fenêtres** de 21 blocs
 (`campagne_pca/scripts/figures.py`, commande `config`).
 
-![Variance expliquée par composante. La ligne rouge est le repère d'un nuage sans structure (100/20 = 5 %) : cinq composantes la dépassent.](figures/optimale_spectre.png){width=80%}
+```{python}
+#| label: fig-optimale-spectre
+#| fig-cap: "Variance expliquée par composante. La ligne rouge est le repère d'un nuage sans structure (100/20 = 5 %) : cinq composantes la dépassent."
+lib.vue_spectre(d, pres, None)
+```
 
 Le spectre n'est plus plat : la première composante porte **18,5 %** de la
 variance contre 9,2 % dans le modèle zéro, et il suffit de **4 composantes
@@ -203,7 +239,11 @@ pour atteindre 50 %** (contre 11). Le prix à payer est un échantillon quatorze
 fois plus petit — 8 764 fenêtres contre 123 310 — puisque le seuil 6 et
 l'agrégation hebdomadaire écartent beaucoup d'événements.
 
-![Les six premières composantes comme profils temporels.](figures/optimale_composantes.png){width=100%}
+```{python}
+#| label: fig-optimale-composantes
+#| fig-cap: "Les six premières composantes comme profils temporels."
+lib.vue_composantes(d, pres, None)
+```
 
 Les quatre premières formes sont lisibles et se rattachent à celles du modèle
 zéro, transposées à l'échelle de la semaine. La composante 1 (18,5 %) oppose
@@ -215,9 +255,17 @@ plateau bas avant, plateau haut après. La composante 4 (6,9 %) est un pic
 élargi encadré de deux creux ; les composantes 5-6 sont des oscillations
 génériques, comme en journalier.
 
-![Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements.](figures/optimale_plan12.png){width=88%}
+```{python}
+#| label: fig-optimale-plan12
+#| fig-cap: "Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements."
+lib.vue_plan12(d, pres, None, p["decalages"])
+```
 
-![Pour chacune des quatre premières composantes, les trois sauts réels les plus alignés.](figures/optimale_archetypes.png){width=92%}
+```{python}
+#| label: fig-optimale-archetypes
+#| fig-cap: "Pour chacune des quatre premières composantes, les trois sauts réels les plus alignés."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
 
 Les archétypes valident les lectures et tombent sur des dates
 reconnaissables. Composante 1 : « parvient » au 25/02/2022 (invasion de
@@ -227,7 +275,11 @@ Composante 3 : **« fermées » et « distance » au 20/03/2020** — le
 confinement, exemple manuel d'un changement de niveau durable, exactement la
 forme que la question des rachats cherchera.
 
-![Reconstruction d'une fenêtre par les premières composantes.](figures/optimale_reconstruction.png){width=100%}
+```{python}
+#| label: fig-optimale-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre par les premières composantes."
+lib.vue_reconstruction(d, pres, None)
+```
 
 La reconstruction chiffre le gain : **72 % de la forme restitués avec une
 seule composante, 89 % avec trois, 96 % avec six**, là où le modèle zéro
@@ -307,8 +359,9 @@ que le spectre brut y soit le plus plat de tous (16 % à 6 composantes).
 ## Reproduction
 
 Tout est versionné dans `campagne_pca/` (GitHub) : runner
-(`rupture/campagne.py`), scripts de salves (`salve*.sh`), journal complet
-(`suivi.md`), récoltes (`resultats.csv`, 1 753 configs ;
-`resultats_rotation.csv`, 2 304 configs au double témoin), figures et
-scripts de figures. Les données intermédiaires (pics s3, séries 40k, base
-ngram Mediapart) sont sur gallica dans `data/`.
+(`rupture/campagne.py`), journal complet (`rapport_qmd/suivi.md`), récoltes
+(`data/resultats.csv`, 1 753 configs ; `data/resultats_rotation.csv`,
+2 304 configs au double témoin), cache PCA (`data/cache_pca/`) et scripts de
+figures (`scripts/figures_lib.py`, `scripts/figures.py`). Les données
+intermédiaires (pics s3, séries 40k, base ngram Mediapart) sont sur gallica
+dans `data/`.

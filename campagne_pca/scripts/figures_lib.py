@@ -5,17 +5,24 @@
 # La chaine (pics -> NMS -> fenetres -> z-score -> PCA) etait recopiee dans les
 # huit anciens scripts figures_*.py ; elle vit maintenant dans charger().
 import os
+import sys
 from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("Agg")               # scripts en ligne de commande : pas de fenetre
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 
 from rupture.nms import nms
 from rupture.pca import nettoyer, normaliser, pca
+
+# rupture.pca et rupture.graphes imposent Agg a l'import. Sous Jupyter — donc
+# dans les blocs {python} des .qmd — cela empeche la capture des figures : on
+# rend la main au backend inline, qui les serialise pour le document.
+if "ipykernel" in sys.modules:
+    matplotlib.use("module://matplotlib_inline.backend_inline")
 
 # palette de la campagne (valeurs reprises telles quelles des anciens scripts)
 BLEU, ROUGE = "#2a78d6", "#e34948"
@@ -52,6 +59,21 @@ def sortie(nom):
     """Chemin d'un png de figures/ (cree le dossier au besoin)."""
     os.makedirs(FIGURES, exist_ok=True)
     return os.path.join(FIGURES, nom)
+
+
+def rendre(fig, chemin, dpi=200):
+    """Ecrit la figure si un chemin est donne, sinon l'affiche (blocs {python}).
+
+    chemin=None sert aux .qmd : plt.show() remet la figure a Quarto, qui
+    l'insere dans le document. Rien n'est renvoye — la valeur d'une cellule
+    serait affichee une seconde fois, en doublon de la figure.
+    """
+    if chemin is None:
+        plt.show()
+        return None
+    fig.savefig(chemin, bbox_inches="tight", dpi=dpi)
+    plt.close(fig)
+    return chemin
 
 
 def depuis_cache(prefixe):
@@ -190,6 +212,90 @@ def ticks_log(ax, v):
     ax.set_ylim(bas, haut)
 
 
+# --- synthese : effets des hyperparametres, carte des medias -----------------
+
+NOMS_MEDIAS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro",
+               "lesechos": "Les Échos", "mediapart": "Mediapart"}
+
+AXES_SYNTHESE = [("base", "média", [NOMS_MEDIAS[b] for b in
+                                    ["mediapart", "lesechos", "lemonde", "lefigaro"]],
+                  ["mediapart", "lesechos", "lemonde", "lefigaro"]),
+                 ("grille", "grille de temps", ["journalier", "3 jours", "7 jours"],
+                  ["1j", "3j", "7j"]),
+                 ("demi", "demi-fenêtre (± pas)", ["10", "15", "25", "50"],
+                  [10, 15, 25, 50]),
+                 ("seuil", "seuil de surprise", ["4", "6"], [4.0, 6.0])]
+
+
+def donnees_synthese():
+    """resultats_rotation.csv filtre : n apparie 5000, brut (sans log), grille equilibree.
+
+    Cellule = (grille, demi, seuil, filtre) ; equilibree = presente pour les 4 medias.
+    """
+    r = pd.read_csv(os.path.join(DATA, "resultats_rotation.csv"))
+    r = r[(r["n_fenetres"] == 5000) & ~r["tag"].str.contains("_log")].copy()
+    r["base"] = r["media"].str.replace(r"(3j|7j)$", "", regex=True)
+    r["grille"] = r["media"].str.extract(r"(3j|7j)$")[0].fillna("1j")
+    r["cellule"] = r["grille"] + "|" + r["demi"].astype(str) + "|" + \
+        r["seuil"].astype(str) + "|" + r["filtre"]
+    r = r.groupby(["base", "cellule", "grille", "demi", "seuil", "filtre"],
+                  as_index=False)[["exces6", "alignement6"]].mean()   # graines
+    completes = r.groupby("cellule")["base"].nunique()
+    return r[r["cellule"].map(completes) == 4]                        # equilibre
+
+
+def vue_synthese_axes(r, chemin):
+    """Effets des 4 axes (media, grille, demi-fenetre, seuil) sur exces6/alignement6."""
+    from rupture.graphes import BLEU, ORANGE
+    fig, axs = plt.subplots(1, 4, figsize=(10.4, 3.2), sharey=True)
+    for ax, (col, titre, etiquettes, ordre) in zip(axs, AXES_SYNTHESE):
+        m = r.groupby(col)[["exces6", "alignement6"]].mean().loc[ordre]
+        x = np.arange(len(ordre))
+        ax.axhline(1, lw=.8, color=GRILLE)
+        ax.plot(x, m["alignement6"], "-", lw=2, color=ORANGE, marker="o", ms=6,
+                label="alignement6 (part ancrée sur le pic)")
+        ax.plot(x, m["exces6"], "-", lw=2, color=BLEU, marker="o", ms=6,
+                label="exces6 (structure au-delà des marges)")
+        ax.set_xticks(x, etiquettes, fontsize=8)
+        ax.set_title(titre, fontsize=9.5, color=ENCRE2)
+        cadre(ax)
+    axs[0].set_ylabel("concentration relative au nul", fontsize=9)
+    poignees, textes = axs[0].get_legend_handles_labels()
+    fig.legend(poignees, textes, frameon=False, fontsize=8.5, ncol=2,
+               loc="upper center", bbox_to_anchor=(0.5, 0.93))
+    fig.suptitle("Effets des hyperparamètres sur les deux métriques — brut, "
+                 "n apparié à 5 000 fenêtres, grille équilibrée",
+                 fontsize=10.5, color=ENCRE2)
+    fig.tight_layout(rect=(0, 0, 1, 0.86))
+    return rendre(fig, chemin)
+
+
+def vue_synthese_carte(r, chemin):
+    """Carte (exces6, alignement6) des media x grilles a la config de reference."""
+    from rupture.graphes import BLEU
+    ref = r[(r["demi"] == 15) & (r["seuil"] == 4.0) & (r["filtre"] == "tous")]
+    fig, ax = plt.subplots(figsize=(6.4, 4.6))
+    ax.axhline(1, lw=.8, color=GRILLE)
+    ax.axvline(1, lw=.8, color=GRILLE)
+    decalages = {("mediapart", "3j"): (-8, -14), ("mediapart", "7j"): (7, 6),
+                 ("lemonde", "7j"): (-30, -16), ("lefigaro", "3j"): (7, 8)}
+    for _, ligne in ref.iterrows():
+        ax.scatter(ligne["exces6"], ligne["alignement6"], s=46, color=BLEU, zorder=3)
+        dx, dy = decalages.get((ligne["base"], ligne["grille"]), (7, 3))
+        ax.annotate(f"{NOMS_MEDIAS[ligne['base']]} {ligne['grille']}",
+                    (ligne["exces6"], ligne["alignement6"]),
+                    xytext=(dx, dy), textcoords="offset points",
+                    fontsize=8, color=ENCRE2)
+    ax.set_xlabel("exces6 — structure totale (texture comprise)", fontsize=9)
+    ax.set_ylabel("alignement6 — part ancrée sur l'événement", fontsize=9)
+    ax.set_title("Carte des médias × grilles (référence ±15, s4, tous, brut, "
+                 "n = 5 000)", fontsize=10, color=ENCRE2)
+    ax.grid(True, lw=.5, color=GRILLE)
+    ax.set_axisbelow(True)
+    fig.tight_layout()
+    return rendre(fig, chemin)
+
+
 # --- les cinq vues d'une configuration --------------------------------------
 
 def vue_spectre(d, pres, chemin):
@@ -216,8 +322,7 @@ def vue_spectre(d, pres, chemin):
                  f"(K50/rang={d.K50 / d.rang:.2f})\n{pres.titre}",
                  fontsize=9.5, color=ENCRE2)
     fig.tight_layout()
-    fig.savefig(chemin, bbox_inches="tight", dpi=200)
-    plt.close(fig)
+    return rendre(fig, chemin)
 
 
 def vue_composantes(d, pres, chemin):
@@ -235,8 +340,7 @@ def vue_composantes(d, pres, chemin):
     fig.suptitle(f"Les six premières composantes comme profils temporels\n{pres.titre}",
                  fontsize=10, color=ENCRE2)
     fig.tight_layout(rect=(0, 0, 1, 0.94))
-    fig.savefig(chemin, bbox_inches="tight", dpi=200)
-    plt.close(fig)
+    return rendre(fig, chemin)
 
 
 def vue_plan12(d, pres, chemin, decalages=None):
@@ -268,8 +372,7 @@ def vue_plan12(d, pres, chemin, decalages=None):
     ax.set_title(f"Les {effectif} fenêtres dans le plan des deux premières composantes\n"
                  f"{pres.titre}", fontsize=9.5, color=ENCRE2)
     fig.tight_layout()
-    fig.savefig(chemin, bbox_inches="tight", dpi=200)
-    plt.close(fig)
+    return rendre(fig, chemin)
 
 
 def vue_archetypes(d, pres, chemin, seuil_vol, eligibles):
@@ -300,8 +403,7 @@ def vue_archetypes(d, pres, chemin, seuil_vol, eligibles):
                  f"composante (z-score){filtre_libelle}\n{pres.titre}",
                  fontsize=10, color=ENCRE2)
     fig.tight_layout(rect=(0, 0, 1, 0.95 if seuil_vol > 0 else 0.96))
-    fig.savefig(chemin, bbox_inches="tight", dpi=200)
-    plt.close(fig)
+    return rendre(fig, chemin)
 
 
 def vue_reconstruction(d, pres, chemin):
@@ -333,8 +435,37 @@ def vue_reconstruction(d, pres, chemin):
                  f"les premières composantes (bleu)\n{pres.titre}",
                  fontsize=9.5, color=ENCRE2)
     fig.tight_layout(rect=(0, 0, 1, 0.90))
-    fig.savefig(chemin, bbox_inches="tight", dpi=200)
-    plt.close(fig)
+    return rendre(fig, chemin)
+
+
+def vue_comparaison(lignes, titre, rect, chemin):
+    """Profils compares de plusieurs configurations : 3 premieres composantes en grille.
+
+    lignes : (prefixe, media, demi, seuil, pics, nettoie, nom, sous_titre, couleur,
+    unite). Lit le cache PCA de prefixe (data/cache_pca/), retombe sur la chaine
+    complete si absent.
+    """
+    fig, axes = plt.subplots(len(lignes), 3, figsize=(9.6, 10.4))
+    for row, (prefixe, media, demi, seuil, pics, nettoie, nom, sous_titre, couleur, unite) \
+            in enumerate(lignes):
+        d = depuis_cache(prefixe) or charger(media, demi, seuil, pics, nettoie)
+        for k in range(3):
+            ax = axes[row, k]
+            reperes(ax)
+            ax.plot(d.js, d.composantes[k], lw=1.7, color=couleur)
+            ax.set_title(f"composante {k + 1} — {d.variance[k] * 100:.1f} %",
+                         fontsize=8.5, color=ENCRE2)
+            ax.set_xticks([-demi, 0, demi])
+            cadre(ax)
+            if row == len(lignes) - 1:
+                ax.set_xlabel(f"{unite} autour du pic", fontsize=8)
+            if k == 0:
+                ax.set_ylabel(f"{nom}\n{sous_titre}", fontsize=8.5)
+        print(f"{nom} ({sous_titre}) : {len(d.Z)} fenêtres, variance 1-3 = "
+              f"{np.round(d.variance[:3] * 100, 1)}")
+    fig.suptitle(titre, fontsize=11, color=ENCRE2)
+    fig.tight_layout(rect=(0, 0, 1, rect))
+    return rendre(fig, chemin)
 
 
 def vue_comp_archetypes(d, pres, chemin, comp, seuil_vol, eligibles):
@@ -375,5 +506,4 @@ def vue_comp_archetypes(d, pres, chemin, comp, seuil_vol, eligibles):
                       if seuil_vol > 0 else "")
     fig.suptitle(f"Composante {comp} : les 12 sauts réels les plus alignés (z-score)"
                  f"{filtre_libelle}\n{pres.titre}", fontsize=10.5, color=ENCRE2, y=0.965)
-    fig.savefig(chemin, bbox_inches="tight", dpi=200)
-    plt.close(fig)
+    return rendre(fig, chemin)

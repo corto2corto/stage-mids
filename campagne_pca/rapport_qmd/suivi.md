@@ -162,6 +162,54 @@ toucher aux sorties officielles.
   chaîne 40k (masse.py paramétré en nom de sortie, X dense 4,2 Go, sorties
   lemondev40k*). Vocab mediapart classé (+866 mots, rien à arbitrer).
 
+## Scripts .sh de scripts/ — commandes pour reproduire (fichiers supprimés)
+
+Patron commun : `cd /data/elias/stage-mids`, `VOCAB_DIR=/data/elias/stage-mids/data`,
+threads BLAS/OMP bridés à 8 (sur 20, pour laisser tourner le scrapping),
+lancement en tmux dédié, log dans `data/logs/<nom>.log`.
+
+- **Nouveau média** (`chaine_media.sh <media>`, `set -e`, threads=2, nice 10) :
+  ```
+  python -m exploration.scan_vocab <media>
+  python -m rupture.masse <media>
+  python -m rupture.pics_masse <media> bnb 2 3
+  python -m rupture.agreger <media> 3
+  python -m rupture.agreger <media> 7
+  python -m rupture.pics_masse <media>3j bnb 2 3
+  python -m rupture.pics_masse <media>7j bnb 2 3
+  ```
+
+- **Kernel PCA hebdo** (`kernel_hebdo.sh`, séquentiel, petit → gros corpus) :
+  ```
+  python -m campagne_pca.scripts.kernel_hebdo mediapart7j --pics _s3
+  python -m campagne_pca.scripts.kernel_hebdo lesechos7j  --pics _s3
+  python -m campagne_pca.scripts.kernel_hebdo lefigaro7j  --pics _s3
+  python -m campagne_pca.scripts.kernel_hebdo lemonde7j
+  ```
+
+- **Grille de gamma hebdo** (`kernel_grille.sh`, spectre entier + 50 vecteurs
+  propres, 3h à 20h selon média) :
+  ```
+  python -m campagne_pca.scripts.kernel_grille mediapart7j --pics _s3
+  python -m campagne_pca.scripts.kernel_grille lesechos7j  --pics _s3
+  python -m campagne_pca.scripts.kernel_grille lefigaro7j  --pics _s3
+  ```
+
+- **Grille de gamma à 3j** (`kernel_grille_3j.sh`, même grille, `--demi 10 --seuil 5`
+  acté le 08/08 — seuil=5 donne des effectifs comparables à la config page 1) :
+  ```
+  python -m campagne_pca.scripts.kernel_grille mediapart3j --demi 10 --seuil 5 --pics _s3
+  python -m campagne_pca.scripts.kernel_grille lesechos3j  --demi 10 --seuil 5 --pics _s3
+  python -m campagne_pca.scripts.kernel_grille lefigaro3j  --demi 10 --seuil 5 --pics _s3
+  ```
+
+- **Le Monde, grille journalière** (`kernel_lemonde_journalier.sh`, `--demi 15
+  --seuil 6` acté le 08/08 — plus gros calibrage qui tienne en RAM, Gram 8,1 Go,
+  31 882 fenêtres ; un seul gamma d'abord pour calibrer le temps) :
+  ```
+  python -m campagne_pca.scripts.kernel_grille lemonde --demi 15 --seuil 6 --mults 1
+  ```
+
 ### 31/07 19h45 — Réveil 3 : crash réparé, salves 3b+4 lancées
 
 - **Salve 3 : crash à la config 300/396** — mediapart7j × d50 × s6 ×

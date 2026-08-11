@@ -341,6 +341,31 @@ Constat de Benoît : la détection de pic dépend beaucoup du zoom temporel — 
 Pas de calcul long sur le serveur sans me demander avant.
 ```
 
+## orientation-composantes-pca — Fixer le signe des composantes (archétypes discordants avec le texte)
+
+- Ajoutée : 2026-08-11
+- Branche : main
+
+**Contexte** : le cache PCA reconstruit le 11/08 (`campagne_pca/data/cache_pca/*.npz`) rend, pour la composante 3 d'`optimale`, des archétypes différents de ceux commentés dans `campagne_pca/rapport_qmd/configuration_optimale.qmd`. Le rapport parle de « fermées » et « distance » au 20/03/2020 (le confinement, un changement de niveau durable) ; la figure régénérée montre « lionel », « second », « chaleur ». Vérifié : « fermées »/« distance » sont les extrêmes NÉGATIFS de la composante — le signe du vecteur propre est simplement inversé par rapport au calcul d'origine. La SVD ne détermine pas l'orientation des vecteurs propres, et rien dans la chaîne ne la fixe : deux calculs de la même configuration peuvent donc donner des composantes opposées. Le calcul est identique, seule la lecture s'inverse (« avant → après » devient « après → avant »). Le filtre de volume n'est pas en cause (`vol_q=0, vol_min=0` pour `optimale` dans `scripts/configs.py`, vérifié : seuil 0, 8 764 fenêtres éligibles sur 8 764).
+
+**Piste envisagée** : trois options, à trancher avec Corto — laisser tel quel (texte et figure discordants), adapter le texte du rapport aux nouveaux archétypes, ou fixer une convention de signe dans `figures_lib.charger()`. La troisième est la seule durable, mais c'est une modification des résultats : elle demande une validation explicite. Une convention naïve « bloc central positif » ne suffit pas — elle ne veut rien dire pour les composantes sans pic au centre (comp. 2 = montée puis chute), où elle a produit d'autres archétypes que ceux du rapport.
+
+**Prompt** :
+
+```
+Les composantes de la PCA n'ont pas d'orientation fixée : la SVD ne détermine pas le signe des vecteurs propres, et rien dans campagne_pca/scripts/figures_lib.py (charger(), qui appelle rupture.pca.pca) ne le contraint. Conséquence constatée le 11/08 : le cache PCA reconstruit (campagne_pca/data/cache_pca/optimale.npz) donne pour la composante 3 les archétypes « lionel », « second », « chaleur », alors que campagne_pca/rapport_qmd/configuration_optimale.qmd commente « fermées » et « distance » au 20/03/2020 — le confinement. Vérifié : ces deux-là sont les extrêmes NÉGATIFS de la composante ; le signe est inversé par rapport au calcul qui avait servi aux figures d'origine. Le calcul est le même, seule la lecture s'inverse.
+
+Le filtre de volume n'est PAS en cause : optimale a vol_q=0 et vol_min=0 dans campagne_pca/scripts/configs.py, et filtre_volume rend bien seuil 0 / 8 764 éligibles sur 8 764. (La question du filtre de fréquence est suivie à part, voir la tâche critere-frequence-archetypes.)
+
+À faire :
+1. Me présenter les trois options avant de coder : (a) laisser tel quel, (b) adapter le texte du rapport aux archétypes actuels, (c) fixer une convention de signe dans charger(). Recommander, mais me laisser trancher — (c) modifie les résultats affichés.
+2. Si (c) est retenue : attention, une convention « coefficient du bloc central positif » ne marche pas. Testée le 11/08, elle rétablit bien les comp. 1, 3 et 4 d'optimale, mais change la comp. 2 (montée progressive puis chute, sans pic au centre) : on obtient « timbre », « orient », « golfe » au lieu de « organisé », « régionales », « ordonnance ». Chercher une convention qui vaille pour toutes les formes, et la vérifier composante par composante contre les figures d'origine.
+3. Les figures d'origine sont récupérables dans l'historique git (commit 3a00f79, campagne_pca/rapport_qmd/figures/optimale_*.png) — s'en servir comme référence de comparaison.
+4. Si la convention change les caches, ne pas les reconstruire sur le serveur sans me demander : l'orientation peut être appliquée à la lecture dans depuis_cache().
+
+Vérifier à la fin en recompilant campagne_pca/rapport_qmd/configuration_optimale.qmd et en comparant les 4 panneaux d'archétypes aux figures du commit 3a00f79.
+```
+
 ## Faites
 
 ## inspection-urls-non-articles — Inspection par média des URLs non-articles + état dédié en base

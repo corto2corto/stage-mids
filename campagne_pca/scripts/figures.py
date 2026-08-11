@@ -17,11 +17,11 @@ import glob
 import os
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 import campagne_pca.scripts.figures_lib as lib
 from campagne_pca.scripts.figures_lib import AXE, ENCRE, ENCRE2, GRILLE, GRIS
+from campagne_pca.scripts.configs import JEUX
 from rupture.pca import pca
 
 # Decalages manuels des etiquettes du plan PC1-PC2, par prefixe de sortie : le
@@ -95,158 +95,29 @@ def cmd_comp(a):
 
 # --- comparaison : profils compares de plusieurs configurations --------------
 
-# (media, demi, seuil, pics, nettoie, nom, sous-titre, couleur, unite de l'axe)
-JEUX = {
-    "medias": dict(
-        lignes=[
-            ("lemonde3j", 15, 6.0, "", 0, "Le Monde",
-             "blocs de 3 j, seuil 6 — 14 102 fenêtres", "#1A171B", "blocs de 3 j"),
-            ("lemonde3j", 15, 5.0, "", 0, "Le Monde",
-             "blocs de 3 j, seuil 5 — 24 593 fenêtres", "#1A171B", "blocs de 3 j"),
-            ("lesechos", 12, 5.0, "_s3", 5000, "Les Échos",
-             "journalier, seuil 5 — 21 073 fenêtres", "#b00005", "jours"),
-            ("mediapart", 5, 4.0, "_s3", 5000, "Mediapart",
-             "journalier, seuil 4 — 20 237 fenêtres", "#fc392b", "jours"),
-        ],
-        titre="La forme des sauts par configuration — trois premières composantes",
-        rect=0.97, sortie="comparaison_medias.png"),
-    "hebdo": dict(
-        lignes=[
-            ("lemonde7j", 10, 4.0, "", 0, "Le Monde",
-             "seuil 4 — 27 707 fenêtres", "#1A171B", "semaines"),
-            ("lefigaro7j", 10, 4.0, "_s3", 0, "Le Figaro",
-             "seuil 4 — 11 311 fenêtres", "#163860", "semaines"),
-            ("lesechos7j", 10, 4.0, "_s3", 0, "Les Échos",
-             "seuil 4 — 8 633 fenêtres", "#b00005", "semaines"),
-            ("mediapart7j", 10, 4.0, "_s3", 0, "Mediapart",
-             "seuil 4 — 5 483 fenêtres", "#fc392b", "semaines"),
-        ],
-        titre="La forme des sauts par journal — trois premières composantes\n"
-              "Grille hebdomadaire, fenêtres ±10 semaines, seuil 4",
-        rect=0.95, sortie="comparaison_hebdo.png"),
-}
-
-
 def cmd_comparaison(a):
     jeu = JEUX[a.jeu]
-    lignes = jeu["lignes"]
-    fig, axes = plt.subplots(len(lignes), 3, figsize=(9.6, 10.4))
-    for row, (media, demi, seuil, pics, nettoie, nom, sous_titre, couleur, unite) \
-            in enumerate(lignes):
-        d = lib.charger(media, demi, seuil, pics, nettoie)
-        for k in range(3):
-            ax = axes[row, k]
-            lib.reperes(ax)
-            ax.plot(d.js, d.composantes[k], lw=1.7, color=couleur)
-            ax.set_title(f"composante {k + 1} — {d.variance[k] * 100:.1f} %",
-                         fontsize=8.5, color=ENCRE2)
-            ax.set_xticks([-demi, 0, demi])
-            lib.cadre(ax)
-            if row == len(lignes) - 1:
-                ax.set_xlabel(f"{unite} autour du pic", fontsize=8)
-            if k == 0:
-                ax.set_ylabel(f"{nom}\n{sous_titre}", fontsize=8.5)
-        print(f"{nom} ({sous_titre}) : {len(d.Z)} fenêtres, variance 1-3 = "
-              f"{np.round(d.variance[:3] * 100, 1)}")
-
-    fig.suptitle(jeu["titre"], fontsize=11, color=ENCRE2)
-    fig.tight_layout(rect=(0, 0, 1, jeu["rect"]))
     chemin = lib.sortie(jeu["sortie"])
-    fig.savefig(chemin, bbox_inches="tight", dpi=200)
-    plt.close(fig)
+    lib.vue_comparaison(jeu["lignes"], jeu["titre"], jeu["rect"], chemin)
     print(f"-> {os.path.relpath(chemin)}")
 
 
 # --- synthese : effets des hyperparametres, carte des medias -----------------
 
-NOMS_MEDIAS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro",
-               "lesechos": "Les Échos", "mediapart": "Mediapart"}
-
-AXES = [("base", "média", [NOMS_MEDIAS[b] for b in
-                           ["mediapart", "lesechos", "lemonde", "lefigaro"]],
-         ["mediapart", "lesechos", "lemonde", "lefigaro"]),
-        ("grille", "grille de temps", ["journalier", "3 jours", "7 jours"],
-         ["1j", "3j", "7j"]),
-        ("demi", "demi-fenêtre (± pas)", ["10", "15", "25", "50"], [10, 15, 25, 50]),
-        ("seuil", "seuil de surprise", ["4", "6"], [4.0, 6.0])]
-
-
 def cmd_synthese(a):
-    # lit les recoltes locales resultats_rotation.csv (tourne sur le Mac).
-    # 1. synthese_axes.png — pour chaque axe (media, grille, demi-fenetre, seuil),
-    #    les deux metriques a n apparie 5000 en brut : exces6 (structure totale
-    #    au-dela des marges, nul par melange de colonnes) et alignement6 (part
-    #    ancree sur l'evenement, nul par decalage circulaire). Moyennes sur le
-    #    sous-ensemble equilibre (cellules presentes pour les 4 medias), graines
-    #    moyennees ; dispersion inter-graines mediane 0,0045 — invisible a cette
-    #    echelle, pas de barres d'erreur.
-    # 2. synthese_carte_medias.png — carte (exces6, alignement6) des 12
-    #    media-grilles a la config de reference (d15, s4, tous), brut.
-    from rupture.graphes import BLEU, ORANGE          # + son style (police de rapport_lib)
-
-    r = pd.read_csv(os.path.join(lib.DATA, "resultats_rotation.csv"))
-    r = r[(r["n_fenetres"] == 5000) & ~r["tag"].str.contains("_log")].copy()
-    r["base"] = r["media"].str.replace(r"(3j|7j)$", "", regex=True)
-    r["grille"] = r["media"].str.extract(r"(3j|7j)$")[0].fillna("1j")
-    r["cellule"] = r["grille"] + "|" + r["demi"].astype(str) + "|" + \
-        r["seuil"].astype(str) + "|" + r["filtre"]
-    r = r.groupby(["base", "cellule", "grille", "demi", "seuil", "filtre"],
-                  as_index=False)[["exces6", "alignement6"]].mean()   # graines
-    completes = r.groupby("cellule")["base"].nunique()
-    r = r[r["cellule"].map(completes) == 4]                           # equilibre
+    r = lib.donnees_synthese()
     print(f"{len(r)} lignes (cellules completes x 4 medias), "
           f"{r['cellule'].nunique()} cellules")
 
-    fig, axs = plt.subplots(1, 4, figsize=(10.4, 3.2), sharey=True)
-    for ax, (col, titre, etiquettes, ordre) in zip(axs, AXES):
-        m = r.groupby(col)[["exces6", "alignement6"]].mean().loc[ordre]
-        x = np.arange(len(ordre))
-        ax.axhline(1, lw=.8, color=GRILLE)
-        ax.plot(x, m["alignement6"], "-", lw=2, color=ORANGE, marker="o", ms=6,
-                label="alignement6 (part ancrée sur le pic)")
-        ax.plot(x, m["exces6"], "-", lw=2, color=BLEU, marker="o", ms=6,
-                label="exces6 (structure au-delà des marges)")
-        ax.set_xticks(x, etiquettes, fontsize=8)
-        ax.set_title(titre, fontsize=9.5, color=ENCRE2)
-        lib.cadre(ax)
-    axs[0].set_ylabel("concentration relative au nul", fontsize=9)
-    poignees, textes = axs[0].get_legend_handles_labels()
-    fig.legend(poignees, textes, frameon=False, fontsize=8.5, ncol=2,
-               loc="upper center", bbox_to_anchor=(0.5, 0.93))
-    fig.suptitle("Effets des hyperparamètres sur les deux métriques — brut, "
-                 "n apparié à 5 000 fenêtres, grille équilibrée",
-                 fontsize=10.5, color=ENCRE2)
-    fig.tight_layout(rect=(0, 0, 1, 0.86))
-    fig.savefig(lib.sortie("synthese_axes.png"), bbox_inches="tight", dpi=200)
-    plt.close(fig)
-    print("-> figures/synthese_axes.png")
+    chemin = lib.sortie("synthese_axes.png")
+    lib.vue_synthese_axes(r, chemin)
+    print(f"-> {os.path.relpath(chemin)}")
 
-    ref = r[(r["demi"] == 15) & (r["seuil"] == 4.0) & (r["filtre"] == "tous")]
-    fig, ax = plt.subplots(figsize=(6.4, 4.6))
-    ax.axhline(1, lw=.8, color=GRILLE)
-    ax.axvline(1, lw=.8, color=GRILLE)
-    # decalages manuels pour les etiquettes qui se chevauchent au rendu
-    decalages = {("mediapart", "3j"): (-8, -14), ("mediapart", "7j"): (7, 6),
-                 ("lemonde", "7j"): (-30, -16), ("lefigaro", "3j"): (7, 8)}
-    for _, ligne in ref.iterrows():
-        ax.scatter(ligne["exces6"], ligne["alignement6"], s=46, color=BLEU, zorder=3)
-        dx, dy = decalages.get((ligne["base"], ligne["grille"]), (7, 3))
-        ax.annotate(f"{NOMS_MEDIAS[ligne['base']]} {ligne['grille']}",
-                    (ligne["exces6"], ligne["alignement6"]),
-                    xytext=(dx, dy), textcoords="offset points",
-                    fontsize=8, color=ENCRE2)
-    ax.set_xlabel("exces6 — structure totale (texture comprise)", fontsize=9)
-    ax.set_ylabel("alignement6 — part ancrée sur l'événement", fontsize=9)
-    ax.set_title("Carte des médias × grilles (référence ±15, s4, tous, brut, "
-                 "n = 5 000)", fontsize=10, color=ENCRE2)
-    ax.grid(True, lw=.5, color=GRILLE)
-    ax.set_axisbelow(True)
-    fig.tight_layout()
-    fig.savefig(lib.sortie("synthese_carte_medias.png"), bbox_inches="tight", dpi=200)
-    plt.close(fig)
-    print("-> figures/synthese_carte_medias.png")
+    chemin = lib.sortie("synthese_carte_medias.png")
+    lib.vue_synthese_carte(r, chemin)
+    print(f"-> {os.path.relpath(chemin)}")
 
-    for col, titre, _, ordre in AXES:      # tableau des moyennes par axe, pour le rapport
+    for col, titre, _, ordre in lib.AXES_SYNTHESE:  # tableau des moyennes, pour le rapport
         m = r.groupby(col)[["exces6", "alignement6"]].mean().loc[ordre].round(3)
         print(f"\n{titre} :\n{m.to_string()}")
 

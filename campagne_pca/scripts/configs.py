@@ -69,6 +69,39 @@ CONFIGS = dict([
 # Planches d'une seule composante (composante3_lemonde.qmd) : configuration + rang.
 COMPOSANTES = {"configA_comp3": ("configA", 3), "configC_comp3": ("configC", 3)}
 
+# Jeux de comparaison multi-configurations (figures.py comparaison, *_A_C.qmd,
+# *_hebdo.qmd) : (prefixe, media, demi, seuil, pics, nettoie, nom, sous-titre,
+# couleur, unite). prefixe pointe vers un cache existant de CONFIGS.
+JEUX = {
+    "medias": dict(
+        lignes=[
+            ("configA", "lemonde3j", 15, 6.0, "", 0, "Le Monde",
+             "blocs de 3 j, seuil 6 — 14 102 fenêtres", "#1A171B", "blocs de 3 j"),
+            ("configC", "lemonde3j", 15, 5.0, "", 0, "Le Monde",
+             "blocs de 3 j, seuil 5 — 24 593 fenêtres", "#1A171B", "blocs de 3 j"),
+            ("configD", "lesechos", 12, 5.0, "_s3", 5000, "Les Échos",
+             "journalier, seuil 5 — 21 073 fenêtres", "#b00005", "jours"),
+            ("configF", "mediapart", 5, 4.0, "_s3", 5000, "Mediapart",
+             "journalier, seuil 4 — 20 237 fenêtres", "#fc392b", "jours"),
+        ],
+        titre="La forme des sauts par configuration — trois premières composantes",
+        rect=0.97, sortie="comparaison_medias.png"),
+    "hebdo": dict(
+        lignes=[
+            ("hebdoMonde", "lemonde7j", 10, 4.0, "", 0, "Le Monde",
+             "seuil 4 — 27 707 fenêtres", "#1A171B", "semaines"),
+            ("hebdoFigaro", "lefigaro7j", 10, 4.0, "_s3", 0, "Le Figaro",
+             "seuil 4 — 11 311 fenêtres", "#163860", "semaines"),
+            ("hebdoEchos", "lesechos7j", 10, 4.0, "_s3", 0, "Les Échos",
+             "seuil 4 — 8 633 fenêtres", "#b00005", "semaines"),
+            ("hebdoMediapart", "mediapart7j", 10, 4.0, "_s3", 0, "Mediapart",
+             "seuil 4 — 5 483 fenêtres", "#fc392b", "semaines"),
+        ],
+        titre="La forme des sauts par journal — trois premières composantes\n"
+              "Grille hebdomadaire, fenêtres ±10 semaines, seuil 4",
+        rect=0.95, sortie="comparaison_hebdo.png"),
+}
+
 
 def verifier(prefixe, n_fenetres):
     """Compare le nombre de fenetres obtenu a celui annonce par le rapport.

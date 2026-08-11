@@ -8,7 +8,33 @@ format:
       x: 2cm
       y: 2cm
     fontsize: 10.5pt
+    # sans fig-format explicite, quarto 1.9 perd les figures matplotlib en typst
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
 ---
+
+```{python}
+# Les figures sont calculees ici, a partir du cache PCA (data/cache_pca/), et
+# inserees directement dans le PDF : aucun png sur le disque. Le cache est
+# construit sur le serveur par scripts/construire_cache.py ; les sources
+# (vocab_series_*.npz, plus d'1 Go) n'y sont jamais necessaires.
+import sys, os
+sys.path.insert(0, os.path.abspath("../.."))       # racine du depot, pour importer campagne_pca
+
+import campagne_pca.scripts.figures_lib as lib
+from campagne_pca.scripts.configs import parametres
+
+CONFIG = "optimale"
+p = parametres(CONFIG)
+d = lib.depuis_cache(CONFIG)
+pres = lib.presentation(p["media_nom"], p["demi"], p["seuil"], p["pas_jours"],
+                        p["couleur"], p["accent"], p["libelles"])
+seuil_vol, eligibles = lib.filtre_volume(d.volume, p["vol_q"], p["vol_min"], 3)
+```
 
 Configuration retenue à l'issue de la campagne (~4 000 configurations
 testées) : celle qui concentre le mieux la variance. **K50 = 4** composantes
@@ -17,14 +43,22 @@ pour le modèle zéro (journalier, ±15, seuil 4).
 
 ## Spectre
 
-![Variance expliquée par composante. La ligne rouge marque un nuage sans structure (100/20 = 5 %) : cinq composantes la dépassent.](figures/optimale_spectre.png){width=82%}
+```{python}
+#| label: fig-spectre
+#| fig-cap: "Variance expliquée par composante. La ligne rouge marque un nuage sans structure (100/20 = 5 %) : cinq composantes la dépassent."
+lib.vue_spectre(d, pres, None)
+```
 
 La première composante porte **18,5 %** de la variance, contre 9,2 % dans le
 modèle zéro. Le spectre n'est plus plat.
 
 ## Les formes
 
-![Les six premières composantes comme profils temporels.](figures/optimale_composantes.png){width=100%}
+```{python}
+#| label: fig-composantes
+#| fig-cap: "Les six premières composantes comme profils temporels."
+lib.vue_composantes(d, pres, None)
+```
 
 Quatre formes lisibles, transposées à l'échelle de la semaine :
 
@@ -38,7 +72,11 @@ Quatre formes lisibles, transposées à l'échelle de la semaine :
 
 ## Le nuage
 
-![Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements.](figures/optimale_plan12.png){width=90%}
+```{python}
+#| label: fig-plan12
+#| fig-cap: "Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements."
+lib.vue_plan12(d, pres, None, p["decalages"])
+```
 
 Le nuage est unimodal : pas de familles de sauts séparées, mais un continuum.
 Les événements marquants se placent en périphérie — « jaunes » et
@@ -47,7 +85,11 @@ et « chirac » du côté des montées de campagne.
 
 ## Les archétypes
 
-![Pour chacune des quatre premières composantes, les trois sauts réels les plus alignés.](figures/optimale_archetypes.png){width=94%}
+```{python}
+#| label: fig-archetypes
+#| fig-cap: "Pour chacune des quatre premières composantes, les trois sauts réels les plus alignés."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
 
 Les formes correspondent à des dates reconnaissables :
 
@@ -61,7 +103,11 @@ Les formes correspondent à des dates reconnaissables :
 
 ## La reconstruction
 
-![Reconstruction d'une fenêtre réelle par les premières composantes.](figures/optimale_reconstruction.png){width=100%}
+```{python}
+#| label: fig-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle par les premières composantes."
+lib.vue_reconstruction(d, pres, None)
+```
 
 **72 % de la forme restitués avec une seule composante, 89 % avec trois,
 96 % avec six** — le modèle zéro demandait quinze composantes pour
@@ -80,5 +126,5 @@ capte son spectre est de la texture lente plutôt que la forme du pic — ce
 qui est cohérent avec sa composante 3, un changement de régime. Pour
 maximiser les formes d'événement, viser plutôt le journalier en ±25 à ±50.
 
-*Figures produites par `campagne_pca/scripts/figures.py` (commande `config`). Méthode complète,
-comparaison des axes et arbitrages : `campagne_pca/rapport_pdf/rapport.pdf`.*
+*Figures calculées à la compilation depuis `campagne_pca/data/cache_pca/optimale.npz`.
+Méthode complète, comparaison des axes et arbitrages : `campagne_pca/rapport_pdf/rapport.pdf`.*
