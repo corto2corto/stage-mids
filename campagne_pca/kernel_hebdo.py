@@ -4,7 +4,7 @@
 # possible : la Gram N x N pese 0,24 Go a Mediapart et 6,1 Go au Monde, contre 120 Go
 # en journalier.
 #
-# Chaine amont identique aux autres configurations (figures_config.py) :
+# Chaine amont identique aux autres configurations (figures_lib.charger) :
 # pics au-dessus du seuil -> NMS de portee 2d+1 -> fenetres completes ->
 # f = 1e5 * X / N -> z-score le long de chaque fenetre. La PCA lineaire est calculee
 # sur la MEME matrice, pour la comparaison.
