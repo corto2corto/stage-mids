@@ -166,7 +166,7 @@ composantes. La PCA linéaire reste le bon outil pour cette chaîne.
 #line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))
 #v(0.2cm)
 #text(size: 8.5pt, fill: rgb("#52514e"), style: "italic")[
-  Figures produites par `campagne_pca/figures_kernel.py`. Logos officiels via
+  Figures produites par `campagne_pca/figures.py` (commande `kernel`). Logos officiels via
   Wikimedia Commons. Méthode complète de la chaîne :
   `campagne_pca/rapport.pdf`.
 ]

@@ -235,8 +235,8 @@ porte que sur les exemples montrés.
 #line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))
 #v(0.2cm)
 #text(size: 8.5pt, fill: rgb("#52514e"), style: "italic")[
-  Figures produites par `campagne_pca/figures_config.py` et
-  `campagne_pca/figures_comparaison_hebdo.py`. Logos officiels via Wikimedia
+  Figures produites par `campagne_pca/figures.py` (commandes `config` et
+  `comparaison --jeu hebdo`). Logos officiels via Wikimedia
   Commons. Méthode complète : `campagne_pca/rapport.pdf`.
 ]
 ```

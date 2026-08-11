@@ -193,7 +193,7 @@ Les vues du modèle zéro, rejouées sur la configuration qui concentre le plus
 la variance : **Le Monde, blocs de 7 jours, fenêtres ±10 blocs (±70 jours de
 parution), seuil de surprise 6**, fréquences sans transformation, z-score par
 fenêtre. La chaîne donne **8 764 fenêtres** de 21 blocs
-(`campagne_pca/figures_optimale.py`).
+(`campagne_pca/figures.py`, commande `config`).
 
 ![Variance expliquée par composante. La ligne rouge est le repère d'un nuage sans structure (100/20 = 5 %) : cinq composantes la dépassent.](figures/optimale_spectre.png){width=80%}
 

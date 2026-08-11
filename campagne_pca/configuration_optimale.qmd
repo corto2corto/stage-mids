@@ -80,5 +80,5 @@ capte son spectre est de la texture lente plutôt que la forme du pic — ce
 qui est cohérent avec sa composante 3, un changement de régime. Pour
 maximiser les formes d'événement, viser plutôt le journalier en ±25 à ±50.
 
-*Figures produites par `campagne_pca/figures_optimale.py`. Méthode complète,
+*Figures produites par `campagne_pca/figures.py` (commande `config`). Méthode complète,
 comparaison des axes et arbitrages : `campagne_pca/rapport.pdf`.*

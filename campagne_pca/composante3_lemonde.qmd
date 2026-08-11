@@ -33,7 +33,7 @@ douze sauts réels les mieux projetés sur elle (contre trois dans la figure 5 d
 autres planches) : Côte d'Ivoire fin 2010 (« d'ivoire » et « côte », même date),
 l'identité nationale en novembre 2009, le confinement de mars 2020, mai 1968.
 
-![Point rouge : le bloc du pic détecté (position 0) ; axe vertical en écarts-types de la fenêtre. Produite par `figures_comp3.py`, même chaîne que `figures_config.py`.](figures/configA_comp3_archetypes.png){height=16.0cm}
+![Point rouge : le bloc du pic détecté (position 0) ; axe vertical en écarts-types de la fenêtre. Produite par `campagne_pca/figures.py` (commande `comp`), même chaîne que la commande `config`.](figures/configA_comp3_archetypes.png){height=16.0cm}
 
 ```{=typst}
 #pagebreak()

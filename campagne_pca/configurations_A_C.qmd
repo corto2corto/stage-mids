@@ -339,8 +339,8 @@ journaux, donc le plus sensible à ce filtre.
 #line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))
 #v(0.2cm)
 #text(size: 8.5pt, fill: rgb("#52514e"), style: "italic")[
-  Figures produites par `campagne_pca/figures_config.py` et
-  `campagne_pca/figures_comparaison_medias.py`. Logos officiels via Wikimedia
+  Figures produites par `campagne_pca/figures.py` (commandes `config` et
+  `comparaison --jeu medias`). Logos officiels via Wikimedia
   Commons. Méthode complète : `campagne_pca/rapport.pdf`.
 ]
 ```

@@ -132,7 +132,7 @@ La grille comparable aux Échos et à Mediapart, avec le même nettoyage
 #line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))
 #v(0.2cm)
 #text(size: 8.5pt, fill: rgb("#52514e"), style: "italic")[
-  Figures produites par `campagne_pca/figures_config.py` ; courbes au bleu de
+  Figures produites par `campagne_pca/figures.py` (commande `config`) ; courbes au bleu de
   charte du titre (\#163860), logo via Wikimedia Commons. Mêmes planches avec
   les trois autres médias dans `campagne_pca/configurations_A_C.pdf`.
   Méthode : `campagne_pca/rapport.pdf`.

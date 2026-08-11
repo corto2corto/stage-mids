@@ -1611,3 +1611,14 @@ déplier. Ferme l'item Kernel PCA laissé ouvert fin juillet : la PCA
 linéaire reste l'outil retenu pour la suite du mémoire. Détail :
 [`campagne_pca/kernel_hebdo.qmd`](campagne_pca/kernel_hebdo.qmd) →
 `kernel_hebdo.pdf`.
+
+## Kernel PCA sur Le Monde et Les Échos : confirmation (08/08/2026)
+
+Rejeu sur Le Monde et Les Échos
+([`campagne_pca/methode_kernel.qmd`](campagne_pca/methode_kernel.qmd)) :
+le noyau ne bat le linéaire nulle part, cum6 tombe de 33,0 % (linéaire)
+à 24,9 % (kernel, γ=1/D) au Monde, 34,3 % à 27,2 % aux Échos, l'écart se
+creusant encore à mesure que γ grandit. Même lecture que le 07-08/08 :
+le nuage des fenêtres est un continuum de formes de sauts, pas une
+surface courbe, donc rien à déplier pour le noyau. Kernel PCA
+définitivement abandonnée.
