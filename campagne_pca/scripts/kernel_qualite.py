@@ -9,6 +9,7 @@
 # cales sur les quantiles bas de la distribution des blocs.
 # Usage : .venv/bin/python -m campagne_pca.scripts.kernel_qualite
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -16,19 +17,19 @@ import pandas as pd
 from rupture.nms import nms
 from rupture.pca import nettoyer, normaliser
 
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)          # campagne_pca/
-DATA = os.path.join(ICI, "data")
-DONNEES = os.environ.get("VOCAB_DIR", os.path.join(DATA, "data_local"))
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent                    # campagne_pca/
+DATA = ICI / "data"
+DONNEES = Path(os.environ.get("VOCAB_DIR", DATA / "data_local"))
 MEDIA, DEMI = "lemonde3j", 15
 SEUILS = (5, 6)
 PLANCHERS = (0, 65_000, 87_000, 120_918)      # 0, q5, q10, q25 des blocs
 
-g = np.load(f"{DONNEES}/vocab_series_{MEDIA}.npz")
+g = np.load(DONNEES / f"vocab_series_{MEDIA}.npz")
 X, grille_dates, grille_N = g["X"], g["dates"], g["N"]
 position = {int(dt): i for i, dt in enumerate(grille_dates)}
 colonne = {m: j for j, m in enumerate(g["mots"])}
-pics = pd.read_csv(f"{DONNEES}/pics_{MEDIA}.csv")
+pics = pd.read_csv(DONNEES / f"pics_{MEDIA}.csv")
 
 print(f"{MEDIA}, fenetres +/-{DEMI} blocs (soit +/-{DEMI * 3} jours de parution)")
 print(f"{'seuil':>5} {'plancher':>9} {'fenetres':>9} {'blocs interp.':>14} "

@@ -6,6 +6,7 @@
 # huit anciens scripts figures_*.py ; elle vit maintenant dans charger().
 import os
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -17,6 +18,8 @@ import matplotlib.pyplot as plt
 
 from rupture.nms import nms
 from rupture.pca import nettoyer, normaliser, pca
+
+from campagne_pca.scripts.configs import parametres
 
 # rupture.pca et rupture.graphes imposent Agg a l'import. Sous Jupyter — donc
 # dans les blocs {python} des .qmd — cela empeche la capture des figures : on
@@ -36,13 +39,13 @@ plt.rcParams.update({
 })
 
 # campagne_pca/ est le parent de scripts/ ; data/ et figures/ y sont freres.
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)
-DATA = os.path.join(ICI, "data")
-DONNEES = os.environ.get("VOCAB_DIR", os.path.join(DATA, "data_local"))
-SPECTRES = os.path.join(DATA, "kernel_spectres")
-CACHE = os.path.join(DATA, "cache_pca")
-FIGURES = os.path.join(ICI, "rapport_qmd", "figures")
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent
+DATA = ICI / "data"
+DONNEES = Path(os.environ.get("VOCAB_DIR", DATA / "data_local"))
+SPECTRES = DATA / "kernel_spectres"
+CACHE = DATA / "cache_pca"
+FIGURES = ICI / "rapport_qmd" / "figures"
 
 # mots-evenements cherches dans le plan PC1-PC2 (absents d'une config : ignores)
 CANDIDATS = [("francisco", "conf. de San Francisco (ONU), 1945"),
@@ -57,8 +60,8 @@ CANDIDATS = [("francisco", "conf. de San Francisco (ONU), 1945"),
 
 def sortie(nom):
     """Chemin d'un png de figures/ (cree le dossier au besoin)."""
-    os.makedirs(FIGURES, exist_ok=True)
-    return os.path.join(FIGURES, nom)
+    FIGURES.mkdir(parents=True, exist_ok=True)
+    return FIGURES / nom
 
 
 def rendre(fig, chemin, dpi=200):
@@ -82,8 +85,8 @@ def depuis_cache(prefixe):
     Le cache est construit sur le serveur (scripts/construire_cache.py) : c'est
     ce qui permet de tracer en local sans les vocab_series_*.npz.
     """
-    fichier = os.path.join(CACHE, f"{prefixe}.npz")
-    if not os.path.exists(fichier):
+    fichier = CACHE / f"{prefixe}.npz"
+    if not fichier.exists():
         return None
     g = np.load(fichier, allow_pickle=False)
     Z, variance = g["Z"], g["variance"]
@@ -103,12 +106,12 @@ def charger(media, demi, seuil, pics="", nettoie=0):
     le mot, la date, la surprise et le volume (pic en occurrences brutes) de
     chaque fenetre. nettoie > 0 interpole les jours dont N_t passe sous ce seuil.
     """
-    g = np.load(f"{DONNEES}/vocab_series_{media}.npz")
+    g = np.load(DONNEES / f"vocab_series_{media}.npz")
     X, grille_dates, grille_N = g["X"], g["dates"], g["N"]
     position = {int(dt): i for i, dt in enumerate(grille_dates)}
     colonne = {m: j for j, m in enumerate(g["mots"])}
 
-    p = pd.read_csv(f"{DONNEES}/pics_{media}{pics}.csv")
+    p = pd.read_csv(DONNEES / f"pics_{media}{pics}.csv")
     p = p[p["surprise"] >= seuil].assign(pos=lambda x: x["date"].map(position))
     gardes = [gr.index.to_numpy()[nms(gr["pos"].to_numpy(), gr["surprise"].to_numpy(),
                                      2 * demi + 1)[0]]
@@ -137,7 +140,8 @@ def charger(media, demi, seuil, pics="", nettoie=0):
         K50=int(np.searchsorted(cum, 0.5) + 1))
 
 
-def presentation(media_nom, demi, seuil, pas_jours, couleur, accent, libelles=None):
+def presentation(media_nom, demi, seuil, pas_jours, couleur, accent, libelles=None,
+                  decalages=None):
     """Habillage d'une planche : titre, unite de l'axe, couleurs, noms des composantes."""
     if pas_jours == 1:
         grille_libelle, unite_axe = (f"journalier, fenêtres ±{demi} jours",
@@ -148,7 +152,7 @@ def presentation(media_nom, demi, seuil, pas_jours, couleur, accent, libelles=No
         unite_axe = f"blocs de {pas_jours} jours autour du pic"
     return SimpleNamespace(
         titre=f"{media_nom}, {grille_libelle}, seuil de surprise {seuil:g}",
-        unite_axe=unite_axe, couleur=couleur, accent=accent,
+        unite_axe=unite_axe, couleur=couleur, accent=accent, decalages=decalages,
         libelles=libelles or [f"composante {k + 1}" for k in range(6)])
 
 
@@ -200,6 +204,20 @@ def filtre_volume(volume, vol_q, vol_min, mini):
     return seuil_vol, eligibles
 
 
+def config(prefixe, mini=3):
+    """Une configuration chargee depuis le cache et prete a tracer.
+
+    Factorise les quatre lignes (parametres -> cache -> presentation -> filtre
+    de volume) repetees a l'identique dans les .qmd de la campagne.
+    """
+    p = parametres(prefixe)
+    d = depuis_cache(prefixe)
+    pres = presentation(p["media_nom"], p["demi"], p["seuil"], p["pas_jours"],
+                         p["couleur"], p["accent"], p["libelles"], p["decalages"])
+    seuil_vol, eligibles = filtre_volume(d.volume, p["vol_q"], p["vol_min"], mini)
+    return d, pres, seuil_vol, eligibles
+
+
 def ticks_log(ax, v):
     """Graduations en chiffres simples sur un axe log : matplotlib ecrirait
     « 2 x 10^1 » sous la decade."""
@@ -232,7 +250,7 @@ def donnees_synthese():
 
     Cellule = (grille, demi, seuil, filtre) ; equilibree = presente pour les 4 medias.
     """
-    r = pd.read_csv(os.path.join(DATA, "resultats_rotation.csv"))
+    r = pd.read_csv(DATA / "resultats_rotation.csv")
     r = r[(r["n_fenetres"] == 5000) & ~r["tag"].str.contains("_log")].copy()
     r["base"] = r["media"].str.replace(r"(3j|7j)$", "", regex=True)
     r["grille"] = r["media"].str.extract(r"(3j|7j)$")[0].fillna("1j")
@@ -506,4 +524,45 @@ def vue_comp_archetypes(d, pres, chemin, comp, seuil_vol, eligibles):
                       if seuil_vol > 0 else "")
     fig.suptitle(f"Composante {comp} : les 12 sauts réels les plus alignés (z-score)"
                  f"{filtre_libelle}\n{pres.titre}", fontsize=10.5, color=ENCRE2, y=0.965)
+    return rendre(fig, chemin)
+
+
+# --- diagnostics de qualite (pas specifiques a une configuration) -----------
+
+def vue_qualite_corpus(taux, effectifs, noms_tranches, comp, pres, chemin):
+    """Part de projections extremes sur une composante, par tranche d'une variable
+    de qualite (ex. N_min, le plus petit volume de corpus dans la fenetre)."""
+    fig, ax = plt.subplots(figsize=(6.4, 3.8))
+    x = np.arange(len(taux))
+    ax.bar(x, taux, width=0.62, color=pres.couleur)
+    for xi, (t, n) in enumerate(zip(taux, effectifs)):
+        ax.annotate(f"{t:.2f} %".replace(".", ","), (xi, t), xytext=(0, 4),
+                    textcoords="offset points", ha="center", fontsize=8.5, color=ENCRE2)
+        ax.annotate(f"{n:,} fen.".replace(",", " "), (xi, 0), xytext=(0, -30),
+                    textcoords="offset points", ha="center", fontsize=7.5, color=ENCRE2)
+    ax.set_xticks(x, noms_tranches, fontsize=8)
+    ax.set_ylabel(f"part de projections extrêmes\n(|proj. comp. {comp}| > 2,5, en %)")
+    ax.set_title(f"Projections extrêmes de la composante {comp} par tranche\n{pres.titre}",
+                 fontsize=9.5, color=ENCRE2)
+    cadre(ax)
+    fig.tight_layout()
+    return rendre(fig, chemin)
+
+
+def vue_nms_evenement(dates, serie, avant, apres, mot, pres, chemin):
+    """Serie quotidienne d'un mot, pics detectes avant/apres dedoublonnage NMS."""
+    fig, ax = plt.subplots(figsize=(9.2, 3.6))
+    ax.plot(dates, serie, lw=.5, color=GRIS)
+    ax.scatter(avant["date"], avant["f_t"], s=9, color=pres.couleur, zorder=3,
+               label=f"{len(avant)} pics détectés")
+    ax.scatter(apres["date"], apres["f_t"], s=42, color=pres.accent, zorder=4,
+               marker="o", facecolors="none", linewidths=1.6,
+               label=f"{len(apres)} représentants gardés par le NMS")
+    ax.set_ylabel("$f_t$ (pour 100 000 mots)")
+    ax.legend(frameon=False, fontsize=8.5, loc="upper right")
+    cadre(ax)
+    ax.margins(x=0)
+    ax.set_title(f"« {mot} » : effet du NMS (dédoublonnage des pics voisins)",
+                 fontsize=9.5, color=ENCRE2)
+    fig.tight_layout()
     return rendre(fig, chemin)

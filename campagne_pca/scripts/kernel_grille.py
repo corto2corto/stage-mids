@@ -22,6 +22,7 @@
 import argparse
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -42,23 +43,23 @@ ap.add_argument("--mults", default="", help="sous-ensemble de multiplicateurs, "
                  "seul avant de lancer les 8) ; vide = les 8 par defaut")
 a = ap.parse_args()
 
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)          # campagne_pca/
-DATA = os.path.join(ICI, "data")
-DONNEES = os.environ.get("VOCAB_DIR", os.path.join(DATA, "data_local"))
-SORTIE = os.path.join(DATA, "kernel_spectres")
-os.makedirs(SORTIE, exist_ok=True)
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent                    # campagne_pca/
+DATA = ICI / "data"
+DONNEES = Path(os.environ.get("VOCAB_DIR", DATA / "data_local"))
+SORTIE = DATA / "kernel_spectres"
+SORTIE.mkdir(parents=True, exist_ok=True)
 MEDIA, DEMI, SEUIL, N_VEC = a.media, a.demi, a.seuil, a.n_vec
 MULTIPLES = tuple(float(m) for m in a.mults.split(",")) if a.mults else \
     (0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 10.0, 30.0)
 
 # --- chaine : pics filtres -> NMS -> fenetres -> z-score
-g = np.load(f"{DONNEES}/vocab_series_{MEDIA}.npz")
+g = np.load(DONNEES / f"vocab_series_{MEDIA}.npz")
 X, grille_dates, grille_N = g["X"], g["dates"], g["N"]
 position = {int(dt): i for i, dt in enumerate(grille_dates)}
 colonne = {m: j for j, m in enumerate(g["mots"])}
 
-p = pd.read_csv(f"{DONNEES}/pics_{MEDIA}{a.pics}.csv")
+p = pd.read_csv(DONNEES / f"pics_{MEDIA}{a.pics}.csv")
 p = p[p["surprise"] >= SEUIL].assign(pos=lambda x: x["date"].map(position))
 gardes = [gr.index.to_numpy()[nms(gr["pos"].to_numpy(), gr["surprise"].to_numpy(),
                                  2 * DEMI + 1)[0]]
@@ -142,8 +143,7 @@ for mult in MULTIPLES:
     proj = vec * np.sqrt(np.clip(lam_h, 0, None))   # coordonnees kernel PCA
 
     v = np.clip(lam, 0, None) / total
-    fichier = (f"{SORTIE}/grille_{MEDIA}_d{DEMI}_s{SEUIL:g}_m{mult:g}"
-               f"_g{gamma:.6g}.npz")
+    fichier = SORTIE / f"grille_{MEDIA}_d{DEMI}_s{SEUIL:g}_m{mult:g}_g{gamma:.6g}.npz"
     np.savez_compressed(fichier, lam=lam, total=total, var_lin=var_lin,
                         proj=proj.astype(np.float32), lam_vec=lam_h,
                         n=n, D=D, gamma=gamma, mult=mult, gamma_med=gamma_med,

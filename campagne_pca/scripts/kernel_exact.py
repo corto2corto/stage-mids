@@ -9,6 +9,7 @@
 # Usage : .venv/bin/python -m campagne_pca.scripts.kernel_exact
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -18,18 +19,18 @@ from sklearn.metrics.pairwise import rbf_kernel
 from rupture.nms import nms
 from rupture.pca import normaliser, pca
 
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)          # campagne_pca/
-DATA = os.path.join(ICI, "data")
-DONNEES = os.environ.get("VOCAB_DIR", os.path.join(DATA, "data_local"))
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent                    # campagne_pca/
+DATA = ICI / "data"
+DONNEES = Path(os.environ.get("VOCAB_DIR", DATA / "data_local"))
 MEDIA, DEMI, SEUIL = "lemonde3j", 15, 6
 GAMMAS = (0.01, 0.0323, 0.1)                 # 0.0323 = 1/D
 
-g = np.load(f"{DONNEES}/vocab_series_{MEDIA}.npz")
+g = np.load(DONNEES / f"vocab_series_{MEDIA}.npz")
 X, grille_dates, grille_N = g["X"], g["dates"], g["N"]
 position = {int(dt): i for i, dt in enumerate(grille_dates)}
 colonne = {m: j for j, m in enumerate(g["mots"])}
-pics = pd.read_csv(f"{DONNEES}/pics_{MEDIA}.csv")
+pics = pd.read_csv(DONNEES / f"pics_{MEDIA}.csv")
 
 p = pics[pics["surprise"] >= SEUIL].assign(pos=lambda x: x["date"].map(position))
 gardes = [gr.index.to_numpy()[nms(gr["pos"].to_numpy(), gr["surprise"].to_numpy(),

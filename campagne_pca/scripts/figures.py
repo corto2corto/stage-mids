@@ -14,7 +14,7 @@
 #   kernel-resume     tableau de synthese kernel + plans, pour kernel_hebdo.qmd
 import argparse
 import glob
-import os
+from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -69,7 +69,7 @@ def cmd_config(a):
     lib.vue_archetypes(d, pres, lib.sortie(f"{a.prefixe}_archetypes.png"),
                        seuil_vol, eligibles)
     lib.vue_reconstruction(d, pres, lib.sortie(f"{a.prefixe}_reconstruction.png"))
-    print(f"-> {os.path.relpath(lib.FIGURES)} : "
+    print(f"-> {lib.FIGURES.relative_to(Path.cwd())} : "
           + ", ".join(f"{a.prefixe}_{v}.png" for v in
                       ("spectre", "composantes", "plan12", "archetypes", "reconstruction")))
 
@@ -90,7 +90,7 @@ def cmd_comp(a):
     seuil_vol, eligibles = lib.filtre_volume(d.volume, a.vol_q, a.vol_min, 12)
     chemin = lib.sortie(f"{a.prefixe}_comp{a.comp}_archetypes.png")
     lib.vue_comp_archetypes(d, pres, chemin, a.comp, seuil_vol, eligibles)
-    print(f"-> {os.path.relpath(chemin)}")
+    print(f"-> {chemin.relative_to(Path.cwd())}")
 
 
 # --- comparaison : profils compares de plusieurs configurations --------------
@@ -99,7 +99,7 @@ def cmd_comparaison(a):
     jeu = JEUX[a.jeu]
     chemin = lib.sortie(jeu["sortie"])
     lib.vue_comparaison(jeu["lignes"], jeu["titre"], jeu["rect"], chemin)
-    print(f"-> {os.path.relpath(chemin)}")
+    print(f"-> {chemin.relative_to(Path.cwd())}")
 
 
 # --- synthese : effets des hyperparametres, carte des medias -----------------
@@ -111,11 +111,11 @@ def cmd_synthese(a):
 
     chemin = lib.sortie("synthese_axes.png")
     lib.vue_synthese_axes(r, chemin)
-    print(f"-> {os.path.relpath(chemin)}")
+    print(f"-> {chemin.relative_to(Path.cwd())}")
 
     chemin = lib.sortie("synthese_carte_medias.png")
     lib.vue_synthese_carte(r, chemin)
-    print(f"-> {os.path.relpath(chemin)}")
+    print(f"-> {chemin.relative_to(Path.cwd())}")
 
     for col, titre, _, ordre in lib.AXES_SYNTHESE:  # tableau des moyennes, pour le rapport
         m = r.groupby(col)[["exces6", "alignement6"]].mean().loc[ordre].round(3)
@@ -290,7 +290,7 @@ def cmd_kernel(a):
     fig.tight_layout(rect=(0, 0, 1, 0.92))
     fig.savefig(lib.sortie("kernel_plan12.png"), bbox_inches="tight", dpi=200)
     plt.close(fig)
-    print(f"-> {os.path.relpath(lib.FIGURES)} : kernel_spectre.png, kernel_piege.png, "
+    print(f"-> {lib.FIGURES.relative_to(Path.cwd())} : kernel_spectre.png, kernel_piege.png, "
           "kernel_plan12.png")
 
 
@@ -309,8 +309,8 @@ GRILLE_MEDIAS = [("mediapart7j", "_s3", "Mediapart", "#fc392b"),
 
 def spectre_grille(media, demi, seuil, mult):
     """Le .npz d'un point de la grille de gamma (kernel_grille.py)."""
-    motif = f"{lib.SPECTRES}/grille_{media}_d{demi}_s{seuil:g}_m{mult:g}_g*.npz"
-    return np.load(glob.glob(motif)[0], allow_pickle=True)
+    motif = lib.SPECTRES / f"grille_{media}_d{demi}_s{seuil:g}_m{mult:g}_g*.npz"
+    return np.load(glob.glob(str(motif))[0], allow_pickle=True)
 
 
 def cmd_grille_plans(a):
@@ -350,7 +350,7 @@ def cmd_grille_plans(a):
         chemin = lib.sortie(f"grille_plan12_{media}.png")
         fig.savefig(chemin, bbox_inches="tight", dpi=170)
         plt.close(fig)
-        print(f"-> {os.path.relpath(chemin, lib.ICI)}")
+        print(f"-> {chemin.relative_to(lib.ICI)}")
 
 
 # Trois gamma retenus sur les huit de la grille, memes multiplicateurs pour les
@@ -437,7 +437,7 @@ def cmd_kernel_resume(a):
     chemin = lib.sortie(f"kernel_resume_tableau{a.sortie_suffixe}.png")
     fig.savefig(chemin, bbox_inches="tight", dpi=220, facecolor="white")
     plt.close(fig)
-    print(f"-> {os.path.relpath(chemin, lib.ICI)}")
+    print(f"-> {chemin.relative_to(lib.ICI)}")
 
     # plan PC1-PC2, memes 3 gamma que le tableau
     fig, axes = plt.subplots(3, 4, figsize=(11.2, 8.4))
@@ -471,7 +471,7 @@ def cmd_kernel_resume(a):
     chemin = lib.sortie(f"kernel_resume_plans{a.sortie_suffixe}.png")
     fig.savefig(chemin, bbox_inches="tight", dpi=170, facecolor="white")
     plt.close(fig)
-    print(f"-> {os.path.relpath(chemin, lib.ICI)}")
+    print(f"-> {chemin.relative_to(lib.ICI)}")
 
 
 # --- ligne de commande -------------------------------------------------------

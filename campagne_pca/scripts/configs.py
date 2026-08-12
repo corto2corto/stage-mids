@@ -44,6 +44,14 @@ DECALAGES_OPTIMALE = {"francisco": (9, 4, "left"), "algérie": (-9, -14, "right"
                       "mitterrand": (9, 6, "left"), "chirac": (11, -15, "left"),
                       "attentats": (9, 11, "left"), "jaunes": (2, -18, "left")}
 
+# Noms des composantes du modele zero (exploration/figures_pca_lemonde.py et
+# figures_archetypes_agrege.py) ; seule la 1re differe grille au jour / grille
+# en blocs.
+LIBELLES_MODELE_ZERO_JOUR = ["pic isolé d'un jour", "plus actif après le pic",
+                             "bascule avant/après", "creux la veille, rebond",
+                             "oscillation lente", "oscillation rapide"]
+LIBELLES_MODELE_ZERO_BLOC = ["pic isolé d'un bloc"] + LIBELLES_MODELE_ZERO_JOUR[1:]
+
 CONFIGS = dict([
     # --- configurations_A_C.qmd + configurations_figaro.qmd (tableau l. 59-62)
     _c("configA", "lemonde", 3, 15, 6.0, 14_102),
@@ -64,6 +72,19 @@ CONFIGS = dict([
     _c("optimale", "lemonde", 7, 10, 6.0, 8_764, couleur=BLEU_ETUDE,
        vol_q=0, vol_min=0, libelles=LIBELLES_OPTIMALE,
        decalages=DECALAGES_OPTIMALE),
+
+    # --- modele zero (presentation_sauts.qmd) : chaine officielle rupture/
+    # (extraire -> pics_masse -> nms -> fenetres_masse -> pca), seuil 4,
+    # demi 15 partout. Ex-resultats_PCA/, fusionne ici : meme mecanique que
+    # les configs ci-dessus (charger() reutilise deja nettoyer/normaliser/pca
+    # de rupture.pca), juste d'autres hyperparametres. Pas de filtre de
+    # volume (planches produites avant son ajout, comme "optimale").
+    _c("lemonde", "lemonde", 1, 15, 4.0, 121_805, nettoie=5000,
+       vol_q=0, vol_min=0, libelles=LIBELLES_MODELE_ZERO_JOUR),
+    _c("lemonde3j", "lemonde", 3, 15, 4.0, 49_771,
+       vol_q=0, vol_min=0, libelles=LIBELLES_MODELE_ZERO_BLOC),
+    _c("lemonde7j", "lemonde", 7, 15, 4.0, 26_457,
+       vol_q=0, vol_min=0, libelles=LIBELLES_MODELE_ZERO_BLOC),
 ])
 
 # Planches d'une seule composante (composante3_lemonde.qmd) : configuration + rang.

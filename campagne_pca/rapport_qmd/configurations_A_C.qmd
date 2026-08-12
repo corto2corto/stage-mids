@@ -21,19 +21,12 @@ jupyter: python3
 ```{python}
 # Figures calculees ici depuis le cache PCA (data/cache_pca/) : aucun png sur
 # le disque. Cache construit sur le serveur par scripts/construire_cache.py.
-import sys, os
-sys.path.insert(0, os.path.abspath("../.."))
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
 
 import campagne_pca.scripts.figures_lib as lib
-from campagne_pca.scripts.configs import parametres, JEUX
-
-def config(prefixe):
-    p = parametres(prefixe)
-    d = lib.depuis_cache(prefixe)
-    pres = lib.presentation(p["media_nom"], p["demi"], p["seuil"], p["pas_jours"],
-                            p["couleur"], p["accent"], p["libelles"])
-    seuil_vol, eligibles = lib.filtre_volume(d.volume, p["vol_q"], p["vol_min"], 3)
-    return d, pres, seuil_vol, eligibles
+from campagne_pca.scripts.configs import JEUX
 ```
 
 ```{=typst}
@@ -130,7 +123,7 @@ lib.vue_comparaison(jeu["lignes"], jeu["titre"], jeu["rect"], None)
 ```{python}
 #| label: fig-configA-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("configA")
+d, pres, seuil_vol, eligibles = lib.config("configA")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -171,7 +164,7 @@ lib.vue_reconstruction(d, pres, None)
 ```{python}
 #| label: fig-configC-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("configC")
+d, pres, seuil_vol, eligibles = lib.config("configC")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -238,7 +231,7 @@ configurations.
 ```{python}
 #| label: fig-configH-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("configH")
+d, pres, seuil_vol, eligibles = lib.config("configH")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -279,7 +272,7 @@ lib.vue_reconstruction(d, pres, None)
 ```{python}
 #| label: fig-configG-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("configG")
+d, pres, seuil_vol, eligibles = lib.config("configG")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -326,7 +319,7 @@ lib.vue_reconstruction(d, pres, None)
 ```{python}
 #| label: fig-configD-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("configD")
+d, pres, seuil_vol, eligibles = lib.config("configD")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -379,7 +372,7 @@ journaux, donc le plus sensible à ce filtre.
 ```{python}
 #| label: fig-configF-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("configF")
+d, pres, seuil_vol, eligibles = lib.config("configF")
 lib.vue_spectre(d, pres, None)
 ```
 

@@ -7,7 +7,7 @@
 # rupture/pca.py) + indicateurs par composante : croisements de zero, part
 # d'energie a moins de 25 % de la largeur du centre, correlation a une rampe.
 # Usage : .venv/bin/python -m campagne_pca.scripts.inspection_composantes
-import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -17,18 +17,18 @@ import matplotlib.pyplot as plt
 
 from rupture.graphes import BLEU, GRILLE, ENCRE2
 
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)          # campagne_pca/
-DATA = os.path.join(ICI, "data")
-FIGURES = os.path.join(ICI, "figures")
-os.makedirs(FIGURES, exist_ok=True)
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent                    # campagne_pca/
+DATA = ICI / "data"
+FIGURES = ICI / "figures"
+FIGURES.mkdir(parents=True, exist_ok=True)
 CONFIGS = ["lefigaro7j_d50_s4_tous_n0", "lefigaro7j_d25_s4_tous_n0",
            "lefigaro7j_d15_s4_tous_n0", "lemonde_d15_s4_tous_n5000",
            "mediapart_d15_s4_tous_n2000"]
 
 for tag in CONFIGS:
-    chemin = os.path.join(DATA, "data_local", f"composantes_{tag}.csv")
-    if not os.path.exists(chemin):
+    chemin = DATA / "data_local" / f"composantes_{tag}.csv"
+    if not chemin.exists():
         print(f"{tag} : composantes absentes en local, sautee")
         continue
     c = pd.read_csv(chemin, index_col="composante")
@@ -58,6 +58,6 @@ for tag in CONFIGS:
     fig.suptitle(f"Profils des 6 premières composantes — {tag}",
                  fontsize=10, color=ENCRE2)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
-    fig.savefig(f"{FIGURES}/composantes_{tag}.png", bbox_inches="tight", dpi=200)
+    fig.savefig(FIGURES / f"composantes_{tag}.png", bbox_inches="tight", dpi=200)
     plt.close(fig)
     print(f"  -> figures/composantes_{tag}.png")

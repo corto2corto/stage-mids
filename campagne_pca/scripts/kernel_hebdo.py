@@ -20,6 +20,7 @@
 import argparse
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -35,21 +36,21 @@ ap.add_argument("--seuil", type=float, default=4.0, help="seuil de surprise")
 ap.add_argument("--pics", default="", help="suffixe du fichier pics (ex. _s3)")
 a = ap.parse_args()
 
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)          # campagne_pca/
-DATA = os.path.join(ICI, "data")
-DONNEES = os.environ.get("VOCAB_DIR", os.path.join(DATA, "data_local"))
-SORTIE = os.path.join(DATA, "kernel_spectres")
-os.makedirs(SORTIE, exist_ok=True)
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent                    # campagne_pca/
+DATA = ICI / "data"
+DONNEES = Path(os.environ.get("VOCAB_DIR", DATA / "data_local"))
+SORTIE = DATA / "kernel_spectres"
+SORTIE.mkdir(parents=True, exist_ok=True)
 MEDIA, DEMI, SEUIL = a.media, a.demi, a.seuil
 
 # --- chaine : pics filtres -> NMS -> fenetres -> z-score
-g = np.load(f"{DONNEES}/vocab_series_{MEDIA}.npz")
+g = np.load(DONNEES / f"vocab_series_{MEDIA}.npz")
 X, grille_dates, grille_N = g["X"], g["dates"], g["N"]
 position = {int(dt): i for i, dt in enumerate(grille_dates)}
 colonne = {m: j for j, m in enumerate(g["mots"])}
 
-p = pd.read_csv(f"{DONNEES}/pics_{MEDIA}{a.pics}.csv")
+p = pd.read_csv(DONNEES / f"pics_{MEDIA}{a.pics}.csv")
 p = p[p["surprise"] >= SEUIL].assign(pos=lambda x: x["date"].map(position))
 gardes = [gr.index.to_numpy()[nms(gr["pos"].to_numpy(), gr["surprise"].to_numpy(),
                                  2 * DEMI + 1)[0]]
@@ -93,11 +94,11 @@ for gamma in GAMMAS:
     del K
 
     v = np.clip(lam, 0, None) / total
-    fichier = f"{SORTIE}/kernel_{MEDIA}_d{DEMI}_s{SEUIL:g}_g{gamma:.6g}.npz"
+    fichier = SORTIE / f"kernel_{MEDIA}_d{DEMI}_s{SEUIL:g}_g{gamma:.6g}.npz"
     np.savez_compressed(fichier, lam=lam, total=total, var_lin=var_lin,
                         n=n, D=D, gamma=gamma, demi=DEMI, seuil=SEUIL)
     print(f"  RBF gamma={gamma:<8.4g} : comp1 {v[0] * 100:5.2f} %, "
           f"cum6 {v[:6].sum() * 100:5.2f} %, cum{D - 1} {v[:D - 1].sum() * 100:5.2f} % "
           f"| somme/trace {lam.sum() / total:.6f} | noyau {t1 - t0:.0f} s, "
           f"diagonalisation {time.time() - t1:.0f} s", flush=True)
-    print(f"    -> {os.path.relpath(fichier, ICI)}", flush=True)
+    print(f"    -> {fichier.relative_to(ICI)}", flush=True)

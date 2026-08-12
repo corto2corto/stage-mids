@@ -21,19 +21,12 @@ jupyter: python3
 ```{python}
 # Figures calculees ici depuis le cache PCA (data/cache_pca/) : aucun png sur
 # le disque. Cache construit sur le serveur par scripts/construire_cache.py.
-import sys, os
-sys.path.insert(0, os.path.abspath("../.."))
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
 
 import campagne_pca.scripts.figures_lib as lib
-from campagne_pca.scripts.configs import parametres, JEUX
-
-def config(prefixe):
-    p = parametres(prefixe)
-    d = lib.depuis_cache(prefixe)
-    pres = lib.presentation(p["media_nom"], p["demi"], p["seuil"], p["pas_jours"],
-                            p["couleur"], p["accent"], p["libelles"])
-    seuil_vol, eligibles = lib.filtre_volume(d.volume, p["vol_q"], p["vol_min"], 3)
-    return d, pres, seuil_vol, eligibles
+from campagne_pca.scripts.configs import JEUX
 ```
 
 ```{=typst}
@@ -118,7 +111,7 @@ lib.vue_comparaison(jeu["lignes"], jeu["titre"], jeu["rect"], None)
 ```{python}
 #| label: fig-hebdoMonde-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("hebdoMonde")
+d, pres, seuil_vol, eligibles = lib.config("hebdoMonde")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -165,7 +158,7 @@ lib.vue_reconstruction(d, pres, None)
 ```{python}
 #| label: fig-hebdoFigaro-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("hebdoFigaro")
+d, pres, seuil_vol, eligibles = lib.config("hebdoFigaro")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -212,7 +205,7 @@ lib.vue_reconstruction(d, pres, None)
 ```{python}
 #| label: fig-hebdoEchos-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("hebdoEchos")
+d, pres, seuil_vol, eligibles = lib.config("hebdoEchos")
 lib.vue_spectre(d, pres, None)
 ```
 
@@ -259,7 +252,7 @@ lib.vue_reconstruction(d, pres, None)
 ```{python}
 #| label: fig-hebdoMediapart-spectre
 #| fig-cap: "Spectre."
-d, pres, seuil_vol, eligibles = config("hebdoMediapart")
+d, pres, seuil_vol, eligibles = lib.config("hebdoMediapart")
 lib.vue_spectre(d, pres, None)
 ```
 

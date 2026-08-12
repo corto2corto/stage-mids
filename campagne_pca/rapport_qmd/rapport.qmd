@@ -20,17 +20,13 @@ jupyter: python3
 # Figures calculees ici : synthese_* depuis data/resultats_rotation.csv (calcul
 # leger), optimale_* depuis le cache PCA (data/cache_pca/). Aucun png sur le
 # disque. Cache construit sur le serveur par scripts/construire_cache.py.
-import sys, os
-sys.path.insert(0, os.path.abspath("../.."))
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
 
 import campagne_pca.scripts.figures_lib as lib
-from campagne_pca.scripts.configs import parametres
 
-p = parametres("optimale")
-d = lib.depuis_cache("optimale")
-pres = lib.presentation(p["media_nom"], p["demi"], p["seuil"], p["pas_jours"],
-                        p["couleur"], p["accent"], p["libelles"])
-seuil_vol, eligibles = lib.filtre_volume(d.volume, p["vol_q"], p["vol_min"], 3)
+d, pres, seuil_vol, eligibles = lib.config("optimale")
 ```
 
 ## La question et le dispositif
@@ -258,7 +254,7 @@ génériques, comme en journalier.
 ```{python}
 #| label: fig-optimale-plan12
 #| fig-cap: "Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements."
-lib.vue_plan12(d, pres, None, p["decalages"])
+lib.vue_plan12(d, pres, None, pres.decalages)
 ```
 
 ```{python}

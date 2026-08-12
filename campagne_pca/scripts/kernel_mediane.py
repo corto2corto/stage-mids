@@ -10,6 +10,7 @@
 # facteur 2, plus les quantiles pour situer les gammas deja calcules.
 # Usage : VOCAB_DIR=... .venv/bin/python -m campagne_pca.scripts.kernel_mediane
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -17,21 +18,21 @@ import pandas as pd
 from rupture.nms import nms
 from rupture.pca import normaliser
 
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)          # campagne_pca/
-DATA = os.path.join(ICI, "data")
-DONNEES = os.environ.get("VOCAB_DIR", os.path.join(DATA, "data_local"))
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent                    # campagne_pca/
+DATA = ICI / "data"
+DONNEES = Path(os.environ.get("VOCAB_DIR", DATA / "data_local"))
 DEMI, SEUIL, N_PAIRES, GRAINE = 10, 4.0, 4_000_000, 0
 CONFIGS = [("lefigaro7j", "_s3"), ("lesechos7j", "_s3"), ("mediapart7j", "_s3")]
 
 rng = np.random.default_rng(GRAINE)
 for media, suffixe in CONFIGS:
-    g = np.load(f"{DONNEES}/vocab_series_{media}.npz")
+    g = np.load(DONNEES / f"vocab_series_{media}.npz")
     X, grille_dates, grille_N = g["X"], g["dates"], g["N"]
     position = {int(dt): i for i, dt in enumerate(grille_dates)}
     colonne = {m: j for j, m in enumerate(g["mots"])}
 
-    p = pd.read_csv(f"{DONNEES}/pics_{media}{suffixe}.csv")
+    p = pd.read_csv(DONNEES / f"pics_{media}{suffixe}.csv")
     p = p[p["surprise"] >= SEUIL].assign(pos=lambda x: x["date"].map(position))
     gardes = [gr.index.to_numpy()[nms(gr["pos"].to_numpy(), gr["surprise"].to_numpy(),
                                      2 * DEMI + 1)[0]]

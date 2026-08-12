@@ -22,18 +22,13 @@ jupyter: python3
 # inserees directement dans le PDF : aucun png sur le disque. Le cache est
 # construit sur le serveur par scripts/construire_cache.py ; les sources
 # (vocab_series_*.npz, plus d'1 Go) n'y sont jamais necessaires.
-import sys, os
-sys.path.insert(0, os.path.abspath("../.."))       # racine du depot, pour importer campagne_pca
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))  # racine du depot, pour importer campagne_pca
 
 import campagne_pca.scripts.figures_lib as lib
-from campagne_pca.scripts.configs import parametres
 
-CONFIG = "optimale"
-p = parametres(CONFIG)
-d = lib.depuis_cache(CONFIG)
-pres = lib.presentation(p["media_nom"], p["demi"], p["seuil"], p["pas_jours"],
-                        p["couleur"], p["accent"], p["libelles"])
-seuil_vol, eligibles = lib.filtre_volume(d.volume, p["vol_q"], p["vol_min"], 3)
+d, pres, seuil_vol, eligibles = lib.config("optimale")
 ```
 
 Configuration retenue à l'issue de la campagne (~4 000 configurations
@@ -75,7 +70,7 @@ Quatre formes lisibles, transposées à l'échelle de la semaine :
 ```{python}
 #| label: fig-plan12
 #| fig-cap: "Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements."
-lib.vue_plan12(d, pres, None, p["decalages"])
+lib.vue_plan12(d, pres, None, pres.decalages)
 ```
 
 Le nuage est unimodal : pas de familles de sauts séparées, mais un continuum.

@@ -3,16 +3,17 @@
 # que kernel_grille.py (pics -> NMS -> fenetres completes), juste le compte.
 # Usage : VOCAB_DIR=... .venv/bin/python -m campagne_pca.scripts.compte_fenetres
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from rupture.nms import nms
 
-SCRIPTS = os.path.dirname(os.path.abspath(__file__))
-ICI = os.path.dirname(SCRIPTS)          # campagne_pca/
-DATA = os.path.join(ICI, "data")
-DONNEES = os.environ.get("VOCAB_DIR", os.path.join(DATA, "data_local"))
+SCRIPTS = Path(__file__).resolve().parent
+ICI = SCRIPTS.parent                    # campagne_pca/
+DATA = ICI / "data"
+DONNEES = Path(os.environ.get("VOCAB_DIR", DATA / "data_local"))
 
 # (media, suffixe_pics, nom, demis, seuils)
 CONFIGS = [
@@ -24,10 +25,10 @@ CONFIGS = [
 
 print(f"{'media':24s} {'demi':>5s} {'seuil':>6s} {'fenetres':>9s} {'Gram (Go)':>10s}")
 for media, suffixe, nom, demis, seuils in CONFIGS:
-    g = np.load(f"{DONNEES}/vocab_series_{media}.npz")
+    g = np.load(DONNEES / f"vocab_series_{media}.npz")
     grille_dates = g["dates"]
     position = {int(dt): i for i, dt in enumerate(grille_dates)}
-    pics = pd.read_csv(f"{DONNEES}/pics_{media}{suffixe}.csv")
+    pics = pd.read_csv(DONNEES / f"pics_{media}{suffixe}.csv")
     for seuil in seuils:
         p = pics[pics["surprise"] >= seuil].assign(pos=lambda x: x["date"].map(position))
         for demi in demis:
