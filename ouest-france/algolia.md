@@ -1,0 +1,119 @@
+# Accès Algolia Ouest-France
+
+Ouest-France expose son contenu via Algolia (moteur de recherche SaaS), avec
+**deux App ID distincts** qui donnent des données totalement différentes.
+Les confondre fait perdre du temps.
+
+| App ID | Index | Contenu |
+|---|---|---|
+| `76T47RYM6W` | `pages`, `pages_qual`, `pages_test` | 11,6 M pages, archives papier scannées OCR (~1955-2026) |
+| `C8KP7JV01T` | `articles` (+ `articles_bydate_asc/desc`, `elections`, `programme_tv`, `videos`, `podcasts`, `cinema`…) | **39,2 M enregistrements, 1990-2026** |
+
+Exploration : `python -m exploration.sonder_algolia_of` (clé via `OF_ALGOLIA_KEY`).
+
+## Index `articles` (C8KP7JV01T)
+
+8 titres du groupe SIPA séparables par le champ `source` — détail dans
+[sources.md](sources.md). Volume : ~1,7-2,4 M/an de 2002 à 2016 (pic 2004),
+~700 k/an depuis 2021.
+
+**Champs** : `titre`, `chapeau` (résumé), `texte` (**le corps de l'article**,
+voir ci-dessous), `article` (booléen, pas le contenu malgré son nom), `payant`,
+`print`, `nbMots`, `categories`, `zonesGeo`, `datePublication`, `pagesVuesAT`,
+`url`. `proprietaires`/`producteurs` = UUID interne (auteur/service), pas le
+groupe propriétaire.
+
+### Le texte intégral est dans `articles_bydate_desc`, pas dans `articles`
+
+C'est **l'index** qui décide, pas l'endpoint : `articles` ne renvoie jamais le
+champ `texte` (même avec `attributesToRetrieve: ["*"]` ou un `getObject`
+direct), alors que le réplica `articles_bydate_desc` le renvoie systématiquement.
+
+Le texte est **complet** (il se termine proprement, pas de coupure), et il est
+servi **y compris pour les articles payants** — donc pas besoin de scraper ni
+de contourner le paywall.
+
+L'écart entre `nbMots` et le nombre de mots de `texte` (70-90 %) n'est pas une
+troncature : `nbMots` compte en plus le titre, le chapô et les légendes photo.
+
+Couverture du texte sur les articles web (`print=0`), échantillons de 300/an :
+
+| Année | 2002 | 2006 | 2010 | 2014 | 2018 | 2021 | 2024 | 2026 |
+|---|---|---|---|---|---|---|---|---|
+| avec texte | 98 % | 96 % | 88 % | 87 % | 94 % | 97 % | 93 % | 100 % |
+
+Les enregistrements papier (`print=1`) ont en revanche un `texte` vide ou
+minuscule : ce sont des fragments d'édition papier (brèves, légendes, titres de
+rubrique). Filtrer `print=0`.
+
+## Index `pages` (76T47RYM6W)
+
+Scans OCR de pages entières de journal, pas des articles isolés. Champs :
+`texte` (plein texte OCR de la page), `folio`, `une`,
+`url` = `/page/<objectID>` — ce chemin ne correspond **pas** à une page du
+site web public (usage interne kiosque/archives).
+
+## Requêtage
+
+C'est un moteur de recherche, pas du SQL : il rend les *meilleurs* résultats,
+pas *tous*. Trois leviers : `query` (mots), `filters`, `facets` (comptages).
+
+Facettes déclarées, seules filtrables en `attribut:valeur` : `anneePublication`,
+`moisPublication`, `jourPublication`, `source`, `categories`, `zonesGeo`, `type`.
+`payant` et `print` se filtrent en numérique (`payant=1`, `print=0`) —
+`payant:false` renvoie 0 sans lever d'erreur, piège classique.
+
+Le header `Referer: https://www.ouest-france.fr/` est obligatoire sur les deux
+App ID, sinon « Method not allowed with this referer ».
+
+### Pièges mesurés
+
+- `nbHits` est **approximatif** dès qu'un filtre porte sur un gros volume
+  (`exhaustiveNbHits: False`) — il peut même dépasser le vrai total. Il est
+  exact sur les petits ensembles. Les **comptes par facette sont toujours
+  exacts** (`exhaustiveFacetsCount: True`) : passer par les facettes pour tout
+  chiffre fiable.
+- Plafond de **1000 résultats par requête**, `browse` refusé (403). Pour
+  extraire un corpus, découper jour → source → `zonesGeo` jusqu'à passer sous
+  1000 (une journée de 2004 = 8 116 articles, dont 7 063 pour `of` seul).
+
+### Clés
+
+Générées côté client avec un `validUntil` de **~24 h**. À relever dans l'onglet
+Réseau du navigateur : requête `queries` vers `*-dsn.algolia.net`, en-tête
+`x-algolia-api-key`. Une clé est signée pour un App ID précis — une clé de
+`76T47RYM6W` ne marchera jamais avec `C8KP7JV01T`. Pas d'accès permanent sans
+re-extraction.
+
+## Limites pour le mémoire
+
+**Une grande partie est du papier sans page web ni texte** (`print=True` ↔ URL
+`/premium/?article_id=<uuid>`), échantillons de 1000/an :
+
+| Année | 2004 | 2014 | 2020 | 2024 | 2026 |
+|---|---|---|---|---|---|
+| part papier | 87 % | 51 % | 12 % | 16 % | 0 % |
+
+Filtrer `print=0` pour ne garder que le web. Trois formes d'`url` à normaliser :
+absolue (récents), relative `/region/ville/slug-uuid` (2019-2024), et
+`/premium/?article_id=` (papier, pas de page web).
+
+**Piste à creuser** : `co`/`po`/`ml` sont des titres passés sous contrôle du
+groupe SIPA-Ouest-France — cas de rachat potentiellement exploitable, avec des
+corpus comparables dans le même index. Dates et modalités à vérifier (non fait).
+
+## Corpus déjà collecté sur gallica
+
+`/data/corpus/ouestfranceweb/` contient un corpus tiré de cette API en avril
+2026 par `scraping_ouestfrance.py` : `ouest_france_articles_<annees>.jsonl`
+de 1995 à 2026 (~6,8 Go) plus un CSV fusionné.
+
+Le script utilise `articles_bydate_desc`, découpe par `numericFilters` sur
+`datePublication` (un jour par requête, pagination interne), reprend où il en
+était via les `objectID` déjà écrits, et respecte un délai entre appels.
+
+**Attention à son périmètre** : ses `FACET_FILTERS` sont
+`["source:of", "zonesGeo:Ille-et-Vilaine"]` — le corpus existant est donc
+Ouest-France **Ille-et-Vilaine seulement** (vérifié : 100 % `of`, 100 %
+Ille-et-Vilaine, 97 % avec texte). Pour couvrir d'autres départements ou
+d'autres titres du groupe, vider ou modifier cette liste.
