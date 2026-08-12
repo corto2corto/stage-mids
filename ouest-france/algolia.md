@@ -79,11 +79,32 @@ App ID, sinon « Method not allowed with this referer ».
 
 ### Clés
 
-Générées côté client avec un `validUntil` de **~24 h**. À relever dans l'onglet
-Réseau du navigateur : requête `queries` vers `*-dsn.algolia.net`, en-tête
-`x-algolia-api-key`. Une clé est signée pour un App ID précis — une clé de
-`76T47RYM6W` ne marchera jamais avec `C8KP7JV01T`. Pas d'accès permanent sans
-re-extraction.
+Générées côté client avec un `validUntil` de **~24 h**. Une clé est signée pour
+un App ID précis — une clé de `76T47RYM6W` ne marchera jamais avec
+`C8KP7JV01T`. Pas d'accès permanent sans re-extraction.
+
+Récupération automatique (remplace le relevé manuel dans l'onglet Réseau) :
+
+    eval $(python ouest-france/recuperer_cle.py --export)   # OF_ALGOLIA_KEY + APP_ID
+    python ouest-france/recuperer_cle.py                    # simple affichage
+
+`recuperer_cle.py` ouvre `/recherche/` sous Firefox headless et lit les en-têtes
+`x-algolia-api-key` / `x-algolia-application-id` dans le journal réseau du
+navigateur (WebDriver BiDi, `before_request_sent`) — même source que l'onglet
+Network.
+
+Deux pièges que le script gère :
+
+- **Il faut lancer une vraie recherche.** Au simple chargement de la page, le
+  site ne demande qu'une clé restreinte à `restrictIndices=shopping`, qui est
+  refusée sur `articles`. Le script tape une requête et valide Entrée.
+- **Vérifier la portée avant d'utiliser la clé.** Elle est encodée en base64
+  dans la clé elle-même (`restrictIndices=...&validUntil=...`) : le script
+  décode et garde celle qui couvre `articles`.
+
+À noter : sous Firefox, un script injecté via `add_preload_script` tourne dans
+un contexte isolé de la page (il ne voit pas son `window`) — patcher `fetch`
+pour intercepter les appels ne marche pas. Passer par le journal réseau.
 
 ## Limites pour le mémoire
 
