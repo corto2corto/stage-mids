@@ -45,8 +45,9 @@ APP_ID = "C8KP7JV01T"
 INDEX = "articles_bydate_desc"          # le seul qui renvoie le champ `texte`
 PLAFOND = 1000                          # maximum de résultats atteignables par requête
 PARIS = ZoneInfo("Europe/Paris")
-ATTENTE = 1.0                           # secondes entre deux appels
-ESSAIS = 5
+ATTENTE = 1.5                           # secondes entre deux appels
+ESSAIS = 5                              # reprises sur erreur réseau
+QUOTA_ESSAIS = 8                        # reprises sur quota (429), plus patientes
 
 # Les 8 titres du groupe (champ `source`) et le nom de leur CSV.
 # « ouest_france2 » et pas « ouest_france » : ce dernier est le CSV de l'autre
@@ -83,8 +84,14 @@ def renouveler():
 
 
 def interroger(corps):
-    """Une requête Algolia, avec reprise sur erreur réseau, quota ou clé expirée."""
-    for essai in range(1, ESSAIS + 1):
+    """Une requête Algolia, avec reprise sur erreur réseau, quota ou clé expirée.
+
+    Le quota (429) a son propre budget d'essais, bien plus large que celui des
+    erreurs réseau : mesuré le 13/08, il se déclenche après quelques milliers de
+    requêtes avec la même clé, et une clé fraîche le lève aussitôt. On attend
+    donc *et* on renouvelle la clé, au lieu d'abandonner la journée."""
+    essai = quota = 0
+    while True:
         requete = urllib.request.Request(
             f"https://{APP_ID}-dsn.algolia.net/1/indexes/{INDEX}/query",
             data=json.dumps(corps).encode(),
@@ -101,11 +108,24 @@ def interroger(corps):
         except urllib.error.HTTPError as erreur:
             if erreur.code in (401, 403) and renouveler():
                 continue
-            if essai == ESSAIS:
+            if erreur.code == 429:
+                quota += 1
+                if quota > QUOTA_ESSAIS:
+                    raise
+                entete = erreur.headers.get("Retry-After") or ""
+                pause = int(entete) if entete.isdigit() else min(15 * 2 ** (quota - 1), 300)
+                print(f"    ! quota Algolia atteint — pause de {pause} s "
+                      f"et clé renouvelée ({quota}/{QUOTA_ESSAIS})")
+                time.sleep(pause)
+                renouveler()
+                continue
+            essai += 1
+            if essai >= ESSAIS:
                 raise
             time.sleep(2 ** essai)
         except Exception as erreur:
-            if essai == ESSAIS:
+            essai += 1
+            if essai >= ESSAIS:
                 raise
             pause = 2 ** essai
             print(f"    ! {erreur} — nouvel essai {essai}/{ESSAIS} dans {pause} s")
