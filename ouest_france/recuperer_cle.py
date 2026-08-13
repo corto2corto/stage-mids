@@ -9,8 +9,8 @@ on relit les en-tetes envoyes. On ne pilote pas l'interface DevTools (Selenium
 ne sait pas le faire) : on ecoute le journal reseau du navigateur via WebDriver
 BiDi, qui est la source meme de l'onglet Network.
 
-    python ouest-france/recuperer_cle.py           # affiche les cles
-    eval $(python ouest-france/recuperer_cle.py --export)   # OF_ALGOLIA_KEY=...
+    python ouest_france/recuperer_cle.py           # affiche les cles
+    eval $(python ouest_france/recuperer_cle.py --export)   # OF_ALGOLIA_KEY=...
 """
 import base64
 import sys

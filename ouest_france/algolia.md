@@ -85,8 +85,8 @@ un App ID précis — une clé de `76T47RYM6W` ne marchera jamais avec
 
 Récupération automatique (remplace le relevé manuel dans l'onglet Réseau) :
 
-    eval $(python ouest-france/recuperer_cle.py --export)   # OF_ALGOLIA_KEY + APP_ID
-    python ouest-france/recuperer_cle.py                    # simple affichage
+    eval $(python ouest_france/recuperer_cle.py --export)   # OF_ALGOLIA_KEY + APP_ID
+    python ouest_france/recuperer_cle.py                    # simple affichage
 
 `recuperer_cle.py` ouvre `/recherche/` sous Firefox headless et lit les en-têtes
 `x-algolia-api-key` / `x-algolia-application-id` dans le journal réseau du
@@ -122,6 +122,58 @@ absolue (récents), relative `/region/ville/slug-uuid` (2019-2024), et
 **Piste à creuser** : `co`/`po`/`ml` sont des titres passés sous contrôle du
 groupe SIPA-Ouest-France — cas de rachat potentiellement exploitable, avec des
 corpus comparables dans le même index. Dates et modalités à vérifier (non fait).
+
+## Récolte au format du pipeline
+
+`python -m ouest_france.recolte <début> <fin> [--titre of]`, bornes en année
+(`2024`) ou en date (`2024-03-10`). Sans `--titre`, les 8 titres sont récoltés
+l'un après l'autre, un CSV chacun (voir [sources.md](sources.md) pour les noms).
+
+**`ouest_france2.csv`, pas `ouest_france.csv`** : ce dernier appartient à l'autre
+chaîne de scraping (4,5 Go, alimentée en continu) et ne doit jamais être touché.
+
+Colonnes de `scraping/stockage.py` :
+
+| Colonne | Champ Algolia | Transformation |
+|---|---|---|
+| `id` | `objectID` | — |
+| `url` | `url` | relative → absolue |
+| `titre` | `titre` | — |
+| `auteur` | *aucun champ* | laissé vide, cf. tâche `auteur-ouest-france` |
+| `date` | `datePublication` | timestamp → ISO, heure de Paris |
+| `section` | `url` | premier segment du chemin (`/sciences/…` → `sciences`) |
+| `free` | `payant` | inversé → `oui`/`non` |
+| `contenu` | `texte` | — |
+
+### Ce qui rend la récolte autonome
+
+- **Découpage sans perte.** Une tranche est recoupée en deux tant qu'elle rend
+  le plafond de résultats. Le critère est le nombre de hits rendus, pas
+  `nbHits` : ce dernier est approximatif sur les gros volumes, et une
+  sous-estimation ferait manquer des articles sans que ça se voie.
+- **Renouvellement de clé.** Sur un 401/403, le script rappelle
+  `recuperer_cle.py` et reprend la requête. Indispensable : une récolte complète
+  dure plus longtemps que la validité d'une clé.
+- **Reprise.** `recolte_avancement.json` note le dernier jour terminé par titre ;
+  une relance repart de là sans relire les CSV (qui feront plusieurs Go). Si la
+  récolte est coupée en plein jour, ce jour est refait en entier — quelques
+  doublons possibles, à dédoublonner sur `id`.
+- **Jours en échec rejoués.** Ils sont notés et repris en fin de titre, puis
+  laissés dans le fichier d'avancement s'ils échouent encore. Sans ça le curseur
+  passerait par-dessus et la journée serait perdue silencieusement.
+- **Années vides sautées.** Les petits titres n'existent que sur quelques
+  années : une requête par année évite d'en faire 365 pour rien (5 années vides
+  en 6 s au lieu de 30 min).
+
+Débit mesuré le 12/08 sur `of`, une journée : 1287 articles en 6 s (2026),
+1656 en 8 s (2020), 741 en 2 s (2014). Les années antérieures à ~2010 sont
+quasi vides côté web (1 article le 15/06/2004) mais coûtent quand même une
+requête par jour. Ordre de grandeur pour les 8 titres sur 1990-2026 :
+**environ une journée de collecte continue**, donc au moins une rotation de clé.
+
+Vérifié le 12/08 : 1164 articles récoltés sur une journée à 1164 attendus, sans
+doublon, découpage déclenché ; reprise testée (relance = 0 ajout, extension de
+période = repart au bon jour).
 
 ## Corpus déjà collecté sur gallica
 
