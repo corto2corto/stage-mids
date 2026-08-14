@@ -549,6 +549,33 @@ def vue_qualite_corpus(taux, effectifs, noms_tranches, comp, pres, chemin):
     return rendre(fig, chemin)
 
 
+def vue_normalisations(spectre, colonnes, etiquettes, pres, chemin):
+    """Variance expliquee comparee entre plusieurs normalisations d'une meme
+    grille (ex. z-score retenu vs colonne par colonne, temoin negatif qui
+    n'efface pas les ecarts de niveau entre fenetres). `spectre` : DataFrame
+    indexee par rang (1..30), une colonne par normalisation.
+    """
+    from rupture.graphes import VERT, ORANGE
+    fig, ax = plt.subplots(figsize=(6.8, 3.8))
+    for (col, etiquette), couleur in zip(zip(colonnes, etiquettes), (pres.couleur, VERT, ORANGE)):
+        v = spectre[col].to_numpy()[:30] * 100
+        ax.plot(np.arange(1, 31), v, lw=1.6, color=couleur, label=etiquette)
+        ax.scatter([1], v[:1], s=14, color=couleur)
+        ax.annotate(f"{v[0]:.1f} %".replace(".", ","), (1, v[0]), xytext=(6, 3),
+                    textcoords="offset points", fontsize=8, color=ENCRE2)
+    ax.set_yscale("log")
+    ticks_log(ax, spectre[colonnes].to_numpy()[:30] * 100)
+    ax.set_xlabel("rang de la composante")
+    ax.set_ylabel("variance expliquée (%)")
+    ax.set_xlim(0.5, 30.5)
+    ax.legend(frameon=False, fontsize=8.5)
+    cadre(ax)
+    ax.set_title(f"Variance expliquée par composante, normalisations comparées\n{pres.titre}",
+                 fontsize=9.5, color=ENCRE2)
+    fig.tight_layout()
+    return rendre(fig, chemin)
+
+
 def vue_nms_evenement(dates, serie, avant, apres, mot, pres, chemin):
     """Serie quotidienne d'un mot, pics detectes avant/apres dedoublonnage NMS."""
     fig, ax = plt.subplots(figsize=(9.2, 3.6))

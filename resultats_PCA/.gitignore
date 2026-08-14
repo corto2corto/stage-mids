@@ -1,6 +1,0 @@
-# Les .npz et les CSV de fenêtres (jusqu'à 24 Mo) se régénèrent avec
-# preparer.py et restent sur gallica ; les figures, les CSV de pics et les CSV
-# légers (spectre, composantes) sont versionnés pour être téléchargeables
-# depuis GitHub.
-*.npz
-fenetres_*.csv
