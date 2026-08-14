@@ -99,7 +99,7 @@ lib.vue_plan12(d, pres, None)
 
 ```{python}
 #| label: fig-configH-archetypes
-#| fig-cap: "Archétypes des quatre premières composantes. La composante 2 aligne des marches d'escalier : changements de gabarit du site, pas des événements."
+#| fig-cap: "Archétypes des quatre premières composantes. La composante 2 aligne du texte de gabarit — crédit « Source : AFP » des brèves, encart publicitaire « SERVICE >> bwin » — et non des événements."
 lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
 ```
 

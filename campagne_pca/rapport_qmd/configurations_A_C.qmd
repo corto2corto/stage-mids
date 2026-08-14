@@ -208,14 +208,19 @@ lib.vue_reconstruction(d, pres, None)
   line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
 ```
 
-Réserve commune aux deux grilles : la composante 2 est portée par des
-marches d'escalier (« source », « service ») : le mot s'effondre d'un coup
-et ne revient plus, signature d'un changement de gabarit du site et non d'un
-événement éditorial. Même boilerplate que celui signalé pour Mediapart, non
-nettoyé ici. Un filtre de volume (occurrences au pic ≥ médiane du journal,
-plancher 50) écarte par ailleurs les mots d'interface les plus rares — le
-texte anglais du 12/10/2005 et le mot « lefigaro » lui-même, qui remontaient
-sans lui.
+Réserve commune aux deux grilles : la composante 2 est portée par du texte
+de gabarit, et non par des événements éditoriaux. Vérification faite le
+14/08/2026 sur la base ngram et le corpus : « source » est multiplié par 25
+de novembre 2007 à mai 2008 (150-200 occurrences par mois, puis 4 200) à
+volume de corpus constant, parce que les brèves « Flash Actu » se terminent
+par une ligne de crédit `Source : AFP` — 562 articles sur 1 500 en février
+2008 ; « service » triple de septembre à décembre 2011 à cause de l'encart
+publicitaire `SERVICE >> 100 € offerts par bwin.fr` inséré dans les articles
+de sport. Ce sont des plateaux temporaires dont la fenêtre de ±15 jours ne
+voit qu'un bord, d'où leur allure de marche d'escalier. Non nettoyé ici. Un
+filtre de volume (occurrences au pic ≥ médiane du journal, plancher 50)
+écarte par ailleurs les mots de gabarit les plus rares — le texte anglais du
+12/10/2005 et le mot « lefigaro » lui-même, qui remontaient sans lui.
 
 Seconde réserve, propre au Figaro : la composante 1 ne fait pas un pic au
 centre mais une **encoche** — −0,54 au jour 0 sur la grille journalière,
@@ -363,11 +368,15 @@ lib.vue_reconstruction(d, pres, None)
   line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
 ```
 
-Réserve : le boilerplate Mediapart déjà signalé dans `rapport.pdf` (mots
-d'interface « articles », « phrases ») n'est pas nettoyé ici, mais le filtre
-de volume (occurrences au pic ≥ médiane, plancher 50) suffit à l'écarter des
+Réserve : les mots « articles » et « phrases » remontent dans les archétypes
+de ce corpus. Vérification faite le 14/08/2026 : ce n'est pas du texte de
+gabarit, contrairement à ce que supposait une première lecture — ils
+plafonnent à 27 et 11 occurrences sur leur meilleur jour, sans plateau ni
+bosse. Ce sont des mots ordinaires à faible effectif que le z-score, qui
+efface l'échelle, laisse épouser parfaitement une composante. Le filtre de
+volume (occurrences au pic ≥ médiane, plancher 50) suffit à les écarter des
 archétypes affichés — Mediapart a le corpus le plus court des quatre
-journaux, donc le plus sensible à ce filtre.
+journaux (~11 000 mots par jour), donc le plus sensible à ce filtre.
 
 ```{python}
 #| label: fig-configF-spectre

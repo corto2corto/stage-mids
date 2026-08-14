@@ -33,8 +33,12 @@ seuils 3-6 × 4 filtres × 2 vocabulaires × brut/log. Aucun incident serveur
    alignement6 (nul rotation). Dispersion inter-graines 0,0045.
 3. Vocabulaire 40k : dilue (−0,08). Filtres grammaticaux : non décisifs.
    Log : +0,76 d'exces6 au maximum, mais noie l'ancrage sur l'événement.
-4. Boilerplate Mediapart : métrique robuste (2,55 → 2,48 sans les mots
-   suspects), nettoyage requis pour l'interprétation fine.
+4. Boilerplate : métrique robuste (2,55 → 2,48 sans les mots suspects).
+   **Correction du 14/08/2026** — la piste « boilerplate Mediapart » des
+   réveils ci-dessous est fausse (mots ordinaires à faible effectif, cf.
+   `rapport.qmd`) ; le vrai boilerplate est celui du Figaro, identifié
+   depuis : crédit `Source : AFP` des brèves (11/2007-05/2008) et encart
+   publicitaire `SERVICE >> bwin` (09-12/2011).
 
 **Acquis d'infra réutilisables** : base ngram Mediapart
 (`scripts/ngram_mediapart.py`), pics s ≥ 3 pour les 4 médias × 3 grilles

@@ -328,11 +328,25 @@ que le spectre brut y soit le plus plat de tous (16 % à 6 composantes).
 
 ## Réserves et chantiers ouverts
 
-- **Boilerplate Mediapart** : les extrêmes de ses composantes sont pollués
-  par des mots d'interface (« articles », « phrases »…). Contrôle fait : les
-  exclure ne change presque rien à la métrique (2,55 → 2,48), mais un
-  nettoyage s'impose avant toute interprétation fine (chantier commun avec
-  les stop words).
+- **Boilerplate du Figaro** (vérifié le 14/08/2026 sur la base ngram et le
+  corpus) : deux blocs de texte de gabarit sont comptés comme des mots. La
+  ligne de crédit `Source : AFP` des brèves « Flash Actu » multiplie
+  « source » par 25 de novembre 2007 à mai 2008 — 562 articles sur 1 500 en
+  février 2008, à volume de corpus constant ; l'encart publicitaire
+  `SERVICE >> 100 € offerts par bwin.fr` triple « service » de septembre à
+  décembre 2011. Ce sont des plateaux temporaires, pas des marches : la
+  fenêtre de ±15 jours n'en voit qu'un bord. Détecteur générique trouvé au
+  passage : le taux de continuation en bigramme s'effondre sur un mot de
+  gabarit (76 % hors plateau, 8 % pendant, la tokenisation coupant sur les
+  « : »). Nettoyage à faire avant toute interprétation fine des composantes
+  du Figaro (chantier commun avec les stop words).
+- **Mediapart, en revanche, n'a pas de boilerplate** : « articles »
+  (27 occurrences le jour le plus fourni) et « phrases » (11) sont des mots
+  ordinaires à faible effectif sur un corpus dix fois plus petit que celui
+  du Figaro (~11 000 mots/jour). S'ils remontaient dans les archétypes,
+  c'est parce que le z-score efface l'échelle — le filtre de volume les
+  écarte, et les exclure ne change presque rien à la métrique
+  (2,55 → 2,48).
 - **NMS couplé à la fenêtre** : la portée du dédoublonnage vaut la largeur
   de fenêtre ; comparer des fenêtres compare donc aussi des datasets. Le
   n apparié neutralise l'effet de taille, pas celui de sélection.

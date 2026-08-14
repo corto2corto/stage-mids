@@ -1542,8 +1542,9 @@ fenêtre (±25 à ±50) + seuil 6 ; pour la **question des rachats** (ruptures
 durables, régimes), c'est l'inverse — log(1+f), grilles agrégées, grandes
 fenêtres, avec Le Figaro comme meilleur candidat. Synthèse complète dans
 [`campagne_pca/rapport.qmd`](campagne_pca/rapport.qmd) → `rapport.pdf`.
-Restent en réserve : un chantier de nettoyage du boilerplate d'interface
-Mediapart, le couplage NMS/largeur de fenêtre (non résolu par l'appariement
+Restent en réserve : un chantier de nettoyage du texte de gabarit (la piste
+suivie ici visait Mediapart, la vérification du 14/08 l'a déplacée sur Le
+Figaro, cf. plus bas), le couplage NMS/largeur de fenêtre (non résolu par l'appariement
 en n), et le Kernel PCA, non exploré, à reprendre si la classification bute
 sur du non-linéaire.
 
@@ -1571,12 +1572,21 @@ journalier (D et F), Le Figaro en journalier et en blocs de 3 jours (G
 et H) —
 [`campagne_pca/configurations_A_C.qmd`](campagne_pca/configurations_A_C.qmd),
 [`configurations_figaro.qmd`](campagne_pca/configurations_figaro.qmd).
-Deux soucis de qualité des données sont ressortis au passage. Un
-**boilerplate d'interface** contamine Le Figaro (composante 2 : marches
-d'escalier sur « source »/« service », des changements de gabarit du
-site plutôt que des événements) et Mediapart (« articles », « phrases »)
-; un filtre de volume (occurrences au pic ≥ médiane du journal) écarte
-ces mots des archétypes affichés, sans nettoyer la PCA elle-même. Sur Le
+Deux soucis de qualité des données sont ressortis au passage. Du **texte
+de gabarit** contamine Le Figaro : la composante 2 aligne « source » et
+« service », deux mots dont la fréquence forme un plateau au lieu de
+suivre un événement. Vérification faite le 14/08 sur la base ngram et le
+corpus, ce sont bien deux blocs comptés comme des mots — la ligne de
+crédit `Source : AFP` qui termine les brèves « Flash Actu » (× 25 sur
+« source » de novembre 2007 à mai 2008, 562 articles sur 1 500 en février
+2008) et l'encart publicitaire `SERVICE >> 100 € offerts par bwin.fr`
+inséré dans les articles de sport (× 3 de septembre à décembre 2011). La
+même vérification lave Mediapart du soupçon porté sur « articles » et
+« phrases » : 27 et 11 occurrences sur leur meilleur jour, des mots
+ordinaires à faible effectif sur un corpus dix fois plus petit, remontés
+par un z-score qui efface l'échelle. Un filtre de volume (occurrences au
+pic ≥ médiane du journal) écarte ces mots des archétypes affichés, sans
+nettoyer la PCA elle-même. Sur Le
 Figaro, la composante 1 montre par ailleurs une **encoche** au lieu d'un
 pic au jour du saut (−0,54 en journalier, −0,34 par blocs de 3 jours) —
 un motif qui résiste à l'agrégation, décalage de date ou vrai creux de
@@ -1622,3 +1632,23 @@ creusant encore à mesure que γ grandit. Même lecture que le 07-08/08 :
 le nuage des fenêtres est un continuum de formes de sauts, pas une
 surface courbe, donc rien à déplier pour le noyau. Kernel PCA
 définitivement abandonnée.
+
+## Ouest-France via l'API Algolia (13/08/2026)
+
+Ouest-France (et les 7 autres titres du groupe SIPA) est traité à part
+du reste du pipeline, avec une méthode différente : plutôt que du
+scraping avec bypass paywall, on interroge directement l'API Algolia du
+site, qui sert le texte intégral des articles — y compris les payants.
+Un premier script
+([`ouest_france/recuperer_cle.py`](ouest_france/recuperer_cle.py))
+récupère la clé d'accès à cette API, valable environ 24h : il ouvre une
+recherche sur le site avec Firefox et intercepte la clé dans le trafic
+réseau. Un second script
+([`ouest_france/recolte.py`](ouest_france/recolte.py)) interroge
+ensuite l'API par tranches de dates, renouvelle automatiquement la clé
+quand elle expire, et stocke le résultat dans des CSV — un par titre du
+groupe (Ouest-France, Courrier de l'Ouest, Presse Océan, etc.), au même
+format que les autres médias du pipeline. Détails dans
+[`ouest_france/algolia.md`](ouest_france/algolia.md) et
+[`ouest_france/sources.md`](ouest_france/sources.md). La récolte est
+lancée.
