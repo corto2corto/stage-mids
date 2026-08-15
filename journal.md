@@ -153,14 +153,6 @@ with open("test.html", "w", encoding="utf-8") as f:
     f.write(html)
 ```
 
-### Le Monde et Le Figaro
-
-Le même script fonctionne, en ajoutant un `time.sleep(2)` après le chargement de la page pour laisser le bypass s'effectuer (il est un peu plus lent sur Le Monde). Le Figaro passe avec exactement le même code.
-
-### Libération
-
-Ici il faut vider les cookies pour que le bypass fonctionne : on charge la page une première fois, on appelle `driver.delete_all_cookies()`, puis on recharge la page avant de récupérer le HTML.
-
 ### Bilan du scrapping
 
 Problème restant : des phrases génériques propres à chaque journal apparaissent ponctuellement. Deux pistes :
@@ -192,6 +184,19 @@ pas en `--headless`), alors que Firefox installe le `.xpi` au démarrage. Tout
 le pipeline tourne donc sous Firefox, et la colonne « Chrome » de ce tableau
 n'a plus d'objet. La question « quel navigateur pour quel journal » a elle
 aussi disparu : elle est devenue « quel moteur », cf. « Moteur par média ».
+
+**[MAJ]** Le scraping a été packagé dans `scraping/` : `navigateur.py` pilote
+le Firefox headless (extensions bypass + uBlock, `page_load_strategy=eager`
+pour éviter les faux timeouts), `connexion.py` ajoute une connexion compte
+abonné par-dessus (moteur « log »), `basic.py` fait de la simple requête HTTP
+sans navigateur pour les sites sans paywall. `moteurs.py` fait le dispatch
+entre ces trois moteurs (+ « hybride » : basic d'abord, Firefox en secours si
+bloqué) selon la règle déclarée par média dans `medias.py`. `paywall.py`
+détecte le blocage sur la fin du contenu, `extraction.py` parse le HTML en
+article, `pipeline.py`/`batch.py`/`suivi.py` orchestrent les vagues de
+scraping et le suivi d'avancement, `stockage.py` écrit les résultats.
+
+
 
 ## Pagination :
 
@@ -352,6 +357,22 @@ sitemaps »).
 Mappés mais hors production : Libération (1 266 923 URLs, média en pause,
 archives tronquées côté serveur), Le Point (1 094 630) et L'Express (342 887),
 tous deux écartés.
+
+**[MAJ]** Découverte d'une source à part pour Ouest-France et le reste du
+groupe SIPA : le site expose son contenu via une API Algolia (`articles`
+côté texte intégral, y compris pour le payant — donc pas de scraping ni de
+bypass). Une fois le papier sans texte filtré (`print=0`), Ouest-France seul
+compte **8 734 633 articles web** (2001-2026). Le groupe comprend aussi 7
+titres plus petits — Courrier de l'Ouest (2,95 M), Presse Océan (1,83 M), Le
+Maine Libre (1,48 M), Le Marin, Agence API, Voiles et Voiliers et le desk
+faits divers (quelques dizaines à centaines de milliers) — mais ces volumes
+viennent de l'index brut (papier + web confondus) : leur équivalent web-only
+reste à vérifier, une extraction en cours sur gallica traîne (disque saturé
+par le scrapping). Récolte autonome via `ouest_france/recolte.py`
+(découpage temporel, reprise, renouvellement de clé), détails dans
+`ouest_france/algolia.md`. Un corpus Ille-et-Vilaine (1995-2026, ~6,8 Go)
+existe déjà sur gallica dans `/data/corpus/ouestfranceweb/`, collecté par
+une chaîne à part.
 
 ## Pipeline de scraping
 

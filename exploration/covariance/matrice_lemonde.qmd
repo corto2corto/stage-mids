@@ -77,6 +77,12 @@ n_themes_montres = len(THEMES)
 n_mots_montres = sum(len(v) for v in THEMES.values())
 idx = {m: int(np.where(mots == m)[0][0]) for ms in THEMES.values() for m in ms}
 mot2theme = {m: t for t, ms in THEMES.items() for m in ms}
+
+# frontiere de bruit Marchenko-Pastur (utilisee dans le texte et fig-spectre)
+p, n = C.shape[0], n_jours
+p_sur_n = p / n
+ratio = np.sqrt(p_sur_n)
+lmin, lmax = (1 - ratio) ** 2, (1 + ratio) ** 2
 ```
 
 ## Comment lire ce document
@@ -99,8 +105,8 @@ ci-dessous — cinq mots par groupe, les plus représentatifs.
 ```{python}
 #| label: fig-reseau
 #| fig-cap: "Onze thèmes qui émergent naturellement des 600 mots les plus fréquents du Monde (2000-2025), sans qu'aucun thème n'ait été indiqué à l'avance à l'algorithme. Dans chaque groupe, un trait relie chaque mot à celui de son groupe avec lequel il apparaît le plus souvent le même jour. Les traits noirs épais relient deux groupes entre eux, avec la force du lien."
-#| fig-width: 7.2
-#| fig-height: 7.2
+#| fig-width: 5.6
+#| fig-height: 5.6
 couleurs = plt.cm.tab10(np.linspace(0, 1, n_themes_montres))
 
 R = 10
@@ -113,7 +119,7 @@ for k, (theme, mots_t) in enumerate(THEMES.items()):
         a2 = 2 * np.pi * j / len(mots_t)
         pos[m] = (cx + 2.1 * np.cos(a2), cy + 2.1 * np.sin(a2))
 
-fig, ax = plt.subplots(figsize=(7.2, 7.2))
+fig, ax = plt.subplots(figsize=(5.6, 5.6))
 
 # traits a l'interieur de chaque groupe : chaque mot relie a son meilleur
 # partenaire DANS SON GROUPE
@@ -195,3 +201,194 @@ Trois liens entre thèmes, plus forts que tous les autres, sont mis en
 - **Corrélation ne veut pas dire causalité.** Que « emploi » et « finance »
   sortent souvent le même jour ne dit rien sur qui influence qui, seulement
   qu'ils font l'actualité ensemble.
+
+## Combien de thèmes sont statistiquement solides ?
+
+Le graphe ci-dessus est construit à la main : on choisit onze groupes parce
+qu'ils se lisent bien, pas parce qu'un calcul a dit « il y en a onze ». Une
+question plus rigoureuse se pose : sur `{python} f"{n_jours:,}".replace(",", " ")`
+jours de journal seulement, combien de thèmes réellement distincts peut-on
+espérer démêler parmi 600 mots, avant de commencer à confondre du vrai
+signal avec du simple hasard d'échantillonnage ?
+
+Même 600 mots **sans aucun lien réel entre eux** afficheraient des
+corrélations non nulles, mesurées sur un nombre fini de jours — comme deux
+séries de pile-ou-face peuvent sembler liées sur un tirage court. La loi de
+Marchenko-Pastur donne la frontière de ce bruit : au-delà, une structure
+commune est défendable ; en-deçà, le hasard suffit à l'expliquer.
+
+```{python}
+#| label: fig-spectre
+#| fig-cap: "Les 600 valeurs propres de la matrice de corrélation, en échelle logarithmique (sans quoi les 52 valeurs de droite, très peu nombreuses, seraient invisibles face aux 548 du bulk). La courbe noire est la densité de pur bruit prédite par Marchenko-Pastur : elle épouse le bulk observé. À droite du seuil, 52 valeurs qu'aucun hasard d'échantillonnage ne peut produire."
+#| fig-width: 6.6
+#| fig-height: 3.2
+valeurs_propres = np.linalg.eigvalsh(C)[::-1]
+n_spikes = int((valeurs_propres > lmax).sum())
+
+# cadrage sur la zone utile : au-dela, quelques valeurs isolees jusqu'a 20
+# etireraient l'axe et videraient la figure. Les depassements sont signales.
+x_max = 7.0
+bords = np.linspace(0, x_max, 70)
+x = np.linspace(lmin, lmax, 400)
+mp_densite = np.sqrt(np.clip((lmax - x) * (x - lmin), 0, None)) / (2 * np.pi * p_sur_n * x)
+
+fig, ax = plt.subplots(figsize=(6.6, 3.2))
+ax.hist(np.clip(valeurs_propres, None, x_max), bins=bords, color="0.78",
+        edgecolor="white", linewidth=0.3, zorder=2, label="valeurs propres observées")
+ax.plot(x, mp_densite * p * np.diff(bords)[0], color="0.15", lw=1.7, zorder=4,
+        label="bruit pur attendu (Marchenko-Pastur)")
+ax.axvspan(lmax, x_max, color="#b4302e", alpha=0.07, zorder=0)
+ax.axvline(lmax, color="#b4302e", lw=1.1, ls="--", zorder=3)
+ax.annotate(f"seuil {lmax:.2f}", (lmax, 300), xytext=(lmax - 0.15, 300),
+            fontsize=8.5, color="#b4302e", va="center", ha="right")
+ax.annotate(f"{n_spikes} valeurs propres au-delà du bruit\n(dont {int((valeurs_propres > x_max).sum())} au-delà de {x_max:.0f}, hors cadre)",
+            (lmax + 0.25, 30), fontsize=8.5, color="#b4302e", ha="left", va="center")
+ax.set_yscale("log")
+ax.set_ylim(0.7, 700)
+ax.set_xlim(0, x_max)
+ax.set_xlabel("valeur propre")
+ax.set_ylabel("nombre de mots (échelle log)", fontsize=9)
+ax.legend(frameon=False, loc="upper right", fontsize=8.5)
+for s in ("top", "right"):
+    ax.spines[s].set_visible(False)
+fig.tight_layout()
+plt.show()
+```
+
+La courbe théorique épouse le bulk observé : ces
+`{python} f"{p - n_spikes}"` valeurs propres sont bien indiscernables du
+hasard. `{python} n_spikes` en sortent, au-delà de
+`{python} f"{lmax:.2f}"`. La première, très détachée, est la tendance
+générale du journal — les jours denses gonflent tous les mots à la fois.
+
+Attention à ce que ce chiffre signifie. Marchenko-Pastur ne compte pas des
+thèmes : il dit lesquelles de ces directions se distinguent du bruit, pas
+lesquelles sont nommables ou intéressantes. Les `{python} n_spikes`
+directions ne sont donc pas `{python} n_spikes` faux positifs face aux onze
+thèmes du graphe — les nommer relève de l'interprétation, pas de la
+significativité. De même, le ratio mots/jours
+(`{python} f"{p_sur_n:.3f}"` ici) n'est pas un curseur à régler : plus on
+accumule de jours, plus le seuil descend vers 1 et plus on distingue de
+structures fines. C'est l'effet recherché, pas une faiblesse.
+
+L'intérêt de ce seuil pour le mémoire est ailleurs : il permet de nettoyer
+la matrice, et servira de repère quand on comparera deux périodes
+avant/après un rachat.
+
+## Nettoyer la matrice
+
+Les `{python} f"{p - n_spikes}"` valeurs propres du bulk ne portent aucune
+information fiable : leurs écarts ne reflètent que le hasard du tirage. On
+les remplace donc toutes par leur moyenne, en gardant intactes les
+`{python} n_spikes` autres, puis on reconstruit la matrice à partir de ce
+spectre corrigé.
+
+```{python}
+valeurs_p, vecteurs_p = np.linalg.eigh(C)  # ordre croissant
+bruit = valeurs_p <= lmax
+moyenne_bruit = valeurs_p[bruit].mean()
+
+def matrice_nettoyee(k):
+    """Reconstruction en gardant les k plus grandes valeurs propres."""
+    seuil_k = np.sort(valeurs_p)[-k]
+    vp = np.where(valeurs_p >= seuil_k, valeurs_p, moyenne_bruit)
+    M = vecteurs_p @ np.diag(vp) @ vecteurs_p.T
+    np.fill_diagonal(M, 1.0)
+    return M
+
+def groupes(M):
+    D = 1 - np.abs(M)
+    np.fill_diagonal(D, 0)
+    D = (D + D.T) / 2
+    Z = linkage(squareform(D, checks=False), method="average", optimal_ordering=True)
+    return fcluster(Z, t=0.85, criterion="distance")
+
+C_net = matrice_nettoyee(n_spikes)
+labels_net = groupes(C_net)
+n_gros_net = int((np.bincount(labels_net)[1:] >= 5).sum())
+n_groupes_45 = int((np.bincount(groupes(matrice_nettoyee(45)))[1:] >= 5).sum())
+n_groupes_60 = int((np.bincount(groupes(matrice_nettoyee(60)))[1:] >= 5).sum())
+
+# part des mots qui changent de groupe entre matrice brute et nettoyee
+paires_ensemble_avant = labels_complet[:, None] == labels_complet[None, :]
+paires_ensemble_apres = labels_net[:, None] == labels_net[None, :]
+hd = ~np.eye(p, dtype=bool)
+part_desaccord = (paires_ensemble_avant[hd] != paires_ensemble_apres[hd]).mean() * 100
+```
+
+```{python}
+#| label: fig-debruitage
+#| fig-cap: "Chaque point est une paire de mots : sa corrélation avant nettoyage (horizontale) et après (verticale). La diagonale marque l'absence de changement. Les liens forts, à droite, sont ramenés vers le bas — c'est là que le bruit d'échantillonnage gonflait le plus les valeurs."
+#| fig-width: 6.6
+#| fig-height: 3.2
+masque_hd = ~np.eye(p, dtype=bool)
+avant, apres = C[masque_hd], C_net[masque_hd]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.6, 3.2),
+                               gridspec_kw={"width_ratios": [1.25, 1]})
+
+lim = (-0.25, 1.0)
+ax1.hexbin(avant, apres, gridsize=70, bins="log", cmap="Blues", mincnt=1,
+           extent=(*lim, *lim), linewidths=0)
+ax1.plot(lim, lim, color="0.35", lw=0.9, ls="--", zorder=3)
+ax1.set_xlim(lim)
+ax1.set_ylim(lim)
+ax1.set_aspect("equal")
+ax1.set_xlabel("corrélation avant", fontsize=9)
+ax1.set_ylabel("corrélation après", fontsize=9)
+ax1.tick_params(labelsize=8)
+
+# de combien chaque niveau de correlation est-il deplace ?
+tranches = [(0.0, 0.05), (0.05, 0.1), (0.1, 0.2), (0.2, 0.4), (0.4, 1.0)]
+etiquettes = ["0–0,05", "0,05–0,1", "0,1–0,2", "0,2–0,4", "> 0,4"]
+deplacement = []
+for lo, hi in tranches:
+    s = (np.abs(avant) >= lo) & (np.abs(avant) < hi)
+    deplacement.append(np.median(np.abs(apres[s]) - np.abs(avant[s])))
+
+y = np.arange(len(tranches))
+couleurs_b = ["#b4302e" if v < 0 else "0.6" for v in deplacement]
+ax2.barh(y, deplacement, color=couleurs_b, height=0.62)
+ax2.axvline(0, color="0.3", lw=0.8)
+ax2.set_yticks(y)
+ax2.set_yticklabels(etiquettes, fontsize=8.5)
+ax2.invert_yaxis()
+ax2.set_xlabel("déplacement médian", fontsize=9)
+ax2.set_ylabel("force du lien avant", fontsize=9)
+ax2.tick_params(labelsize=8)
+for s in ("top", "right", "left"):
+    ax2.spines[s].set_visible(False)
+fig.tight_layout()
+plt.show()
+```
+
+Le nuage reste serré autour de la diagonale : le nettoyage ne bouleverse
+pas la matrice. Le détail à droite montre où il agit vraiment — les liens
+faibles ne bougent quasiment pas, tandis que les plus forts (au-delà de
+0,4) sont tirés vers le bas. C'est cohérent : une corrélation forte mesurée
+sur un échantillon fini est presque toujours un peu surestimée, et le
+nettoyage lui retire cette part de hasard.
+
+Sur le nombre de groupes, l'effet est mince — `{python} n_gros_net` groupes
+d'au moins cinq mots contre `{python} n_gros` sur la matrice brute. Mais ce
+chiffre stable masque une recomposition réelle :
+`{python} f"{part_desaccord:.1f}".replace(".", ",")` % des paires de mots
+changent de statut, c'est-à-dire se retrouvent ensemble après nettoyage
+alors qu'elles étaient séparées avant, ou l'inverse. Le débruitage ne
+change pas le nombre de boîtes, il change leur contenu.
+
+C'est pour la suite que cela compte. En découpant en fenêtres avant/après
+rachat, chaque période comptera de l'ordre de 1 000 jours au lieu de
+`{python} f"{n_jours:,}".replace(",", " ")` : le ratio mots/jours montera
+vers 0,5 et les matrices seront bien plus bruitées qu'ici. Nettoyer
+deviendra alors nécessaire pour ne pas prendre un artefact d'échantillonnage
+pour un changement de ligne éditoriale.
+
+Une réserve, enfin : le seuil suppose des jours indépendants, alors que
+l'actualité d'un jour déborde sur le lendemain, et les résidus sont
+winsorisés à ±8. C'est un repère raisonnable, pas une frontière exacte —
+d'où l'intérêt de vérifier qu'il n'est pas critique. En gardant 45 valeurs
+propres au lieu de `{python} n_spikes`, on trouve `{python} n_groupes_45`
+groupes ; avec 60, `{python} n_groupes_60` ; contre
+`{python} n_gros_net` au seuil exact. Le résultat ne bascule pas sur la
+valeur précise du seuil.

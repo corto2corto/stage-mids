@@ -49,6 +49,63 @@ Produit `<base>.pdf` à côté de `<base>.qmd`, et ne laisse rien d'autre : le
 
 5. Donner le chemin du `.pdf` et du `.qmd` conservés.
 
+## Écrire le .qmd : figures dans des chunks, jamais de png
+
+Règle par défaut pour tout rapport texte + graphes : **la figure se calcule
+dans un chunk `{python}` du .qmd**. On ne génère pas de `.png` sur le disque
+pour y faire pointer le document — le dépôt ne garde que le `.qmd` et son
+`.pdf`. Modèle de référence : `campagne_pca/rapport_qmd/`.
+
+En-tête typique :
+
+```yaml
+---
+title: "<titre neutre>"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin: {x: 2.2cm, y: 2cm}
+    fontsize: 10.5pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+```
+
+Le chunk appelle la fonction de figure avec **`chemin=None`** : elle fait
+`plt.show()` et Quarto insère l'image (cf. `rendre()` dans
+`campagne_pca/scripts/figures_lib.py`). Les données lourdes viennent d'un
+cache préparé en amont, pas d'un recalcul à chaque rendu. Piège : un module
+qui impose `matplotlib.use("Agg")` à l'import casse la capture sous Jupyter —
+repasser au backend inline si `"ipykernel" in sys.modules`.
+
+## Mise en page
+
+Bloc `{=typst}` de préambule, après le chunk d'imports :
+
+```typst
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+```
+
+- **Pas de grands blancs** : encadrer une figure isolée de `#v(1fr)` pour la
+  centrer verticalement, et placer les `#pagebreak()` soi-même plutôt que de
+  subir la coupe automatique.
+- **Côte à côte** : `#grid(columns: N, column-gutter: 1.1cm, align: horizon, …)`.
+- **Tableau large** : l'encadrer de `#set text(size: 9pt)` / `#set text(size: 10.5pt)`.
+- **Dimensions** : elles se règlent côté matplotlib (`figsize`, largeurs
+  usuelles 6,4 à 9,6 pouces) + `fig.tight_layout()` — pas par redimensionnement
+  dans le document.
+
+Texte court et pertinent : le rapport montre le résultat, il ne réexplique pas
+la méthode ni les choix qui y ont mené.
+
 ## Règles
 
 - Ne rien installer (quarto est déjà sur le Mac).
