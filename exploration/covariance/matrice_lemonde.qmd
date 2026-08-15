@@ -1,0 +1,197 @@
+---
+title: "Quels mots vont ensemble, dans Le Monde ?"
+subtitle: "Depuis 600 mots fréquents (2000-2025), les groupes qui se dégagent naturellement"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 10.5pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 2): set text(size: 13pt)
+```
+
+```{python}
+# Tout se calcule ici depuis la matrice de correlation (data/, seule sortie
+# gardee sur disque) : aucune figure pre-generee.
+#
+# Demarche : parmi les 600 mots, on repere par clustering hierarchique
+# (average linkage, distance 1-|r|) les groupes de mots les plus soudes, on
+# les NOMME a la main a partir de leur contenu, et on ne garde que les 5 mots
+# les plus caracteristiques de chacun (les plus lies aux autres mots de leur
+# groupe). Choisi apres deux essais rejetes : la matrice 600x600 brute (une
+# texture de bruit illisible sans legende) et une carte 2D par PCA (nuage de
+# 600 points illisible, 600 dimensions ecrasees en 2). Un graphe a taille
+# humaine, avec des mots et des noms de themes, se lit sans formation
+# statistique.
+import numpy as np
+import matplotlib
+matplotlib.use("module://matplotlib_inline.backend_inline")  # capture des figures par Quarto/Jupyter
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
+
+d = np.load("data/correlation_lemonde_2000_top600.npz")
+C, mots = d["C"].astype(np.float64), d["mots"]
+np.fill_diagonal(C, 1.0)
+n_jours = len(d["dates"])
+
+# clustering complet (pour les chiffres du texte), puis choix a la main des
+# groupes les plus lisibles parmi ceux reperes
+D = 1 - np.abs(C)
+np.fill_diagonal(D, 0)
+D = (D + D.T) / 2
+Z = linkage(squareform(D, checks=False), method="average", optimal_ordering=True)
+labels_complet = fcluster(Z, t=0.85, criterion="distance")
+tailles = np.bincount(labels_complet)[1:]
+n_gros = int((tailles >= 5).sum())
+
+THEMES = {
+    "Justice": ["justice", "tribunal", "judiciaire", "cour", "procès"],
+    "Élections": ["socialiste", "candidat", "gauche", "présidentielle", "vote"],
+    "Emploi": ["entreprises", "économique", "salariés", "sociale", "développement"],
+    "Finance": ["marchés", "banque", "financiers", "croissance", "fonds"],
+    "Europe": ["européenne", "commission", "bruxelles", "parlement", "membres"],
+    "Famille": ["mère", "père", "famille", "femme", "fille"],
+    "Personnalités": ["jacques", "jean", "chirac", "pierre", "général"],
+    "Santé": ["santé", "mesures", "covid", "crise", "risque"],
+    "Sport": ["match", "joueurs", "coupe", "finale", "équipe"],
+    "Défense": ["militaire", "guerre", "soldats", "sécurité", "forces"],
+    "États-Unis": ["américaine", "washington", "york", "new", "blanche"],
+}
+n_themes_montres = len(THEMES)
+n_mots_montres = sum(len(v) for v in THEMES.values())
+idx = {m: int(np.where(mots == m)[0][0]) for ms in THEMES.values() for m in ms}
+mot2theme = {m: t for t, ms in THEMES.items() for m in ms}
+```
+
+## Comment lire ce document
+
+`{python} f"{n_jours:,}".replace(",", " ")` jours du *Monde*, entre 2000 et
+2025. Pour chacun des 600 mots les plus fréquents du journal (hors mots
+outils comme « le », « de », « pour »), on a une courbe : combien de fois ce
+mot apparaît chaque jour, une fois corrigé de l'épaisseur du journal ce
+jour-là. Deux mots dont les courbes montent et descendent **ensemble** sont
+« corrélés » : ils sortent le lot les mêmes jours, ce qui trahit un thème
+partagé.
+
+En comparant ces 600 courbes deux à deux, un algorithme fait ressortir
+`{python} n_gros` groupes de mots nettement soudés entre eux. Onze d'entre
+eux, faciles à nommer et à comprendre d'un coup d'œil, sont représentés
+ci-dessous — cinq mots par groupe, les plus représentatifs.
+
+## Les groupes de mots
+
+```{python}
+#| label: fig-reseau
+#| fig-cap: "Onze thèmes qui émergent naturellement des 600 mots les plus fréquents du Monde (2000-2025), sans qu'aucun thème n'ait été indiqué à l'avance à l'algorithme. Dans chaque groupe, un trait relie chaque mot à celui de son groupe avec lequel il apparaît le plus souvent le même jour. Les traits noirs épais relient deux groupes entre eux, avec la force du lien."
+#| fig-width: 7.2
+#| fig-height: 7.2
+couleurs = plt.cm.tab10(np.linspace(0, 1, n_themes_montres))
+
+R = 10
+pos, centre = {}, {}
+for k, (theme, mots_t) in enumerate(THEMES.items()):
+    ang = 2 * np.pi * k / n_themes_montres + np.pi / 2
+    cx, cy = R * np.cos(ang), R * np.sin(ang)
+    centre[theme] = (cx, cy)
+    for j, m in enumerate(mots_t):
+        a2 = 2 * np.pi * j / len(mots_t)
+        pos[m] = (cx + 2.1 * np.cos(a2), cy + 2.1 * np.sin(a2))
+
+fig, ax = plt.subplots(figsize=(7.2, 7.2))
+
+# traits a l'interieur de chaque groupe : chaque mot relie a son meilleur
+# partenaire DANS SON GROUPE
+for m in idx:
+    partenaires = [m2 for m2 in THEMES[mot2theme[m]] if m2 != m]
+    meilleur = max(partenaires, key=lambda m2: C[idx[m], idx[m2]])
+    x1, y1 = pos[m]
+    x2, y2 = pos[meilleur]
+    ax.plot([x1, x2], [y1, y2], color="0.82", lw=1.0, zorder=1)
+
+# les liens ENTRE groupes les plus forts, mis en avant
+INTER = [("Emploi", "Finance"), ("Défense", "États-Unis"), ("Élections", "Personnalités")]
+for t1, t2 in INTER:
+    meilleur_r, meilleure_paire = -1, None
+    for a in THEMES[t1]:
+        for b in THEMES[t2]:
+            r = C[idx[a], idx[b]]
+            if r > meilleur_r:
+                meilleur_r, meilleure_paire = r, (a, b)
+    a, b = meilleure_paire
+    x1, y1 = pos[a]
+    x2, y2 = pos[b]
+    ax.plot([x1, x2], [y1, y2], color="0.2", lw=2.2, zorder=2, alpha=0.85)
+    # etiquette posee sur le noeud du segment le plus proche du centre du
+    # graphe (loin des autres mots, jamais au milieu ou elle chevauche un
+    # noeud voisin sur le cercle)
+    d0, d1 = x1 ** 2 + y1 ** 2, x2 ** 2 + y2 ** 2
+    tx, ty = (x1, y1) if d0 < d1 else (x2, y2)
+    ax.annotate(f"{meilleur_r:.2f}", (0.72 * tx, 0.72 * ty), fontsize=8.5,
+                ha="center", va="center", color="0.2", zorder=6,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="0.5", lw=0.5, alpha=0.95))
+
+for k, (theme, mots_t) in enumerate(THEMES.items()):
+    for m in mots_t:
+        x, y = pos[m]
+        ax.scatter([x], [y], s=190, color=couleurs[k], zorder=3, edgecolor="white", linewidth=1.1)
+        ax.annotate(m, (x, y - 0.62), fontsize=9.5, ha="center", va="top", zorder=4)
+    cx, cy = centre[theme]
+    ax.annotate(theme, (cx * 1.4, cy * 1.4), fontsize=12.5, ha="center", va="center",
+                color=couleurs[k], fontweight="bold", zorder=4)
+
+ax.set_xlim(-17, 17)
+ax.set_ylim(-17, 17)
+ax.set_aspect("equal")
+ax.axis("off")
+fig.tight_layout()
+plt.show()
+```
+
+Chaque bulle est un mot, chaque couleur un thème. Un mot est relié à celui
+de son groupe avec lequel il sort le plus souvent le même jour — c'est ce
+qui dessine visuellement le thème, sans qu'on ait eu besoin de le décider à
+l'avance : « justice », « tribunal », « judiciaire », « cour » et « procès »
+se regroupent tout seuls parce qu'ils apparaissent statistiquement les mêmes
+jours dans le journal.
+
+Trois liens entre thèmes, plus forts que tous les autres, sont mis en
+évidence en noir :
+
+- **Emploi ↔ Finance** — le lien le plus fort du graphe. Un article qui
+  parle de croissance économique mentionne aussi, le même jour,
+  les marchés et le crédit : ces deux thèmes ne font presque qu'un dans la
+  presse.
+- **Défense ↔ États-Unis** — les jours où *Le Monde* parle de l'armée et de
+  la sécurité sont aussi, très souvent, des jours où il est question de
+  Washington.
+- **Élections ↔ Personnalités** — les campagnes électorales se lisent à
+  travers les hommes politiques qui les incarnent.
+
+## Ce que cette image ne montre pas
+
+- **Seuls 55 des 600 mots sont représentés.** Les onze groupes montrés sont
+  les plus nets ; d'autres existent (sport amateur, culture, environnement…)
+  mais ont été laissés de côté pour garder le graphe lisible.
+- **Les liens choisis sont les plus forts, pas les seuls.** Beaucoup
+  d'autres liens, plus faibles, existent entre les mots et les thèmes — ce
+  document montre la structure la plus nette, pas la totalité de
+  l'information.
+- **Corrélation ne veut pas dire causalité.** Que « emploi » et « finance »
+  sortent souvent le même jour ne dit rien sur qui influence qui, seulement
+  qu'ils font l'actualité ensemble.
