@@ -222,7 +222,8 @@ commune est défendable ; en-deçà, le hasard suffit à l'expliquer.
 #| fig-cap: "Les 600 valeurs propres de la matrice de corrélation, en échelle logarithmique (sans quoi les 52 valeurs de droite, très peu nombreuses, seraient invisibles face aux 548 du bulk). La courbe noire est la densité de pur bruit prédite par Marchenko-Pastur : elle épouse le bulk observé. À droite du seuil, 52 valeurs qu'aucun hasard d'échantillonnage ne peut produire."
 #| fig-width: 6.6
 #| fig-height: 3.2
-valeurs_propres = np.linalg.eigvalsh(C)[::-1]
+valeurs_p, vecteurs_p = np.linalg.eigh(C)  # ordre croissant
+valeurs_propres = valeurs_p[::-1]
 n_spikes = int((valeurs_propres > lmax).sum())
 
 # cadrage sur la zone utile : au-dela, quelques valeurs isolees jusqu'a 20
@@ -232,17 +233,19 @@ bords = np.linspace(0, x_max, 70)
 x = np.linspace(lmin, lmax, 400)
 mp_densite = np.sqrt(np.clip((lmax - x) * (x - lmin), 0, None)) / (2 * np.pi * p_sur_n * x)
 
+BLEU, BLEU_F = "#4c78a8", "#1f3b57"
+
 fig, ax = plt.subplots(figsize=(6.6, 3.2))
-ax.hist(np.clip(valeurs_propres, None, x_max), bins=bords, color="0.78",
+ax.hist(np.clip(valeurs_propres, None, x_max), bins=bords, color=BLEU,
         edgecolor="white", linewidth=0.3, zorder=2, label="valeurs propres observées")
-ax.plot(x, mp_densite * p * np.diff(bords)[0], color="0.15", lw=1.7, zorder=4,
+ax.plot(x, mp_densite * p * np.diff(bords)[0], color=BLEU_F, lw=1.9, zorder=4,
         label="bruit pur attendu (Marchenko-Pastur)")
-ax.axvspan(lmax, x_max, color="#b4302e", alpha=0.07, zorder=0)
-ax.axvline(lmax, color="#b4302e", lw=1.1, ls="--", zorder=3)
+ax.axvspan(lmax, x_max, color=BLEU, alpha=0.09, zorder=0)
+ax.axvline(lmax, color=BLEU_F, lw=1.1, ls="--", zorder=3)
 ax.annotate(f"seuil {lmax:.2f}", (lmax, 300), xytext=(lmax - 0.15, 300),
-            fontsize=8.5, color="#b4302e", va="center", ha="right")
+            fontsize=8.5, color=BLEU_F, va="center", ha="right")
 ax.annotate(f"{n_spikes} valeurs propres au-delà du bruit\n(dont {int((valeurs_propres > x_max).sum())} au-delà de {x_max:.0f}, hors cadre)",
-            (lmax + 0.25, 30), fontsize=8.5, color="#b4302e", ha="left", va="center")
+            (lmax + 0.25, 30), fontsize=8.5, color=BLEU_F, ha="left", va="center")
 ax.set_yscale("log")
 ax.set_ylim(0.7, 700)
 ax.set_xlim(0, x_max)
@@ -258,10 +261,81 @@ plt.show()
 La courbe théorique épouse le bulk observé : ces
 `{python} f"{p - n_spikes}"` valeurs propres sont bien indiscernables du
 hasard. `{python} n_spikes` en sortent, au-delà de
-`{python} f"{lmax:.2f}"`. La première, très détachée, est la tendance
-générale du journal — les jours denses gonflent tous les mots à la fois.
+`{python} f"{lmax:.2f}"`.
 
-Attention à ce que ce chiffre signifie. Marchenko-Pastur ne compte pas des
+## Que contiennent les valeurs propres retenues ?
+
+Une valeur propre est une direction dans les données, décrite par le poids
+qu'elle donne à chacun des 600 mots. Ces poids sont positifs ou négatifs,
+et c'est là que la lecture devient concrète : chaque direction oppose deux
+registres de vocabulaire, qui s'excluent dans le journal. Un poids fortement
+positif d'un côté, fortement négatif de l'autre, signifie que les jours où
+le premier groupe de mots domine sont les jours où le second est absent.
+
+```{python}
+#| label: fig-axes
+#| fig-cap: "Les six premières directions retenues, avec les mots qui les portent le plus. Chaque direction oppose deux registres : à droite les mots de poids positif, à gauche ceux de poids négatif. Ce sont des axes d'actualité concurrente — les jours d'un pôle ne sont pas les jours de l'autre."
+#| fig-width: 6.6
+#| fig-height: 4.4
+vp_tri = np.argsort(valeurs_p)[::-1]
+
+TITRES = ["Économie / actualité des années 2020", "Société et santé / figures des années 2000",
+          "Guerre américaine / politique intérieure",
+          "Défense et diplomatie / culture", "Crise de l'euro / vie politique française",
+          "Affaires judiciaires / gestion locale"]
+
+fig, axes = plt.subplots(3, 2, figsize=(6.6, 4.4))
+for rang, ax in enumerate(axes.ravel()):
+    v = vecteurs_p[:, vp_tri[rang]]
+    if v.sum() < 0:
+        v = -v
+    hauts = np.argsort(v)[::-1][:5]
+    bas = np.argsort(v)[:5]
+    sel = np.concatenate([bas[::-1], hauts[::-1]])
+    poids = v[sel]
+    y = np.arange(len(sel))
+    ax.barh(y, poids, color=[BLEU if q > 0 else "#c47f3d" for q in poids], height=0.72)
+    ax.axvline(0, color="0.3", lw=0.7)
+    for yi, (q, m) in enumerate(zip(poids, mots[sel])):
+        dec = 0.006 if q > 0 else -0.006
+        ax.annotate(m, (q + dec, yi), fontsize=7, va="center",
+                    ha="left" if q > 0 else "right")
+    marge = max(abs(poids)) * 2.1
+    ax.set_xlim(-marge, marge)
+    ax.set_ylim(-0.8, len(sel) - 0.2)
+    ax.set_title(f"{rang + 1}. {TITRES[rang]}", fontsize=8.5, loc="left", color="0.25")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for s in ("top", "right", "left", "bottom"):
+        ax.spines[s].set_visible(False)
+fig.tight_layout(h_pad=0.9)
+plt.show()
+```
+
+Deux types d'axes apparaissent. Les deux premiers, les plus puissants,
+opposent en réalité des **époques** : « croissance » et « marché » d'un
+côté, « covid », « trump » et « emmanuel » de l'autre ; puis « santé » et
+« réseaux » face à « chirac », « jacques » et « jean ». Sur vingt-cinq ans,
+la première ligne de partage du journal est chronologique — le vocabulaire
+des années 2000 n'est pas celui des années 2020.
+
+Les suivants sont thématiques. Le troisième oppose la guerre et les
+États-Unis à la politique intérieure française : deux sujets qui se
+disputent la une, rarement dominants le même jour. Le quatrième sépare
+défense et diplomatie des pages culture, le cinquième isole la crise de
+l'euro, le sixième les affaires judiciaires. Plus loin dans le classement
+viennent des axes plus fins mais tout aussi identifiables : le sport, la
+Russie, ou une direction portée par « donald », « trump » et « syrie ».
+
+Ces directions ne sont donc pas des abstractions mathématiques : ce sont
+les grandes lignes de partage de l'actualité, retrouvées sans qu'aucune
+liste de thèmes n'ait été fournie à l'algorithme. Elles apportent aussi une
+information que le graphe d'ouverture ne donne pas : non seulement quels
+mots vont ensemble, mais quels registres s'excluent. C'est exactement ce
+qu'il faudra surveiller après un rachat — un axe qui se déforme signale un
+déplacement de la couverture, pas seulement l'apparition d'un mot nouveau.
+
+Attention toutefois à ce que le chiffre de `{python} n_spikes` signifie. Marchenko-Pastur ne compte pas des
 thèmes : il dit lesquelles de ces directions se distinguent du bruit, pas
 lesquelles sont nommables ou intéressantes. Les `{python} n_spikes`
 directions ne sont donc pas `{python} n_spikes` faux positifs face aux onze
@@ -284,7 +358,6 @@ les remplace donc toutes par leur moyenne, en gardant intactes les
 spectre corrigé.
 
 ```{python}
-valeurs_p, vecteurs_p = np.linalg.eigh(C)  # ordre croissant
 bruit = valeurs_p <= lmax
 moyenne_bruit = valeurs_p[bruit].mean()
 
