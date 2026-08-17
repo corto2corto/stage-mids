@@ -24,8 +24,16 @@ from campagne_pca.scripts.configs import parametres
 # rupture.pca et rupture.graphes imposent Agg a l'import. Sous Jupyter — donc
 # dans les blocs {python} des .qmd — cela empeche la capture des figures : on
 # rend la main au backend inline, qui les serialise pour le document.
-if "ipykernel" in sys.modules:
+SOUS_JUPYTER = "ipykernel" in sys.modules
+if SOUS_JUPYTER:
     matplotlib.use("module://matplotlib_inline.backend_inline")
+
+
+def diag(*args, **kwargs):
+    """print() de diagnostic pour l'usage en ligne de commande (figures.py) :
+    coupe sous Jupyter/Quarto, ou le texte se retrouverait tel quel dans le PDF."""
+    if not SOUS_JUPYTER:
+        print(*args, **kwargs)
 
 # palette de la campagne (valeurs reprises telles quelles des anciens scripts)
 BLEU, ROUGE = "#2a78d6", "#e34948"
@@ -178,7 +186,7 @@ def formes(d):
     for k in range(6):
         v = d.composantes[k]
         centre = (v[np.abs(d.js) <= d.demi // 4] ** 2).sum() / (v ** 2).sum()
-        print(f"  comp {k + 1} : {int((np.diff(np.sign(v)) != 0).sum())} croisements, "
+        diag(f"  comp {k + 1} : {int((np.diff(np.sign(v)) != 0).sum())} croisements, "
               f"{centre * 100:3.0f} % d'energie au centre, "
               f"signe(avant)={np.sign(v[:d.demi].mean()):+.0f} "
               f"signe(apres)={np.sign(v[d.demi + 1:].mean()):+.0f}")
@@ -194,11 +202,11 @@ def filtre_volume(volume, vol_q, vol_min, mini):
     seuil_vol = max(np.percentile(volume, vol_q) if vol_q > 0 else 0, vol_min)
     eligibles = np.where(volume >= seuil_vol)[0]
     if len(eligibles) < mini:               # corpus trop maigre : on renonce au filtre
-        print(f"  (archetypes) filtre de volume ignore : seuil {seuil_vol:.0f} ne laisse "
+        diag(f"  (archetypes) filtre de volume ignore : seuil {seuil_vol:.0f} ne laisse "
               f"que {len(eligibles)} fenetres")
         return 0, np.arange(len(volume))
     if seuil_vol > 0:
-        print(f"  (archetypes) filtre de volume : >= {seuil_vol:.0f} occurrences au pic "
+        diag(f"  (archetypes) filtre de volume : >= {seuil_vol:.0f} occurrences au pic "
               f"(q{vol_q:g} = {np.percentile(volume, vol_q):.0f}, plancher {vol_min}) : "
               f"{len(eligibles)} fenetres eligibles sur {len(volume)}")
     return seuil_vol, eligibles
@@ -372,13 +380,13 @@ def vue_plan12(d, pres, chemin, decalages=None):
     for mot, libelle in CANDIDATS:
         sel = d.mots == mot
         if not sel.any():
-            print(f"  (plan) « {mot} » absent de cette configuration")
+            diag(f"  (plan) « {mot} » absent de cette configuration")
             continue
         i = np.where(sel)[0][np.argmax(d.surprise[sel])]
         quand = pd.to_datetime(str(d.dates[i])).strftime("%m/%Y")
         ax.scatter(d.proj[i, 0], d.proj[i, 1], s=26, color=pres.accent, zorder=3)
         places.append((d.proj[i, 0], d.proj[i, 1], f"{mot} — {libelle}", mot))
-        print(f"  (plan) {mot} {quand} : PC1={d.proj[i, 0]:+.1f} PC2={d.proj[i, 1]:+.1f}")
+        diag(f"  (plan) {mot} {quand} : PC1={d.proj[i, 0]:+.1f} PC2={d.proj[i, 1]:+.1f}")
     for x, y, texte, mot in places:
         dx, dy, ha = decalages.get(mot, (9, 4, "left"))
         ax.annotate(texte, (x, y), xytext=(dx, dy), ha=ha,
@@ -409,7 +417,7 @@ def vue_archetypes(d, pres, chemin, seuil_vol, eligibles):
             cadre(ax)
             if c == 0:
                 ax.set_ylabel(f"comp. {k + 1}\n({pres.libelles[k]})", fontsize=8.5)
-        print(f"  (archetypes) comp {k + 1} : "
+        diag(f"  (archetypes) comp {k + 1} : "
               + ", ".join(f"{d.mots[i]} {int(d.dates[i])} ({int(d.volume[i])} occ.)"
                           for i in meilleurs))
     for ax in axes[-1]:
@@ -479,7 +487,7 @@ def vue_comparaison(lignes, titre, rect, chemin):
                 ax.set_xlabel(f"{unite} autour du pic", fontsize=8)
             if k == 0:
                 ax.set_ylabel(f"{nom}\n{sous_titre}", fontsize=8.5)
-        print(f"{nom} ({sous_titre}) : {len(d.Z)} fenêtres, variance 1-3 = "
+        diag(f"{nom} ({sous_titre}) : {len(d.Z)} fenêtres, variance 1-3 = "
               f"{np.round(d.variance[:3] * 100, 1)}")
     fig.suptitle(titre, fontsize=11, color=ENCRE2)
     fig.tight_layout(rect=(0, 0, 1, rect))
@@ -516,7 +524,7 @@ def vue_comp_archetypes(d, pres, chemin, comp, seuil_vol, eligibles):
             ax.set_ylabel("écart-types", fontsize=8.5)
         if c >= 9:
             ax.set_xlabel(pres.unite_axe, fontsize=8)
-    print(f"  (archetypes) comp {comp} : "
+    diag(f"  (archetypes) comp {comp} : "
           + ", ".join(f"{d.mots[i]} {int(d.dates[i])} ({d.proj[i, K]:+.1f}, "
                       f"{int(d.volume[i])} occ.)" for i in meilleurs))
 
