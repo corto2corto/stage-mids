@@ -1,0 +1,389 @@
+---
+title: "Quels mots vont ensemble, dans Les Échos ?"
+subtitle: "Depuis 600 mots fréquents (2000-2024), les groupes qui se dégagent naturellement"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 10.5pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 2): set text(size: 13pt)
+```
+
+```{python}
+# Meme protocole que matrice_lemonde.qmd, applique aux Echos : tout se calcule
+# ici depuis la matrice de correlation (data/, seule sortie gardee sur disque).
+# Les onze themes sont nommes a la main a partir des groupes reperes par le
+# clustering, cinq mots chacun (les plus centraux de leur groupe).
+import numpy as np
+import matplotlib
+matplotlib.use("module://matplotlib_inline.backend_inline")  # capture des figures par Quarto/Jupyter
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
+
+d = np.load("data/correlation_lesechos_2000_top600.npz")
+C, mots = d["C"].astype(np.float64), d["mots"]
+np.fill_diagonal(C, 1.0)
+n_jours = len(d["dates"])
+
+D = 1 - np.abs(C)
+np.fill_diagonal(D, 0)
+D = (D + D.T) / 2
+Z = linkage(squareform(D, checks=False), method="average", optimal_ordering=True)
+labels_complet = fcluster(Z, t=0.85, criterion="distance")
+tailles = np.bincount(labels_complet)[1:]
+n_gros = int((tailles >= 5).sum())
+taille_max = int(tailles.max())
+
+THEMES = {
+    "Résultats": ["chiffre", "bénéfice", "résultat", "trimestre", "analystes"],
+    "Marchés": ["bourse", "marchés", "action", "actionnaires", "capital"],
+    "Zone euro": ["euro", "bce", "monétaire", "dette", "taux"],
+    "Budget": ["budgétaire", "déficit", "dépenses", "pib", "bercy"],
+    "Direction": ["directeur", "pdg", "management", "marketing", "comité"],
+    "États-Unis": ["wall", "street", "new", "york", "américains"],
+    "Europe": ["européenne", "bruxelles", "commission", "parlement", "europe"],
+    "Personnalités": ["françois", "sarkozy", "nicolas", "hollande", "ps"],
+    "Élections": ["droite", "candidat", "présidentielle", "campagne", "gauche"],
+    "Covid": ["covid", "santé", "mesures", "population", "autorités"],
+    "Énergie": ["énergétique", "russie", "gaz", "nucléaire", "transition"],
+}
+n_themes_montres = len(THEMES)
+n_mots_montres = sum(len(v) for v in THEMES.values())
+idx = {m: int(np.where(mots == m)[0][0]) for ms in THEMES.values() for m in ms}
+mot2theme = {m: t for t, ms in THEMES.items() for m in ms}
+
+# frontiere de bruit Marchenko-Pastur
+p, n = C.shape[0], n_jours
+p_sur_n = p / n
+ratio = np.sqrt(p_sur_n)
+lmin, lmax = (1 - ratio) ** 2, (1 + ratio) ** 2
+```
+
+## Comment lire ce document
+
+`{python} f"{n_jours:,}".replace(",", " ")` jours des *Échos*, entre 2000 et
+2024. Pour chacun des 600 mots les plus fréquents du journal (hors mots
+outils), on a une courbe : combien de fois ce mot apparaît chaque jour, une
+fois corrigé de l'épaisseur du journal ce jour-là. Deux mots dont les courbes
+montent et descendent **ensemble** sortent du lot les mêmes jours — un thème
+partagé. En comparant ces 600 courbes deux à deux, un algorithme fait
+ressortir `{python} n_gros` groupes nettement soudés ; les onze plus faciles
+à nommer sont représentés ci-dessous, cinq mots chacun.
+
+## Les groupes de mots
+
+```{python}
+#| label: fig-reseau
+#| fig-cap: "Onze thèmes qui émergent des 600 mots les plus fréquents des Échos (2000-2024), sans qu'aucun thème n'ait été indiqué à l'avance à l'algorithme. Dans chaque groupe, un trait relie chaque mot à celui de son groupe avec lequel il apparaît le plus souvent le même jour. Les traits noirs épais relient deux groupes entre eux, avec la force du lien."
+#| fig-width: 6.3
+#| fig-height: 6.3
+couleurs = plt.cm.tab10(np.linspace(0, 1, n_themes_montres))
+
+R = 12
+pos, angle = {}, {}
+for k, (theme, mots_t) in enumerate(THEMES.items()):
+    ang = 2 * np.pi * k / n_themes_montres + np.pi / 2
+    cx, cy = R * np.cos(ang), R * np.sin(ang)
+    angle[theme] = ang
+    for j, m in enumerate(mots_t):
+        a2 = 2 * np.pi * j / len(mots_t)
+        pos[m] = (cx + 2.1 * np.cos(a2), cy + 2.1 * np.sin(a2))
+
+fig, ax = plt.subplots(figsize=(6.3, 6.3))
+
+# a l'interieur de chaque groupe : chaque mot relie a son meilleur partenaire
+for m in idx:
+    partenaires = [m2 for m2 in THEMES[mot2theme[m]] if m2 != m]
+    meilleur = max(partenaires, key=lambda m2: C[idx[m], idx[m2]])
+    x1, y1 = pos[m]
+    x2, y2 = pos[meilleur]
+    ax.plot([x1, x2], [y1, y2], color="0.82", lw=1.0, zorder=1)
+
+# les trois liens ENTRE groupes les plus forts de la matrice
+INTER = [("Élections", "Personnalités"), ("Résultats", "Marchés"), ("Covid", "Énergie")]
+for t1, t2 in INTER:
+    meilleur_r, meilleure_paire = -1, None
+    for a in THEMES[t1]:
+        for b in THEMES[t2]:
+            r = C[idx[a], idx[b]]
+            if r > meilleur_r:
+                meilleur_r, meilleure_paire = r, (a, b)
+    a, b = meilleure_paire
+    x1, y1 = pos[a]
+    x2, y2 = pos[b]
+    ax.plot([x1, x2], [y1, y2], color="0.2", lw=2.2, zorder=2, alpha=0.85)
+    d0, d1 = x1 ** 2 + y1 ** 2, x2 ** 2 + y2 ** 2
+    tx, ty = (x1, y1) if d0 < d1 else (x2, y2)
+    ax.annotate(f"{meilleur_r:.2f}", (0.72 * tx, 0.72 * ty), fontsize=8.5,
+                ha="center", va="center", color="0.2", zorder=6,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="0.5", lw=0.5, alpha=0.95))
+
+for k, (theme, mots_t) in enumerate(THEMES.items()):
+    for m in mots_t:
+        x, y = pos[m]
+        ax.scatter([x], [y], s=175, color=couleurs[k], zorder=3, edgecolor="white", linewidth=1.1)
+        ax.annotate(m, (x, y - 0.62), fontsize=8.5, ha="center", va="top", zorder=4)
+    a = angle[theme]
+    ax.annotate(theme, (16.8 * np.cos(a), 16.8 * np.sin(a)), fontsize=11.5,
+                ha="center", va="center", color=couleurs[k], fontweight="bold", zorder=4)
+
+ax.set_xlim(-19.5, 19.5)
+ax.set_ylim(-19.5, 19.5)
+ax.set_aspect("equal")
+ax.axis("off")
+fig.tight_layout()
+plt.show()
+```
+
+Chaque bulle est un mot, chaque couleur un thème : « budgétaire », « déficit »,
+« dépenses », « pib » et « bercy » se regroupent tout seuls parce qu'ils
+apparaissent statistiquement les mêmes jours. La marque du journal économique
+est nette — cinq des onze thèmes relèvent de l'économie et de la finance, et
+le plus gros groupe repéré par l'algorithme rassemble à lui seul
+`{python} taille_max` mots autour des résultats d'entreprise et des marchés.
+
+Des trois liens entre thèmes les plus forts, deux se lisent sans difficulté :
+**Élections ↔ Personnalités**, les campagnes s'incarnant dans les hommes
+politiques, et **Résultats ↔ Marchés**, les publications d'entreprises
+nourrissant le même jour la chronique boursière. Le troisième, **Covid ↔
+Énergie**, est d'une autre nature : « covid » et « transition » ne partagent
+pas un sujet, mais une **époque** — ce sont deux marqueurs des années 2020.
+C'est le premier signe d'un effet qui domine la suite du document.
+
+Trois réserves : seuls `{python} n_mots_montres` des 600 mots sont
+représentés, les liens montrés sont les plus forts et non les seuls, et une
+corrélation ne dit rien de la causalité.
+
+## Combien de thèmes sont statistiquement solides ?
+
+Même 600 mots sans aucun lien réel afficheraient, sur un nombre fini de jours,
+des corrélations non nulles. La loi de Marchenko-Pastur donne la frontière de
+ce bruit : au-delà, une structure commune est défendable ; en-deçà, le hasard
+suffit.
+
+```{python}
+#| label: fig-spectre
+#| fig-cap: "Les 600 valeurs propres de la matrice de corrélation, en échelle logarithmique (sans quoi les valeurs de droite, peu nombreuses, seraient invisibles face au bulk). La courbe noire est la densité de pur bruit prédite par Marchenko-Pastur : elle épouse le bulk observé. À droite du seuil, des valeurs qu'aucun hasard d'échantillonnage ne peut produire."
+#| fig-width: 6.6
+#| fig-height: 2.9
+valeurs_p, vecteurs_p = np.linalg.eigh(C)  # ordre croissant
+valeurs_propres = valeurs_p[::-1]
+n_spikes = int((valeurs_propres > lmax).sum())
+
+x_max = 7.0
+bords = np.linspace(0, x_max, 70)
+x = np.linspace(lmin, lmax, 400)
+mp_densite = np.sqrt(np.clip((lmax - x) * (x - lmin), 0, None)) / (2 * np.pi * p_sur_n * x)
+
+BLEU, BLEU_F = "#4c78a8", "#1f3b57"
+
+fig, ax = plt.subplots(figsize=(6.6, 2.9))
+ax.hist(np.clip(valeurs_propres, None, x_max), bins=bords, color=BLEU,
+        edgecolor="white", linewidth=0.3, zorder=2, label="valeurs propres observées")
+ax.plot(x, mp_densite * p * np.diff(bords)[0], color=BLEU_F, lw=1.9, zorder=4,
+        label="bruit pur attendu (Marchenko-Pastur)")
+ax.axvspan(lmax, x_max, color=BLEU, alpha=0.09, zorder=0)
+ax.axvline(lmax, color=BLEU_F, lw=1.1, ls="--", zorder=3)
+ax.annotate(f"seuil {lmax:.2f}".replace(".", ","), (lmax, 300), xytext=(lmax - 0.15, 300),
+            fontsize=8.5, color=BLEU_F, va="center", ha="right")
+ax.annotate(f"{n_spikes} valeurs propres au-delà du bruit\n(dont {int((valeurs_propres > x_max).sum())} au-delà de {x_max:.0f}, hors cadre)",
+            (lmax + 0.25, 30), fontsize=8.5, color=BLEU_F, ha="left", va="center")
+ax.set_yscale("log")
+ax.set_ylim(0.7, 700)
+ax.set_xlim(0, x_max)
+ax.set_xlabel("valeur propre")
+ax.set_ylabel("nombre de mots (échelle log)", fontsize=9)
+ax.legend(frameon=False, loc="upper right", fontsize=8.5)
+for s in ("top", "right"):
+    ax.spines[s].set_visible(False)
+fig.tight_layout()
+plt.show()
+```
+
+La courbe théorique épouse le bulk : ces `{python} f"{p - n_spikes}"` valeurs
+propres sont indiscernables du hasard. `{python} n_spikes` en sortent, au-delà
+de `{python} f"{lmax:.2f}".replace(".", ",")` — un décompte de directions distinctes du bruit,
+pas de thèmes nommables.
+
+## Que contiennent les directions retenues ?
+
+Chaque direction retenue est décrite par le poids qu'elle donne à chacun des
+600 mots. Ces poids sont positifs ou négatifs : une direction **oppose** deux
+registres de vocabulaire, les jours où le premier domine étant les jours où le
+second est absent.
+
+```{python}
+#| label: fig-axes
+#| fig-cap: "Les six premières directions retenues, avec les mots qui les portent le plus. À droite les mots de poids positif, à gauche ceux de poids négatif. Ce sont des axes d'actualité concurrente. « plate » et « start » sont les têtes de « plate-forme » et « start-up », coupées par la tokenisation."
+#| fig-width: 6.6
+#| fig-height: 4.1
+vp_tri = np.argsort(valeurs_p)[::-1]
+
+TITRES = ["Chronique financière / années 2020",
+          "Budget et euro / art de vivre",
+          "Management / conjoncture dégradée",
+          "Entreprises / campagne électorale",
+          "Crise sanitaire / consommation",
+          "Territoires / actualité américaine"]
+
+fig, axes = plt.subplots(3, 2, figsize=(6.6, 4.1))
+for rang, ax in enumerate(axes.ravel()):
+    v = vecteurs_p[:, vp_tri[rang]]
+    if v.sum() < 0:
+        v = -v
+    hauts = np.argsort(v)[::-1][:5]
+    bas = np.argsort(v)[:5]
+    sel = np.concatenate([bas[::-1], hauts[::-1]])
+    poids = v[sel]
+    y = np.arange(len(sel))
+    ax.barh(y, poids, color=[BLEU if q > 0 else "#c47f3d" for q in poids], height=0.72)
+    ax.axvline(0, color="0.3", lw=0.7)
+    for yi, (q, m) in enumerate(zip(poids, mots[sel])):
+        dec = 0.006 if q > 0 else -0.006
+        ax.annotate(m, (q + dec, yi), fontsize=7, va="center",
+                    ha="left" if q > 0 else "right")
+    marge = max(abs(poids)) * 2.1
+    ax.set_xlim(-marge, marge)
+    ax.set_ylim(-0.8, len(sel) - 0.2)
+    ax.set_title(f"{rang + 1}. {TITRES[rang]}", fontsize=8.5, loc="left", color="0.25")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for s in ("top", "right", "left", "bottom"):
+        ax.spines[s].set_visible(False)
+fig.tight_layout(h_pad=0.9)
+plt.show()
+```
+
+La direction la plus puissante n'oppose pas deux sujets mais deux **époques** :
+le vocabulaire de la chronique financière classique (« groupe », « chiffre »,
+« marché ») face à celui des années 2020 (« emmanuel », « transition »,
+« start », « trump », « covid », « numérique »). Sur vingt-cinq ans, la
+première ligne de partage du journal est chronologique.
+
+Les suivantes sont thématiques, et découpent le journal en rubriques qui se
+disputent la place : le budget et la zone euro contre les pages art de vivre,
+le vocabulaire du management contre celui de la conjoncture, l'actualité des
+entreprises contre la campagne électorale, la crise sanitaire contre les prix
+à la consommation, les territoires contre les États-Unis. C'est exactement ce
+qu'il faudra surveiller après un rachat : un axe qui se déforme signale un
+déplacement de la couverture, pas seulement l'apparition d'un mot nouveau.
+
+## Nettoyer la matrice
+
+Les `{python} f"{p - n_spikes}"` valeurs propres du bulk ne portent aucune
+information fiable. On les remplace par leur moyenne, en gardant intactes les
+`{python} n_spikes` autres, puis on reconstruit la matrice.
+
+```{python}
+bruit = valeurs_p <= lmax
+moyenne_bruit = valeurs_p[bruit].mean()
+
+def matrice_nettoyee(k):
+    """Reconstruction en gardant les k plus grandes valeurs propres."""
+    seuil_k = np.sort(valeurs_p)[-k]
+    vp = np.where(valeurs_p >= seuil_k, valeurs_p, moyenne_bruit)
+    M = vecteurs_p @ np.diag(vp) @ vecteurs_p.T
+    np.fill_diagonal(M, 1.0)
+    return M
+
+def groupes(M):
+    D = 1 - np.abs(M)
+    np.fill_diagonal(D, 0)
+    D = (D + D.T) / 2
+    Z = linkage(squareform(D, checks=False), method="average", optimal_ordering=True)
+    return fcluster(Z, t=0.85, criterion="distance")
+
+C_net = matrice_nettoyee(n_spikes)
+labels_net = groupes(C_net)
+n_gros_net = int((np.bincount(labels_net)[1:] >= 5).sum())
+n_groupes_bas = int((np.bincount(groupes(matrice_nettoyee(n_spikes - 15)))[1:] >= 5).sum())
+n_groupes_haut = int((np.bincount(groupes(matrice_nettoyee(n_spikes + 15)))[1:] >= 5).sum())
+
+paires_ensemble_avant = labels_complet[:, None] == labels_complet[None, :]
+paires_ensemble_apres = labels_net[:, None] == labels_net[None, :]
+hd = ~np.eye(p, dtype=bool)
+part_desaccord = (paires_ensemble_avant[hd] != paires_ensemble_apres[hd]).mean() * 100
+```
+
+```{python}
+#| label: fig-debruitage
+#| fig-cap: "Chaque point est une paire de mots : sa corrélation avant nettoyage (horizontale) et après (verticale). La diagonale marque l'absence de changement. Les liens forts, à droite, sont ramenés vers le bas — c'est là que le bruit d'échantillonnage gonflait le plus les valeurs."
+#| fig-width: 6.6
+#| fig-height: 3.0
+masque_hd = ~np.eye(p, dtype=bool)
+avant, apres = C[masque_hd], C_net[masque_hd]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.6, 3.0),
+                               gridspec_kw={"width_ratios": [1.25, 1]})
+
+lim = (-0.5, 1.0)
+ax1.hexbin(avant, apres, gridsize=70, bins="log", cmap="Blues", mincnt=1,
+           extent=(*lim, *lim), linewidths=0)
+ax1.plot(lim, lim, color="0.35", lw=0.9, ls="--", zorder=3)
+ax1.set_xlim(lim)
+ax1.set_ylim(lim)
+ax1.set_aspect("equal")
+ax1.set_xlabel("corrélation avant", fontsize=9)
+ax1.set_ylabel("corrélation après", fontsize=9)
+ax1.tick_params(labelsize=8)
+
+tranches = [(0.0, 0.05), (0.05, 0.1), (0.1, 0.2), (0.2, 0.4), (0.4, 1.0)]
+etiquettes = ["0–0,05", "0,05–0,1", "0,1–0,2", "0,2–0,4", "> 0,4"]
+deplacement = []
+for lo, hi in tranches:
+    s = (np.abs(avant) >= lo) & (np.abs(avant) < hi)
+    deplacement.append(np.median(np.abs(apres[s]) - np.abs(avant[s])))
+
+y = np.arange(len(tranches))
+couleurs_b = ["#b4302e" if v < 0 else "0.6" for v in deplacement]
+ax2.barh(y, deplacement, color=couleurs_b, height=0.62)
+ax2.axvline(0, color="0.3", lw=0.8)
+ax2.set_yticks(y)
+ax2.set_yticklabels(etiquettes, fontsize=8.5)
+ax2.invert_yaxis()
+ax2.set_xlabel("déplacement médian", fontsize=9)
+ax2.set_ylabel("force du lien avant", fontsize=9)
+ax2.tick_params(labelsize=8)
+for s in ("top", "right", "left"):
+    ax2.spines[s].set_visible(False)
+fig.tight_layout()
+plt.show()
+```
+
+Le nuage reste serré autour de la diagonale : le nettoyage ne bouleverse pas la
+matrice. Les liens faibles ne bougent quasiment pas, les plus forts sont tirés
+vers le bas — une corrélation forte mesurée sur un échantillon fini est presque
+toujours un peu surestimée.
+
+Le nombre de groupes bouge peu (`{python} n_gros_net` contre
+`{python} n_gros`), mais ce chiffre stable masque une recomposition réelle :
+`{python} f"{part_desaccord:.1f}".replace(".", ",")` % des paires de mots
+changent de statut. Le débruitage ne change pas le nombre de boîtes, il change
+leur contenu. Et le résultat ne dépend pas de la valeur exacte du seuil : en
+gardant `{python} n_spikes - 15` valeurs propres au lieu de
+`{python} n_spikes`, on trouve `{python} n_groupes_bas` groupes ; avec
+`{python} n_spikes + 15`, `{python} n_groupes_haut` ; contre
+`{python} n_gros_net` au seuil exact.
+
+Cela comptera pour la suite : découpé en fenêtres avant/après rachat, chaque
+période comptera un millier de jours au lieu de
+`{python} f"{n_jours:,}".replace(",", " ")` : le ratio mots/jours montera bien
+au-dessus de `{python} f"{p_sur_n:.3f}".replace(".", ",")` et les matrices
+seront beaucoup plus bruitées qu'ici.
