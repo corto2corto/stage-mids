@@ -76,6 +76,7 @@ SITE = set("""
 lire abonnés abonné abonnement newsletter article articles rubrique accueil
 cookies publicité contenu contenus vidéo vidéos photo photos diaporama
 lefigaro figaro echos redaction rédaction crédits légende afp reuters
+com
 """.split())
 
 debut = time.time()
