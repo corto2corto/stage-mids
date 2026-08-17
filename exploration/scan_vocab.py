@@ -3,15 +3,21 @@
 # total) par token, ecrite au fil de l'eau dans un CSV. Scan complet par
 # tranches de w1 — la PK (w1, date) fait de chaque tranche un parcours
 # d'index borne, jamais une requete geante silencieuse.
-# Usage (sur gallica) : python -m exploration.scan_vocab [media]
+# Une annee de debut peut etre donnee pour restreindre le recensement a une
+# periode (le classement par frequence change : le vocabulaire recent remonte,
+# cf. vocab_lemonde_2000.py). La sortie porte alors l'annee au lieu du suffixe
+# « unigram ».
+# Usage (sur gallica) : python -m exploration.scan_vocab [media] [annee_debut]
 import csv
 import sqlite3
 import sys
 import time
 
 media = sys.argv[1] if len(sys.argv) > 1 else "lemonde"
+annee = int(sys.argv[2]) if len(sys.argv) > 2 else None
 DB = f"/data/elias/stage-mids/data/corpus/{media}_ngram.db"
-SORTIE = f"/data/elias/stage-mids/data/vocab_{media}_unigram.csv"
+SORTIE = f"/data/elias/stage-mids/data/vocab_{media}_{annee or 'unigram'}.csv"
+PERIODE = "" if annee is None else f" AND u.date >= {annee * 10000 + 101}"
 PAS = 5_000
 
 conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
@@ -28,7 +34,7 @@ with open(SORTIE, "w", newline="") as f:
         t0 = time.time()
         lignes = conn.execute(
             "SELECT t.word, COUNT(*), SUM(u.n) FROM unigram u JOIN token t ON t.id = u.w1 "
-            "WHERE u.w1 BETWEEN ? AND ? GROUP BY u.w1",
+            f"WHERE u.w1 BETWEEN ? AND ?{PERIODE} GROUP BY u.w1",
             (borne, borne + PAS - 1)).fetchall()
         ecrivain.writerows(lignes)
         f.flush()
