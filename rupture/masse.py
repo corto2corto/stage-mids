@@ -1,0 +1,101 @@
+# Extraction en masse des series du vocabulaire (phase 3, dataset de sauts).
+# Construit la matrice dense jours x mots du top-K vocabulaire unigram d'un media.
+# L'unite de vocabulaire est la GRAPHIE ; une graphie pesant < 1 % de la dominante
+# de sa cle desaccentuee est un doublon OCR, sommee jour par jour dans celle-ci
+# (choix acte le 21/07/2026 — au-dela, mot a part entiere : retraite / retraité).
+# Une seule passe sur unigram par tranches d'ids (PK (w1, date)), pas une boucle
+# sur serie(). Les candidats sont le top 2K de la borne basse du recensement ;
+# le classement final utilise les jours actifs exacts, la marge est loggee.
+#
+# Usage (sur gallica) : python -m rupture.masse [media] [K] [sortie]
+# Sorties dans data/ (nommees <sortie>, defaut = media — un 3e argument permet
+# les variantes de vocabulaire sans toucher aux fichiers officiels, ex.
+# `masse lemonde 39316 lemondev40k` pour la variante >= 1000 jours actifs) :
+# - vocab_series_<sortie>.npz : X (jours x K, int32), dates (YYYYMMDD), N (total
+#   du jour), mots (graphies-unites), cles (desaccentuees, indicatives)
+# - vocab_<sortie>_top<K>.csv : mot, cle, jours_actifs, total
+import os
+import sqlite3
+import sys
+import time
+import unicodedata
+
+import numpy as np
+import pandas as pd
+
+from scripts.tokenisation import MOTS_OUTILS
+
+media = sys.argv[1] if len(sys.argv) > 1 else "lemonde"
+K = int(sys.argv[2]) if len(sys.argv) > 2 else 10_000
+sortie = sys.argv[3] if len(sys.argv) > 3 else media
+DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
+PAS = 500  # ids par tranche
+debut = time.time()
+
+# 1. Candidats depuis le recensement : exclusions puis top 2K par borne basse
+v = pd.read_csv(f"{DOSSIER}/vocab_{media}_unigram.csv", dtype={"mot": str}, keep_default_na=False)
+v = v[~v["mot"].isin(set(MOTS_OUTILS))]
+v = v[~v["mot"].str.match(r"[0-9]")]
+v = v[v["mot"].str.len() > 1]
+v["cle"] = [unicodedata.normalize("NFD", m).encode("ascii", "ignore").decode() for m in v["mot"]]
+dom = v.loc[v.groupby("cle")["total"].idxmax(), ["cle", "mot"]].set_index("cle")["mot"]
+v["unite"] = np.where(v["total"] < 0.01 * v.groupby("cle")["total"].transform("max"),
+                      v["cle"].map(dom).to_numpy(), v["mot"].to_numpy())
+borne = v.groupby("unite")["jours_actifs"].max().sort_values(ascending=False)
+candidats = borne.head(2 * K).index
+v = v[v["unite"].isin(set(candidats))]
+totaux = v.groupby("unite")["total"].sum()
+print(f"candidats : {len(candidats)} unites ({len(v)} graphies dont "
+      f"{int((v['unite'] != v['mot']).sum())} absorbees), "
+      f"borne basse du dernier : {int(borne.iloc[len(candidats) - 1])} jours", flush=True)
+
+# 2. ids des graphies candidates (la table token est petite)
+conn = sqlite3.connect(f"file:{DOSSIER}/corpus/{media}_ngram.db?mode=ro", uri=True)
+tok = pd.read_sql_query("SELECT id, word FROM token", conn)
+tok = tok[tok["word"].isin(set(v["mot"]))]
+col_de_unite = {u: i for i, u in enumerate(candidats)}
+mot2unite = dict(zip(v["mot"], v["unite"]))
+tok["col"] = [col_de_unite[mot2unite[w]] for w in tok["word"]]
+colmap = np.full(int(tok["id"].max()) + 1, -1, np.int32)
+colmap[tok["id"].to_numpy()] = tok["col"].to_numpy()
+ids = np.sort(tok["id"].to_numpy())
+print(f"{len(ids)} ids de tokens a lire", flush=True)
+
+# 3. Axe temps (zeros reinjectes par construction : toutes les dates du corpus)
+t = pd.read_sql_query("SELECT date, total FROM total_unigram ORDER BY date", conn)
+dates = t["date"].to_numpy(np.int64)
+N = t["total"].to_numpy(np.int64)
+
+# 4. Une passe sur unigram, tranches d'ids, cumul dans la matrice dense
+X = np.zeros((len(dates), len(candidats)), np.int32)
+n_lignes = 0
+n_tranches = (len(ids) - 1) // PAS + 1
+for i in range(0, len(ids), PAS):
+    tranche = ids[i:i + PAS]
+    df = pd.read_sql_query("SELECT w1, date, n FROM unigram WHERE w1 IN "
+                           f"({','.join(map(str, tranche))})", conn)
+    lignes = np.searchsorted(dates, df["date"].to_numpy())
+    np.add.at(X, (lignes, colmap[df["w1"].to_numpy()]), df["n"].to_numpy())
+    n_lignes += len(df)
+    print(f"[{i // PAS + 1}/{n_tranches}] cumul {n_lignes / 1e6:.0f} M lignes, "
+          f"{time.time() - debut:.0f} s", flush=True)
+
+# 5. Classement exact et coupe au rang K
+ja = (X > 0).sum(axis=0)
+ordre = np.argsort(-ja, kind="stable")[:K]
+coupe = int(ja[ordre[-1]])
+print(f"coupe exacte au rang {K} : {coupe} jours actifs ; un exclu des candidats "
+      f"ne peut depasser ~2 x {int(borne.iloc[len(candidats) - 1])} = "
+      f"{2 * int(borne.iloc[len(candidats) - 1])} (marge ok si < {coupe})", flush=True)
+
+# 6. Sorties
+mots_f = candidats[ordre].to_numpy().astype(str)
+cles_f = np.array([unicodedata.normalize("NFD", m).encode("ascii", "ignore").decode()
+                   for m in mots_f])
+np.savez_compressed(f"{DOSSIER}/vocab_series_{sortie}.npz",
+                    X=X[:, ordre], dates=dates, N=N, mots=mots_f, cles=cles_f)
+pd.DataFrame({"mot": mots_f, "cle": cles_f, "jours_actifs": ja[ordre],
+              "total": totaux[mots_f].to_numpy()}
+             ).to_csv(f"{DOSSIER}/vocab_{sortie}_top{K}.csv", index=False)
+print(f"FINI : {K} mots x {len(dates)} jours -> vocab_series_{sortie}.npz "
+      f"en {(time.time() - debut) / 60:.1f} min", flush=True)

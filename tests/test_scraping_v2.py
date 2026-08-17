@@ -1,15 +1,13 @@
 """Tests des moteurs de scraping v2 : dispatch, basic, log, pipeline, extraction.
 
 Sans réseau ni Firefox : les moteurs sont remplacés par des doublures (mock).
-Lancer :  python -m unittest tests.test_scraping_v2 -v
+Lancer :  python -m pytest tests/ -v
 """
 import json
 import sqlite3
-import tempfile
-import unittest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from bs4 import BeautifulSoup
 
 from scraping import basic, connexion, extraction, moteurs, pipeline
@@ -26,44 +24,44 @@ FAUX_MEDIAS = {
 }
 
 
-class TestRegistreMedias(unittest.TestCase):
+class TestRegistreMedias:
     def test_chaque_media_a_un_moteur_connu(self):
         for media, regles in MEDIAS.items():
-            self.assertIn(regles["moteur"], ("firefox", "log", "basic", "hybride"), media)
+            assert regles["moteur"] in ("firefox", "log", "basic", "hybride"), media
 
     def test_chaque_media_a_une_strategie_extraction(self):
         for media, regles in MEDIAS.items():
-            self.assertIn(regles["meta"]["strategie"], ("json_ld", "balises"), media)
-            self.assertTrue(regles["meta"]["corps"], media)
+            assert regles["meta"]["strategie"] in ("json_ld", "balises"), media
+            assert regles["meta"]["corps"], media
             if regles["meta"]["strategie"] == "balises":
                 for champ in ("titre", "auteur", "date"):
-                    self.assertIn(champ, regles["meta"], media)
+                    assert champ in regles["meta"], media
 
     def test_moteur_log_exige_une_procedure_de_connexion(self):
         for media, regles in MEDIAS.items():
             if regles["moteur"] == "log":
-                self.assertIn(media, connexion.CONNEXIONS, media)
+                assert media in connexion.CONNEXIONS, media
 
 
-class TestDispatchMoteurs(unittest.TestCase):
-    def setUp(self):
-        patcher = patch.dict(MEDIAS, FAUX_MEDIAS)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+class TestDispatchMoteurs:
+    @pytest.fixture(autouse=True)
+    def _faux_medias(self):
+        with patch.dict(MEDIAS, FAUX_MEDIAS):
+            yield
 
     def test_ouvrir_firefox(self):
         with patch("scraping.navigateur.ouvrir_firefox", return_value="DRIVER") as m:
-            self.assertEqual(moteurs.ouvrir_session("m_firefox"), "DRIVER")
+            assert moteurs.ouvrir_session("m_firefox") == "DRIVER"
             m.assert_called_once()
 
     def test_ouvrir_basic(self):
         with patch("scraping.basic.ouvrir_session", return_value="SESSION") as m:
-            self.assertEqual(moteurs.ouvrir_session("m_basic"), "SESSION")
+            assert moteurs.ouvrir_session("m_basic") == "SESSION"
             m.assert_called_once()
 
     def test_ouvrir_log(self):
         with patch("scraping.moteurs.ouvrir_firefox_connecte", return_value="CONNECTE") as m:
-            self.assertEqual(moteurs.ouvrir_session("m_log"), "CONNECTE")
+            assert moteurs.ouvrir_session("m_log") == "CONNECTE"
             m.assert_called_once_with("m_log")
 
     def test_scraper_firefox_efface_les_cookies_avec_attente_defaut(self):
@@ -84,15 +82,14 @@ class TestDispatchMoteurs(unittest.TestCase):
     def test_scraper_basic(self):
         with patch("scraping.basic.scraper", return_value="<html>") as m, \
              patch("scraping.moteurs.time.sleep") as sleep:
-            self.assertEqual(moteurs.scraper("m_basic", "session", "http://u"), "<html>")
+            assert moteurs.scraper("m_basic", "session", "http://u") == "<html>"
             m.assert_called_once_with("session", "http://u")
             sleep.assert_called_once()   # délai de politesse appliqué
 
     def test_ouvrir_hybride_deux_sessions(self):
         with patch("scraping.basic.ouvrir_session", return_value="SESSION") as b, \
              patch("scraping.navigateur.ouvrir_firefox", return_value="DRIVER") as f:
-            self.assertEqual(moteurs.ouvrir_session("m_hybride"),
-                             {"basic": "SESSION", "firefox": "DRIVER"})
+            assert moteurs.ouvrir_session("m_hybride") == {"basic": "SESSION", "firefox": "DRIVER"}
             b.assert_called_once()
             f.assert_called_once()
 
@@ -103,7 +100,7 @@ class TestDispatchMoteurs(unittest.TestCase):
              patch("scraping.moteurs.est_bloque", return_value=False), \
              patch("scraping.navigateur.scraper") as f, \
              patch("scraping.moteurs.time.sleep"):
-            self.assertEqual(moteurs.scraper("m_hybride", session, "http://u"), "<html>")
+            assert moteurs.scraper("m_hybride", session, "http://u") == "<html>"
             b.assert_called_once_with("s_http", "http://u")
             f.assert_not_called()   # pas de Firefox pour un article gratuit
 
@@ -114,7 +111,7 @@ class TestDispatchMoteurs(unittest.TestCase):
              patch("scraping.moteurs.est_bloque", return_value=True), \
              patch("scraping.navigateur.scraper", return_value="<html complet>") as f, \
              patch("scraping.moteurs.time.sleep") as sleep:
-            self.assertEqual(moteurs.scraper("m_hybride", session, "http://u"), "<html complet>")
+            assert moteurs.scraper("m_hybride", session, "http://u") == "<html complet>"
             f.assert_called_once_with("driver", "http://u", ATTENTE_DEFAUT)
             sleep.assert_called_once()   # espacement basic -> firefox
 
@@ -143,49 +140,47 @@ class TestDispatchMoteurs(unittest.TestCase):
         driver.close.assert_not_called()
 
 
-class TestMoteurBasic(unittest.TestCase):
+class TestMoteurBasic:
     def test_scraper_renvoie_le_html(self):
         session = MagicMock()
         session.get.return_value = MagicMock(text="<html>ok</html>")
-        self.assertEqual(basic.scraper(session, "http://u"), "<html>ok</html>")
+        assert basic.scraper(session, "http://u") == "<html>ok</html>"
         session.get.return_value.raise_for_status.assert_called_once()
 
     def test_scraper_propage_les_erreurs_http(self):
         session = MagicMock()
         session.get.return_value.raise_for_status.side_effect = Exception("403")
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             basic.scraper(session, "http://u")
 
 
-class TestMoteurLog(unittest.TestCase):
+class TestMoteurLog:
     """ouvrir_firefox_connecte : les identifiants sont lus AVANT d'ouvrir Firefox
     (pas de navigateur orphelin si la config manque)."""
 
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.fichier = Path(self.tmp.name) / "identifiants.json"
-        patcher = patch("scraping.connexion.IDENTIFIANTS", self.fichier)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+    @pytest.fixture(autouse=True)
+    def _identifiants(self, tmp_path):
+        self.fichier = tmp_path / "identifiants.json"
+        with patch("scraping.connexion.IDENTIFIANTS", self.fichier):
+            yield
 
     def test_fichier_identifiants_absent(self):
         with patch("scraping.connexion.ouvrir_firefox") as firefox:
-            with self.assertRaises(FileNotFoundError):
+            with pytest.raises(FileNotFoundError):
                 connexion.ouvrir_firefox_connecte("le_monde")
             firefox.assert_not_called()
 
     def test_media_absent_du_fichier(self):
         self.fichier.write_text(json.dumps({"autre": {"email": "a", "mot_de_passe": "b"}}))
         with patch("scraping.connexion.ouvrir_firefox") as firefox:
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 connexion.ouvrir_firefox_connecte("le_monde")
             firefox.assert_not_called()
 
     def test_media_sans_procedure_de_connexion(self):
         self.fichier.write_text(json.dumps({"inconnu": {"email": "a", "mot_de_passe": "b"}}))
         with patch("scraping.connexion.ouvrir_firefox") as firefox:
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 connexion.ouvrir_firefox_connecte("inconnu")
             firefox.assert_not_called()
 
@@ -194,10 +189,10 @@ class TestMoteurLog(unittest.TestCase):
         driver = MagicMock()
         with patch("scraping.connexion.ouvrir_firefox", return_value=driver), \
              patch("scraping.connexion.time.sleep"):
-            self.assertIs(connexion.ouvrir_firefox_connecte("le_monde"), driver)
+            assert connexion.ouvrir_firefox_connecte("le_monde") is driver
         driver.get.assert_called_once_with(connexion.CONNEXIONS["le_monde"]["url"])
         saisies = [appel.args for appel in driver.find_element.return_value.send_keys.call_args_list]
-        self.assertEqual(saisies, [("e@x.fr",), ("mdp",)])
+        assert saisies == [("e@x.fr",), ("mdp",)]
         # Validation par clic JS (traverse un bandeau cookies) sur le champ trouvé.
         driver.execute_script.assert_called_once_with("arguments[0].click();", driver.find_element.return_value)
         driver.quit.assert_not_called()
@@ -208,12 +203,20 @@ class TestMoteurLog(unittest.TestCase):
         driver.find_element.side_effect = Exception("champ introuvable")
         with patch("scraping.connexion.ouvrir_firefox", return_value=driver), \
              patch("scraping.connexion.time.sleep"):
-            with self.assertRaises(Exception):
+            with pytest.raises(Exception):
                 connexion.ouvrir_firefox_connecte("le_monde")
         driver.quit.assert_called_once()
 
 
-class TestPipeline(unittest.TestCase):
+class TestPipeline:
+    @pytest.fixture
+    def conn(self):
+        conn = sqlite3.connect(":memory:")
+        conn.execute("CREATE TABLE urls (id INTEGER PRIMARY KEY, media TEXT, "
+                     "url TEXT, etat INTEGER DEFAULT 0)")
+        conn.execute("INSERT INTO urls (id, media, url) VALUES (1, 'a', 'http://a')")
+        return conn
+
     def test_session_en_echec_ignoree(self):
         batch = {"a": (1, "http://a"), "b": (2, "http://b")}
         def ouvrir(media):
@@ -221,56 +224,45 @@ class TestPipeline(unittest.TestCase):
                 raise RuntimeError("boum")
             return f"session_{media}"
         with patch("scraping.pipeline.ouvrir_session", side_effect=ouvrir):
-            self.assertEqual(pipeline.ouvrir_sessions(batch), {"a": "session_a"})
+            assert pipeline.ouvrir_sessions(batch) == {"a": "session_a"}
 
     def test_aucune_session_ne_demarre(self):
         batch = {"a": (1, "http://a")}
         with patch("scraping.pipeline.ouvrir_session", side_effect=RuntimeError):
-            self.assertEqual(pipeline.ouvrir_sessions(batch), {})
+            assert pipeline.ouvrir_sessions(batch) == {}
 
-    def _conn_memoire(self):
-        conn = sqlite3.connect(":memory:")
-        conn.execute("CREATE TABLE urls (id INTEGER PRIMARY KEY, media TEXT, "
-                     "url TEXT, etat INTEGER DEFAULT 0)")
-        conn.execute("INSERT INTO urls (id, media, url) VALUES (1, 'a', 'http://a')")
-        return conn
-
-    def test_traiter_url_echec_scrape(self):
-        conn = self._conn_memoire()
+    def test_traiter_url_echec_scrape(self, conn):
         with patch("scraping.pipeline.scraper", side_effect=RuntimeError("timeout")):
             etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a")
-        self.assertEqual(etat, 1)
-        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 1)
+        assert etat == 1
+        assert conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0] == 1
 
-    def test_prochaine_url_nouvelles_puis_echecs(self):
-        conn = self._conn_memoire()
+    def test_prochaine_url_nouvelles_puis_echecs(self, conn):
         conn.execute("INSERT INTO urls (id, media, url, etat) VALUES (2, 'a', 'http://echec', 1)")
         # tant qu'il reste du neuf (etat=0), il passe d'abord
-        self.assertEqual(prochaine_url(conn, "a"), (1, "http://a", 0))
+        assert prochaine_url(conn, "a") == (1, "http://a", 0)
         conn.execute("UPDATE urls SET etat=2 WHERE id=1")
         # plus de neuf : les échecs ont une seconde chance
-        self.assertEqual(prochaine_url(conn, "a"), (2, "http://echec", 1))
+        assert prochaine_url(conn, "a") == (2, "http://echec", 1)
         conn.execute("UPDATE urls SET etat=4 WHERE id=2")
         # échec confirmé : plus jamais repris
-        self.assertIsNone(prochaine_url(conn, "a"))
+        assert prochaine_url(conn, "a") is None
 
-    def test_traiter_url_echec_confirme_apres_retentative(self):
-        conn = self._conn_memoire()
+    def test_traiter_url_echec_confirme_apres_retentative(self, conn):
         with patch("scraping.pipeline.scraper", side_effect=RuntimeError("boum")):
             etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a", etat_prec=1)
-        self.assertEqual(etat, 4)
-        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 4)
+        assert etat == 4
+        assert conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0] == 4
 
-    def test_traiter_url_succes(self):
-        conn = self._conn_memoire()
+    def test_traiter_url_succes(self, conn):
         with patch("scraping.pipeline.scraper", return_value="<html>"), \
              patch("scraping.pipeline.ecriture_csv", return_value=2):
             etat = pipeline.traiter_url(conn, "a", "s_a", 1, "http://a")
-        self.assertEqual(etat, 2)
-        self.assertEqual(conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0], 2)
+        assert etat == 2
+        assert conn.execute("SELECT etat FROM urls WHERE id=1").fetchone()[0] == 2
 
 
-class TestExtraction(unittest.TestCase):
+class TestExtraction:
     HTML = """
     <html><head>
     <script type="application/ld+json">{invalide</script>
@@ -285,48 +277,44 @@ class TestExtraction(unittest.TestCase):
 
     def test_bloc_json_ld_invalide_ignore(self):
         article = extraction.noeud_json_ld(BeautifulSoup(self.HTML, "html.parser"))
-        self.assertEqual(article.get("headline"), "Titre")
+        assert article.get("headline") == "Titre"
 
     def test_extraire_nominal(self):
         infos = extraction.extraire("le_capital", self.HTML)
-        self.assertEqual(infos["titre"], "Titre")
-        self.assertEqual(infos["auteur"], "Alice")
-        self.assertEqual(infos["free"], "non")
-        self.assertEqual(infos["contenu"], "Le corps complet.")
+        assert infos["titre"] == "Titre"
+        assert infos["auteur"] == "Alice"
+        assert infos["free"] == "non"
+        assert infos["contenu"] == "Le corps complet."
 
     def test_page_sans_json_ld(self):
         infos = extraction.extraire("le_capital", "<html><body><p>rien</p></body></html>")
-        self.assertEqual(infos["titre"], "")
-        self.assertEqual(infos["contenu"], "")
+        assert infos["titre"] == ""
+        assert infos["contenu"] == ""
 
     def test_date_balises_texte_sans_datetime(self):
         # francesoir : la date est un div texte, sans attribut datetime
         html = "<h1>T</h1><div class='field--name-field-date me-3'>Publié le 14 mars 2017</div>"
         meta = {"titre": "h1", "auteur": "a[rel=author]", "date": "div.field--name-field-date.me-3"}
         infos = extraction.meta_balises(BeautifulSoup(html, "html.parser"), meta)
-        self.assertEqual(infos["date"], "Publié le 14 mars 2017")
+        assert infos["date"] == "Publié le 14 mars 2017"
 
     def test_date_balises_datetime_prioritaire(self):
         html = "<time datetime='2026-07-06'>6 juillet</time>"
         meta = {"titre": "h1", "auteur": "a", "date": "time"}
         infos = extraction.meta_balises(BeautifulSoup(html, "html.parser"), meta)
-        self.assertEqual(infos["date"], "2026-07-06")
+        assert infos["date"] == "2026-07-06"
 
 
-class TestPaywall(unittest.TestCase):
+class TestPaywall:
     def test_contenu_vide_est_bloque(self):
-        self.assertTrue(est_bloque(""))
-        self.assertTrue(est_bloque("   "))
+        assert est_bloque("")
+        assert est_bloque("   ")
 
     def test_signal_en_fin_est_bloque(self):
-        self.assertTrue(est_bloque("Début. " * 100 + "La suite est réservée aux abonnés."))
+        assert est_bloque("Début. " * 100 + "La suite est réservée aux abonnés.")
 
     def test_signal_au_debut_seulement_ne_bloque_pas(self):
-        self.assertFalse(est_bloque("réservée aux abonnés. " + "La suite du texte normal. " * 50))
+        assert not est_bloque("réservée aux abonnés. " + "La suite du texte normal. " * 50)
 
     def test_texte_normal_pas_bloque(self):
-        self.assertFalse(est_bloque("Un article tout à fait normal. " * 30))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert not est_bloque("Un article tout à fait normal. " * 30)

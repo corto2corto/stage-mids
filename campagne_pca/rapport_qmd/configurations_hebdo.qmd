@@ -1,0 +1,295 @@
+---
+title: "PCA des sauts — une configuration hebdomadaire par journal"
+subtitle: "Le Monde, Le Figaro, Les Échos et Mediapart — grille à la semaine, fenêtre et seuil communs"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 10.5pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figures calculees ici depuis le cache PCA (data/cache_pca/) : aucun png sur
+# le disque. Cache construit sur le serveur par scripts/construire_cache.py.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import campagne_pca.scripts.figures_lib as lib
+from campagne_pca.scripts.configs import JEUX
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 2): set text(size: 13pt)
+#show heading.where(level: 3): set text(size: 11pt)
+
+#align(center)[
+  #grid(columns: 4, column-gutter: 1.1cm, align: horizon,
+    image("figures/logos/lemonde.svg", height: 0.80cm),
+    image("figures/logos/lefigaro.svg", height: 0.52cm),
+    image("figures/logos/lesechos.svg", height: 0.66cm),
+    image("figures/logos/mediapart.svg", height: 0.58cm))
+]
+#v(0.4cm)
+```
+
+Une seule configuration par journal, sur grille hebdomadaire (blocs de 7 jours) :
+même largeur de fenêtre (±10 semaines) et même seuil de surprise (4) pour les
+quatre, ce qui les rend directement comparables et fait dépasser 5 000
+fenêtres à chacun — y compris Mediapart, le corpus le plus court. L'agrégation
+à la semaine lisse déjà les jours creux, sans nettoyage supplémentaire. Le
+K50_frac est ici doublement comparable, puisque la largeur de fenêtre (21
+blocs) est elle aussi identique pour tous.
+
+Les planches d'archétypes obéissent à une règle supplémentaire. Le z-score
+efface l'échelle : un mot à trente occurrences peut épouser une composante
+aussi bien qu'un mot à cinq cents, et sortait alors en tête sans rien peser.
+Le choix des archétypes est donc restreint aux fenêtres dont le pic dépasse la
+médiane du journal, avec un plancher de 50 occurrences pour les corpus courts ;
+le nombre d'occurrences est affiché sous chaque vignette. Ce filtre ne change
+rien à la PCA elle-même, qui reste calculée sur toutes les fenêtres — il ne
+porte que sur les exemples montrés.
+
+```{=typst}
+#set text(size: 9pt)
+```
+
+| | Le Monde | Le Figaro | Les Échos | Mediapart |
+|---|---|---|---|---|
+| Fenêtres | 27 707 | 11 311 | 8 633 | 5 483 |
+| K50 | 6 | 6 | 6 | 8 |
+| K50_frac | 0,30 | 0,30 | 0,30 | 0,40 |
+| cum6 | 51,8 % | 52,3 % | 50,5 % | 44,9 % |
+
+```{=typst}
+#set text(size: 10.5pt)
+```
+
+```{=typst}
+#v(0.6cm)
+```
+
+## La forme des sauts, comparée
+
+```{=typst}
+#v(1fr)
+```
+
+```{python}
+#| label: fig-comparaison-hebdo
+#| fig-cap: "Les trois premières composantes des quatre configurations : la même encoche juste avant le pic, suivie d'un rebond net, sur les quatre journaux. Le classement par concentration s'inverse par rapport à la configuration journalière optimale : ici Mediapart est le moins concentré des quatre (cum6 45 %), Le Figaro le plus concentré (52 %)."
+jeu = JEUX["hebdo"]
+lib.vue_comparaison(jeu["lignes"], jeu["titre"], jeu["rect"], None)
+```
+
+```{=typst}
+#v(1fr)
+#pagebreak()
+```
+
+## Le Monde
+
+```{=typst}
+#block(above: 0.4em, below: 1.0em, grid(columns: (auto, 1fr), align: horizon, column-gutter: 0.7em,
+  image("figures/logos/lemonde.svg", height: 0.70cm),
+  line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
+```
+
+```{python}
+#| label: fig-hebdoMonde-spectre
+#| fig-cap: "Spectre."
+d, pres, seuil_vol, eligibles = lib.config("hebdoMonde")
+lib.vue_spectre(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoMonde-composantes
+#| fig-cap: "Les six premières composantes."
+lib.vue_composantes(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoMonde-plan12
+#| fig-cap: "Plan des deux premières composantes."
+lib.vue_plan12(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+```{python}
+#| label: fig-hebdoMonde-archetypes
+#| fig-cap: "Archétypes des quatre premières composantes : des événements réels, étalés sur tout le corpus (1945 à 2020)."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
+
+```{python}
+#| label: fig-hebdoMonde-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle."
+lib.vue_reconstruction(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Le Figaro
+
+```{=typst}
+#block(above: 0.4em, below: 1.0em, grid(columns: (auto, 1fr), align: horizon, column-gutter: 0.7em,
+  image("figures/logos/lefigaro.svg", height: 0.44cm),
+  line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
+```
+
+```{python}
+#| label: fig-hebdoFigaro-spectre
+#| fig-cap: "Spectre."
+d, pres, seuil_vol, eligibles = lib.config("hebdoFigaro")
+lib.vue_spectre(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoFigaro-composantes
+#| fig-cap: "Les six premières composantes."
+lib.vue_composantes(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoFigaro-plan12
+#| fig-cap: "Plan des deux premières composantes."
+lib.vue_plan12(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+```{python}
+#| label: fig-hebdoFigaro-archetypes
+#| fig-cap: "Archétypes des quatre premières composantes : la composante 1 tombe entièrement sur mars 2020, semaine du confinement."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
+
+```{python}
+#| label: fig-hebdoFigaro-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle."
+lib.vue_reconstruction(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Les Échos
+
+```{=typst}
+#block(above: 0.4em, below: 1.0em, grid(columns: (auto, 1fr), align: horizon, column-gutter: 0.7em,
+  image("figures/logos/lesechos.svg", height: 0.60cm),
+  line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
+```
+
+```{python}
+#| label: fig-hebdoEchos-spectre
+#| fig-cap: "Spectre."
+d, pres, seuil_vol, eligibles = lib.config("hebdoEchos")
+lib.vue_spectre(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoEchos-composantes
+#| fig-cap: "Les six premières composantes."
+lib.vue_composantes(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoEchos-plan12
+#| fig-cap: "Plan des deux premières composantes."
+lib.vue_plan12(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+```{python}
+#| label: fig-hebdoEchos-archetypes
+#| fig-cap: "Archétypes des quatre premières composantes."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
+
+```{python}
+#| label: fig-hebdoEchos-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle."
+lib.vue_reconstruction(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Mediapart
+
+```{=typst}
+#block(above: 0.4em, below: 1.0em, grid(columns: (auto, 1fr), align: horizon, column-gutter: 0.7em,
+  image("figures/logos/mediapart.svg", height: 0.55cm),
+  line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
+```
+
+```{python}
+#| label: fig-hebdoMediapart-spectre
+#| fig-cap: "Spectre."
+d, pres, seuil_vol, eligibles = lib.config("hebdoMediapart")
+lib.vue_spectre(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoMediapart-composantes
+#| fig-cap: "Les six premières composantes."
+lib.vue_composantes(d, pres, None)
+```
+
+```{python}
+#| label: fig-hebdoMediapart-plan12
+#| fig-cap: "Plan des deux premières composantes."
+lib.vue_plan12(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+```{python}
+#| label: fig-hebdoMediapart-archetypes
+#| fig-cap: "Archétypes des quatre premières composantes : les composantes 2 et 3 pointent sur la même semaine (« mardi », 23/03/2026) — artefact de nom de jour, pas un événement. Le plancher de 50 occurrences mord ici plus qu'ailleurs (médiane à 21 seulement), ce qui ne laisse que 764 fenêtres éligibles sur 5 483."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
+
+```{python}
+#| label: fig-hebdoMediapart-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle."
+lib.vue_reconstruction(d, pres, None)
+```
+
+```{=typst}
+#v(0.8cm)
+#line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))
+#v(0.2cm)
+#text(size: 8.5pt, fill: rgb("#52514e"), style: "italic")[
+  Figures calculées à la compilation depuis `campagne_pca/data/cache_pca/`. Logos
+  officiels via Wikimedia Commons. Méthode complète : `campagne_pca/rapport_pdf/rapport.pdf`.
+]
+```

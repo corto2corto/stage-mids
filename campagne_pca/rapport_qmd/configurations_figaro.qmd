@@ -1,0 +1,172 @@
+---
+title: "PCA des sauts — Le Figaro"
+subtitle: "Deux configurations : blocs de 3 jours et journalier"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 10.5pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figures calculees ici depuis le cache PCA (data/cache_pca/) : aucun png sur
+# le disque. Cache construit sur le serveur par scripts/construire_cache.py.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import campagne_pca.scripts.figures_lib as lib
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 2): it => text(size: 13pt, fill: rgb("#163860"), it.body)
+#show heading.where(level: 3): set text(size: 11pt)
+
+#align(center)[
+  #image("figures/logos/lefigaro.svg", height: 0.95cm)
+]
+#v(0.5cm)
+```
+
+| | Blocs de 3 jours | Journalier |
+|---|---|---|
+| Fenêtre | ±15 blocs (±45 j de parution) | ±15 jours |
+| Seuil de surprise | 4 | 5 |
+| Nettoyage | — | n5000 |
+| Fenêtres | 18 375 | 17 939 |
+| Mots distincts | 7 232 | 6 486 |
+| Période couverte | 09/2005 – 01/2024 | 10/2005 – 02/2024 |
+| K50 (sur un rang de 30) | 9 | 9 |
+| K50_frac | 0,30 | 0,30 |
+| cum3 | 26,1 % | 26,9 % |
+| cum6 | 40,1 % | 42,1 % |
+| Variances 1 à 6 | 11,1 / 8,7 / 6,3 / 5,6 / 4,5 / 4,0 % | 11,8 / 8,0 / 7,1 / 6,2 / 5,0 / 4,0 % |
+
+```{=typst}
+#v(0.4cm)
+```
+
+```{=typst}
+#v(0.5cm)
+```
+
+## Blocs de 3 jours, seuil 4 — 18 375 fenêtres
+
+```{=typst}
+#block(above: 0.4em, below: 1.0em, grid(columns: (auto, 1fr), align: horizon, column-gutter: 0.7em,
+  image("figures/logos/lefigaro.svg", height: 0.44cm),
+  line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
+```
+
+La géométrie du Monde appliquée au Figaro ; seul le seuil descend à 4, pour
+compenser un corpus plus court.
+
+```{python}
+#| label: fig-configH-spectre
+#| fig-cap: "Spectre."
+d, pres, seuil_vol, eligibles = lib.config("configH")
+lib.vue_spectre(d, pres, None)
+```
+
+```{python}
+#| label: fig-configH-composantes
+#| fig-cap: "Les six premières composantes. Encoche au bloc central (−0,34) : effet du centrage, le pic étant commun à toutes les fenêtres."
+lib.vue_composantes(d, pres, None)
+```
+
+```{python}
+#| label: fig-configH-plan12
+#| fig-cap: "Plan des deux premières composantes."
+lib.vue_plan12(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+```{python}
+#| label: fig-configH-archetypes
+#| fig-cap: "Archétypes des quatre premières composantes. La composante 2 aligne du texte de gabarit — crédit « Source : AFP » des brèves, encart publicitaire « SERVICE >> bwin » — et non des événements."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
+
+```{python}
+#| label: fig-configH-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle."
+lib.vue_reconstruction(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Journalier, seuil 5 — 17 939 fenêtres
+
+```{=typst}
+#block(above: 0.4em, below: 1.0em, grid(columns: (auto, 1fr), align: horizon, column-gutter: 0.7em,
+  image("figures/logos/lefigaro.svg", height: 0.44cm),
+  line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))))
+```
+
+La grille comparable aux Échos et à Mediapart, avec le même nettoyage
+`n5000`.
+
+```{python}
+#| label: fig-configG-spectre
+#| fig-cap: "Spectre."
+d, pres, seuil_vol, eligibles = lib.config("configG")
+lib.vue_spectre(d, pres, None)
+```
+
+```{python}
+#| label: fig-configG-composantes
+#| fig-cap: "Les six premières composantes. Même encoche centrale (−0,54 au jour 0) que sur la grille par blocs : le motif résiste à l'agrégation."
+lib.vue_composantes(d, pres, None)
+```
+
+```{python}
+#| label: fig-configG-plan12
+#| fig-cap: "Plan des deux premières composantes."
+lib.vue_plan12(d, pres, None)
+```
+
+```{=typst}
+#pagebreak()
+```
+
+```{python}
+#| label: fig-configG-archetypes
+#| fig-cap: "Archétypes des quatre premières composantes."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
+
+```{python}
+#| label: fig-configG-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle."
+lib.vue_reconstruction(d, pres, None)
+```
+
+```{=typst}
+#v(0.5cm)
+#line(length: 100%, stroke: 0.5pt + rgb("#c3c2b7"))
+#v(0.2cm)
+#text(size: 8.5pt, fill: rgb("#52514e"), style: "italic")[
+  Figures calculées à la compilation depuis `campagne_pca/data/cache_pca/` ; courbes
+  au bleu de charte du titre (\#163860), logo via Wikimedia Commons. Mêmes planches
+  avec les trois autres médias dans `campagne_pca/rapport_pdf/configurations_A_C.pdf`.
+  Méthode : `campagne_pca/rapport_pdf/rapport.pdf`.
+]
+```

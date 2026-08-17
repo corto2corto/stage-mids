@@ -1,8 +1,8 @@
 #!/bin/bash
 # Cycle quotidien des sitemaps (appelé par cron 2x/jour) :
-#   1. exploration.sitemap_news : lit les sitemap.news de chaque média et ajoute
+#   1. scripts.sitemap_news : lit les sitemap.news de chaque média et ajoute
 #      aux CSV d'URLs les articles récents manquants ;
-#   2. exploration.verser_nouveaux : verse ces URLs en base (INSERT OR IGNORE,
+#   2. scripts.verser_nouveaux : verse ces URLs en base (INSERT OR IGNORE,
 #      l'index unique (media,url) écarte les connues).
 # Idempotent : un raté un jour est rattrapé le lendemain (fenêtre news ~48 h).
 # À lancer depuis la racine du dépôt de prod.
@@ -21,6 +21,6 @@ fi
 export SQLITE_TMPDIR="$RACINE/data/sqlite_tmp"
 
 echo "=== $(date -u +'%F %T') UTC : début cycle sitemaps ==="
-.venv/bin/python -m exploration.sitemap_news
-.venv/bin/python -m exploration.verser_nouveaux
+.venv/bin/python -m scripts.sitemap_news
+.venv/bin/python -m scripts.verser_nouveaux
 echo "=== $(date -u +'%F %T') UTC : fin cycle sitemaps ==="

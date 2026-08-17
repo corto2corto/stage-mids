@@ -16,12 +16,13 @@ Produit `paper/donnees_maths/fiches/fiche_<slug>_<debut>_<fin>.pdf` : une page A
 
 1. **Slug** : minuscules, sans accents (`président` → `president`). Le CSV attendu est `paper/donnees_maths/<slug>_lemonde.csv`.
 
-2. **Si le CSV manque, l'extraire** (serveur gallica, **lecture seule** — autorisé sans demander) :
-   - Chercher **toutes les graphies** du mot (avec et sans accents — l'OCR a créé des doublons) :
-     `ssh gallica "sqlite3 /data/elias/stage-mids/data/corpus/lemonde_ngram.db \"SELECT id, word FROM token WHERE word IN ('<avec accents>','<sans accents>')\""`
-   - Extraire en **sommant les ids** trouvés, sur la **grille complète avec zéros** (années entières couvrant la période demandée, la fiche filtre ensuite) — modèle exact dans `paper/donnees_maths/extraire.sh` : `total_unigram LEFT JOIN` la somme des `unigram` des ids, `COALESCE(x, 0)`.
-   - **Expression de deux mots** (ex. « Patrick Bruel ») : même schéma avec la table `bigram` (`WHERE w1=<id1> AND w2=<id2>`, requête indexée par la PK) et `total_bigram` comme dénominateur.
-   - Sanity check : nb de lignes = nb de jours de la grille (1 827 pour 2020-2024), `X_t` plausible.
+2. **Si le CSV manque, l'extraire** via le mécanisme unique `rupture/extraire.py` (serveur gallica en **lecture seule** — autorisé sans demander) :
+   ```bash
+   source .venv/bin/activate
+   python -c "from rupture import extraire; extraire.serie('<mot avec accents>').to_csv('paper/donnees_maths/<slug>_lemonde.csv', index=False)"
+   ```
+   Tout est automatique : graphies avec/sans accents sommées (doublons OCR), zéros réinjectés sur la grille des jours de parution, expressions de 2-3 mots gérées (tables bigram/trigram), lecture directe sur gallica ou via ssh depuis le Mac. La série couvre toute la période disponible, la fiche filtre ensuite.
+   Sanity check : nb de lignes plausible (~26 918 pour Le Monde complet), `X_t` non nul.
 
 3. **Générer** :
    ```bash

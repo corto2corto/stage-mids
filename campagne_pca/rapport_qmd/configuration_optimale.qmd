@@ -1,0 +1,125 @@
+---
+title: "PCA des sauts — la configuration optimale"
+subtitle: "Le Monde, blocs de 7 jours, fenêtres ±10 blocs (±70 jours de parution), seuil de surprise 6 — 8 764 fenêtres"
+lang: fr
+format:
+  typst:
+    margin:
+      x: 2cm
+      y: 2cm
+    fontsize: 10.5pt
+    # sans fig-format explicite, quarto 1.9 perd les figures matplotlib en typst
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Les figures sont calculees ici, a partir du cache PCA (data/cache_pca/), et
+# inserees directement dans le PDF : aucun png sur le disque. Le cache est
+# construit sur le serveur par scripts/construire_cache.py ; les sources
+# (vocab_series_*.npz, plus d'1 Go) n'y sont jamais necessaires.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))  # racine du depot, pour importer campagne_pca
+
+import campagne_pca.scripts.figures_lib as lib
+
+d, pres, seuil_vol, eligibles = lib.config("optimale")
+```
+
+Configuration retenue à l'issue de la campagne (~4 000 configurations
+testées) : celle qui concentre le mieux la variance. **K50 = 4** composantes
+pour 50 % de la variance, **60,4 % à 6 composantes** — contre 11 et 33,3 %
+pour le modèle zéro (journalier, ±15, seuil 4).
+
+## Spectre
+
+```{python}
+#| label: fig-spectre
+#| fig-cap: "Variance expliquée par composante. La ligne rouge marque un nuage sans structure (100/20 = 5 %) : cinq composantes la dépassent."
+lib.vue_spectre(d, pres, None)
+```
+
+La première composante porte **18,5 %** de la variance, contre 9,2 % dans le
+modèle zéro. Le spectre n'est plus plat.
+
+## Les formes
+
+```{python}
+#| label: fig-composantes
+#| fig-cap: "Les six premières composantes comme profils temporels."
+lib.vue_composantes(d, pres, None)
+```
+
+Quatre formes lisibles, transposées à l'échelle de la semaine :
+
+- **1 (18,5 %)** — le saut tient-il dans une seule semaine, ou déborde-t-il
+  sur les voisines ?
+- **2 (15,2 %)** — montée progressive jusqu'au pic, puis chute brutale.
+- **3 (9,7 %)** — changement de niveau : plateau bas avant, plateau haut
+  après.
+- **4 (6,9 %)** — pic élargi, encadré de deux creux.
+- **5-6** — oscillations génériques, sans lien avec le calendrier.
+
+## Le nuage
+
+```{python}
+#| label: fig-plan12
+#| fig-cap: "Les 8 764 fenêtres dans le plan des deux premières composantes ; en rouge, la fenêtre la plus surprenante de quelques mots-événements."
+lib.vue_plan12(d, pres, None, pres.decalages)
+```
+
+Le nuage est unimodal : pas de familles de sauts séparées, mais un continuum.
+Les événements marquants se placent en périphérie — « jaunes » et
+« francisco » loin sur la composante 1 (sauts très confinés), « mitterrand »
+et « chirac » du côté des montées de campagne.
+
+## Les archétypes
+
+```{python}
+#| label: fig-archetypes
+#| fig-cap: "Pour chacune des quatre premières composantes, les trois sauts réels les plus alignés."
+lib.vue_archetypes(d, pres, None, seuil_vol, eligibles)
+```
+
+Les formes correspondent à des dates reconnaissables :
+
+- **comp. 1** : « parvient » au 25/02/2022 — l'invasion de l'Ukraine, pic net
+  d'une semaine.
+- **comp. 2** : « régionales » au 26/03/1992 — montée de campagne, chute au
+  lendemain du scrutin.
+- **comp. 3** : « fermées » et « distance » au 20/03/2020 — le confinement.
+  Un changement de niveau durable, exactement la forme que la question des
+  rachats cherchera.
+
+## La reconstruction
+
+```{python}
+#| label: fig-reconstruction
+#| fig-cap: "Reconstruction d'une fenêtre réelle par les premières composantes."
+lib.vue_reconstruction(d, pres, None)
+```
+
+**72 % de la forme restitués avec une seule composante, 89 % avec trois,
+96 % avec six** — le modèle zéro demandait quinze composantes pour
+atteindre 89 %.
+
+## Deux réserves
+
+**L'échantillon est quatorze fois plus petit** que celui du modèle zéro
+(8 764 fenêtres contre 123 310) : le seuil 6 et l'agrégation hebdomadaire
+écartent beaucoup d'événements. « covid » et « syrienne » n'ont ainsi aucun
+pic dans cette configuration.
+
+**Optimale en concentration, pas en ancrage.** Son `alignement6` vaut 1,18,
+contre 1,70 pour les grandes fenêtres journalières : une partie de ce que
+capte son spectre est de la texture lente plutôt que la forme du pic — ce
+qui est cohérent avec sa composante 3, un changement de régime. Pour
+maximiser les formes d'événement, viser plutôt le journalier en ±25 à ±50.
+
+*Figures calculées à la compilation depuis `campagne_pca/data/cache_pca/optimale.npz`.
+Méthode complète, comparaison des axes et arbitrages : `campagne_pca/rapport_pdf/rapport.pdf`.*
