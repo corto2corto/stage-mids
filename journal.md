@@ -1673,3 +1673,14 @@ format que les autres médias du pipeline. Détails dans
 [`ouest_france/algolia.md`](ouest_france/algolia.md) et
 [`ouest_france/sources.md`](ouest_france/sources.md). La récolte est
 lancée.
+
+A FAIRE : 
+- Section d'une page où il faudra décrire le corpus 
+- Choix du vocabulaire 
+- Section sur le fit et la détection des spikes 
+- Section sur la PCA (faire des PCA sur les sauts en unifiant tout le corpus)
+- Reprendre le fitting sur les 32 journaux 
+- Parler de corpus unifié = réunion de tous les journaux 
+- Concaténer les 3 vecteurs, faire la PCA
+- Refaire tous les fits et extraire les spikes mais dans le corpus unifié 
+- Quels thèmes chassent l'autre 

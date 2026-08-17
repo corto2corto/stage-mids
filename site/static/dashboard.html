@@ -357,6 +357,38 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
     </div>
   </div>
 
+  <div class="carte" id="tache-nms-suffixe-seuil" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Découpler nms.py du seuil de surprise par défaut</div>
+        <div class="carte-sous">ajoutée le 17 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-nms-suffixe-seuil" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Relancer une campagne à un autre seuil de surprise produit des sorties suffixées <span style="font-family: var(--mono)">_s&lt;x&gt;</span> que <span style="font-family: var(--mono)">nms.py</span> ne lit pas : il ouvre <span style="font-family: var(--mono)">pics_&lt;media&gt;.csv</span> en dur et garde <span style="font-family: var(--mono)">HAUTEUR = 4.0</span>. Piste : lui donner le même argument de suffixe que <span style="font-family: var(--mono)">campagne.py</span> et déduire la hauteur du seuil.</p>
+    <div class="panneau-prompt" id="prompt-nms-suffixe-seuil" hidden>
+      <pre>Dans la chaîne de détection de pics, rupture/nms.py est couplé en dur au seuil de surprise par défaut, alors que les deux autres maillons sont paramétrables.
+
+Constat :
+- rupture/pics_masse.py prend un 4e argument « surprise » (défaut 4, soit p &lt; 1e-4) et, s'il diffère de 4, suffixe ses sorties en pics_&lt;media&gt;_s&lt;x&gt;.csv.
+- rupture/campagne.py sait relire ces fichiers via --pics _s3.
+- rupture/nms.py, lui, lit pics_&lt;media&gt;.csv en dur (ligne 58), écrit pics_&lt;media&gt;_nms.csv et pics_&lt;media&gt;_nms_ecarts.txt sans suffixe, et sa constante HAUTEUR = 4.0 (ligne 31) est codée en dur alors qu'elle vaut -log10(seuil).
+
+Conséquence : relancer une campagne à un autre seuil fait travailler le NMS sur l'ancien fichier au seuil 4, sans erreur ni avertissement.
+
+À faire :
+1. Ajouter à nms.py un argument optionnel de suffixe, sur le même modèle que --pics de campagne.py (garder la compatibilité : sans argument, comportement actuel inchangé).
+2. Appliquer le suffixe au fichier lu ET aux deux fichiers écrits.
+3. Déduire HAUTEUR du suffixe au lieu de la coder en dur (c'est la valeur « surprise » passée à pics_masse.py) ; garder 4.0 par défaut.
+4. Vérifier que la contre-vérification find_peaks utilise bien la hauteur déduite, pas 4.0.
+
+Rester minimal : pas de refonte de nms.py, juste le paramétrage. Vérifier à la fin que sans argument le script produit exactement la même chose qu'avant.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-nms-suffixe-seuil">Copier</button>
+    </div>
+  </div>
+
   <h2>Runs sur le serveur</h2>
   <div class="grille">
     <div class="carte">

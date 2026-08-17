@@ -392,6 +392,38 @@ Vérifier à la fin sur une centaine de lignes que l'auteur est cohérent avec c
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## nms-suffixe-seuil — Découpler nms.py du seuil de surprise par défaut
+
+- Ajoutée : 2026-08-17
+- Branche : main
+
+**Contexte** : `rupture/pics_masse.py` accepte un 4e argument (surprise minimale, défaut 4 = p < 1e-4) et écrit alors dans `pics_<media>_s<x>.csv` pour ne pas écraser les sorties livrées. `rupture/campagne.py` sait relire ces fichiers via `--pics _s3`, mais `rupture/nms.py` non : il lit `pics_<media>.csv` en dur (ligne 58) et sa constante `HAUTEUR = 4.0` (ligne 31) est écrite en dur avec le commentaire « = -log10(SEUIL de pics.py) ». Résultat : si on relance une campagne à un autre seuil, le NMS traite silencieusement l'ancien fichier au seuil 4 au lieu du nouveau. Rien n'est cassé aujourd'hui (tout tourne au défaut), c'est une désynchronisation qui n'apparaîtra qu'au moment où on fera varier le seuil.
+
+**Piste envisagée** : donner à `nms.py` le même argument de suffixe que `campagne.py` (`--pics _s3`), l'appliquer au fichier lu et aux deux fichiers écrits, et déduire `HAUTEUR` du suffixe plutôt que de la coder en dur — c'est exactement `surprise_min`, la valeur passée à `pics_masse.py`.
+
+**Prompt** :
+
+```
+Dans la chaîne de détection de pics, rupture/nms.py est couplé en dur au seuil de surprise par défaut, alors que les deux autres maillons sont paramétrables.
+
+Constat :
+- rupture/pics_masse.py prend un 4e argument « surprise » (défaut 4, soit p < 1e-4) et, s'il diffère de 4, suffixe ses sorties en pics_<media>_s<x>.csv.
+- rupture/campagne.py sait relire ces fichiers via --pics _s3.
+- rupture/nms.py, lui, lit pics_<media>.csv en dur (ligne 58), écrit pics_<media>_nms.csv et pics_<media>_nms_ecarts.txt sans suffixe, et sa constante HAUTEUR = 4.0 (ligne 31) est codée en dur alors qu'elle vaut -log10(seuil).
+
+Conséquence : relancer une campagne à un autre seuil fait travailler le NMS sur l'ancien fichier au seuil 4, sans erreur ni avertissement.
+
+À faire :
+1. Ajouter à nms.py un argument optionnel de suffixe, sur le même modèle que --pics de campagne.py (garder la compatibilité : sans argument, comportement actuel inchangé).
+2. Appliquer le suffixe au fichier lu ET aux deux fichiers écrits.
+3. Déduire HAUTEUR du suffixe au lieu de la coder en dur (c'est la valeur « surprise » passée à pics_masse.py) ; garder 4.0 par défaut.
+4. Vérifier que la contre-vérification find_peaks utilise bien la hauteur déduite, pas 4.0.
+
+Rester minimal : pas de refonte de nms.py, juste le paramétrage. Vérifier à la fin que sans argument le script produit exactement la même chose qu'avant.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
 
 ## inspection-urls-non-articles — Inspection par média des URLs non-articles + état dédié en base

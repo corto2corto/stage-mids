@@ -1,7 +1,7 @@
 """Détection de « sauts » : variations anormales de la fréquence d'un mot d'une
 fenêtre à la suivante, vers le haut comme vers le bas.
 
-Méthode : au lieu de la fréquence X(t) (cf. detecter_spike), on regarde le
+Méthode : au lieu de la fréquence X(t) (cf. detecter_spike_V2), on regarde le
 différentiel D(t) = X(t) - X(t-k), soit l'écart entre la fenêtre de k jours qui
 finit en t et la fenêtre précédente (disjointe). Pour k = 1, c'est exactement
 X(t) - X(t-1). D peut être négatif : la distribution empirique de D donne donc

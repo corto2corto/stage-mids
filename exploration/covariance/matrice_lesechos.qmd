@@ -35,6 +35,7 @@ import matplotlib
 matplotlib.use("module://matplotlib_inline.backend_inline")  # capture des figures par Quarto/Jupyter
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.optimize import minimize
 from scipy.spatial.distance import squareform
 
 d = np.load("data/correlation_lesechos_2000_top600.npz")
@@ -69,11 +70,43 @@ n_mots_montres = sum(len(v) for v in THEMES.values())
 idx = {m: int(np.where(mots == m)[0][0]) for ms in THEMES.values() for m in ms}
 mot2theme = {m: t for t, ms in THEMES.items() for m in ms}
 
-# frontiere de bruit Marchenko-Pastur
+# frontiere de bruit : loi de Marchenko-Pastur AJUSTEE sur l'histogramme des
+# valeurs propres, plutot que prise avec ses parametres theoriques (q = p/n,
+# s2 = 1). Deux reglages libres : le rapport effectif q et l'echelle s2.
 p, n = C.shape[0], n_jours
 p_sur_n = p / n
-ratio = np.sqrt(p_sur_n)
-lmin, lmax = (1 - ratio) ** 2, (1 + ratio) ** 2
+lmax_brut = (1 + np.sqrt(p_sur_n)) ** 2
+
+valeurs_p, vecteurs_p = np.linalg.eigh(C)  # ordre croissant
+valeurs_propres = valeurs_p[::-1]
+
+
+def densite_mp(x, q, s2):
+    """Densite de Marchenko-Pastur de rapport q et d'echelle s2."""
+    a, b = s2 * (1 - np.sqrt(q)) ** 2, s2 * (1 + np.sqrt(q)) ** 2
+    return (np.sqrt(np.clip((b - x) * (x - a), 0, None))
+            / (2 * np.pi * q * s2 * np.maximum(x, 1e-9)))
+
+
+# moindres carres sur l'histogramme du bulk, en ecartant a chaque tour les
+# valeurs propres qui depassent le bord haut courant
+q_fit, s2_fit = p_sur_n, 1.0
+for _ in range(15):
+    bord_haut = s2_fit * (1 + np.sqrt(q_fit)) ** 2
+    bulk = valeurs_propres[valeurs_propres <= bord_haut]
+    effectifs, bords_fit = np.histogram(bulk, bins=60, range=(0, bord_haut))
+    centres = (bords_fit[:-1] + bords_fit[1:]) / 2
+    densite_obs = effectifs / (len(bulk) * np.diff(bords_fit))
+    q_fit, s2_fit = minimize(
+        lambda th: ((densite_mp(centres, th[0], th[1]) - densite_obs) ** 2).sum(),
+        [q_fit, s2_fit], bounds=[(1e-3, 0.999), (0.05, 3.0)]).x
+
+lmin = s2_fit * (1 - np.sqrt(q_fit)) ** 2
+lmax = s2_fit * (1 + np.sqrt(q_fit)) ** 2
+n_spikes = int((valeurs_propres > lmax).sum())
+n_spikes_brut = int((valeurs_propres > lmax_brut).sum())
+n_bulk = p - n_spikes
+n_eff = p / q_fit  # jours "independants" impliques par l'ajustement
 ```
 
 ## Comment lire ce document
@@ -174,31 +207,40 @@ corrélation ne dit rien de la causalité.
 ## Combien de thèmes sont statistiquement solides ?
 
 Même 600 mots sans aucun lien réel afficheraient, sur un nombre fini de jours,
-des corrélations non nulles. La loi de Marchenko-Pastur donne la frontière de
-ce bruit : au-delà, une structure commune est défendable ; en-deçà, le hasard
-suffit.
+des corrélations non nulles. La loi de Marchenko-Pastur décrit la forme de ce
+bruit : au-delà de son bord droit, une structure commune est défendable ;
+en-deçà, le hasard suffit.
+
+Prise telle quelle, cette loi suppose 600 courbes indépendantes mesurées sur
+`{python} f"{n_jours:,}".replace(",", " ")` jours indépendants. Ni l'un ni
+l'autre n'est vrai : un mot reste dans l'actualité plusieurs jours d'affilée,
+et les journées se ressemblent. On ne lui impose donc pas ses paramètres, on
+les **ajuste** sur l'histogramme observé : la loi a deux réglages, sa largeur
+et son échelle, et on cherche le couple qui colle le mieux au bulk.
 
 ```{python}
 #| label: fig-spectre
-#| fig-cap: "Les 600 valeurs propres de la matrice de corrélation, en échelle logarithmique (sans quoi les valeurs de droite, peu nombreuses, seraient invisibles face au bulk). La courbe noire est la densité de pur bruit prédite par Marchenko-Pastur : elle épouse le bulk observé. À droite du seuil, des valeurs qu'aucun hasard d'échantillonnage ne peut produire."
+#| fig-cap: "Les 600 valeurs propres de la matrice de corrélation, en échelle logarithmique (sans quoi les valeurs de droite, peu nombreuses, seraient invisibles face au bulk). En gris pointillé, la loi de Marchenko-Pastur avec ses paramètres théoriques : elle ne commence qu'à 0,52, alors que 179 valeurs propres observées sont plus basses, et passe au-dessus de l'histogramme sur toute sa moitié droite. En bleu foncé, la même loi ajustée sur l'histogramme : elle épouse le bulk, et c'est son bord droit qui sert de seuil. À droite du seuil, des valeurs qu'aucun hasard d'échantillonnage ne peut produire."
 #| fig-width: 6.6
 #| fig-height: 2.9
-valeurs_p, vecteurs_p = np.linalg.eigh(C)  # ordre croissant
-valeurs_propres = valeurs_p[::-1]
-n_spikes = int((valeurs_propres > lmax).sum())
-
 x_max = 7.0
 bords = np.linspace(0, x_max, 70)
+largeur = np.diff(bords)[0]
+
 x = np.linspace(lmin, lmax, 400)
-mp_densite = np.sqrt(np.clip((lmax - x) * (x - lmin), 0, None)) / (2 * np.pi * p_sur_n * x)
+mp_ajustee = densite_mp(x, q_fit, s2_fit) * n_bulk * largeur
+x_brut = np.linspace((1 - np.sqrt(p_sur_n)) ** 2, lmax_brut, 400)
+mp_brute = densite_mp(x_brut, p_sur_n, 1.0) * p * largeur
 
 BLEU, BLEU_F = "#4c78a8", "#1f3b57"
 
 fig, ax = plt.subplots(figsize=(6.6, 2.9))
 ax.hist(np.clip(valeurs_propres, None, x_max), bins=bords, color=BLEU,
         edgecolor="white", linewidth=0.3, zorder=2, label="valeurs propres observées")
-ax.plot(x, mp_densite * p * np.diff(bords)[0], color=BLEU_F, lw=1.9, zorder=4,
-        label="bruit pur attendu (Marchenko-Pastur)")
+ax.plot(x_brut, mp_brute, color="0.6", lw=1.4, ls=":", zorder=3,
+        label="loi théorique (non ajustée)")
+ax.plot(x, mp_ajustee, color=BLEU_F, lw=1.9, zorder=4,
+        label="loi ajustée sur l'histogramme")
 ax.axvspan(lmax, x_max, color=BLEU, alpha=0.09, zorder=0)
 ax.axvline(lmax, color=BLEU_F, lw=1.1, ls="--", zorder=3)
 ax.annotate(f"seuil {lmax:.2f}".replace(".", ","), (lmax, 300), xytext=(lmax - 0.15, 300),
@@ -217,10 +259,19 @@ fig.tight_layout()
 plt.show()
 ```
 
-La courbe théorique épouse le bulk : ces `{python} f"{p - n_spikes}"` valeurs
-propres sont indiscernables du hasard. `{python} n_spikes` en sortent, au-delà
-de `{python} f"{lmax:.2f}".replace(".", ",")` — un décompte de directions distinctes du bruit,
-pas de thèmes nommables.
+L'ajustement est instructif à lui seul. Il ramène le nombre de jours réellement
+indépendants à `{python} f"{n_eff:,.0f}".replace(",", " ")` au lieu de
+`{python} f"{n_jours:,}".replace(",", " ")` : les journées d'un quotidien se
+répètent, et l'information apportée par vingt-cinq ans d'archives vaut moins
+que ce que le calendrier laisse croire. Le seuil descend en conséquence à
+`{python} f"{lmax:.2f}".replace(".", ",")`, contre
+`{python} f"{lmax_brut:.2f}".replace(".", ",")` pour la loi non ajustée.
+
+Une fois la loi calée, le partage est net : `{python} n_bulk` valeurs propres
+sont indiscernables du hasard, `{python} n_spikes` en sortent — contre
+`{python} n_spikes_brut` avec la loi non ajustée, qui sous-estime le signal
+parce qu'elle place son bord trop à droite. C'est un décompte de directions
+distinctes du bruit, pas de thèmes nommables.
 
 ## Que contiennent les directions retenues ?
 
@@ -287,9 +338,10 @@ déplacement de la couverture, pas seulement l'apparition d'un mot nouveau.
 
 ## Nettoyer la matrice
 
-Les `{python} f"{p - n_spikes}"` valeurs propres du bulk ne portent aucune
-information fiable. On les remplace par leur moyenne, en gardant intactes les
-`{python} n_spikes` autres, puis on reconstruit la matrice.
+Les `{python} n_bulk` valeurs propres du bulk — celles que la loi ajustée
+englobe — ne portent aucune information fiable. On les remplace par leur
+moyenne, en gardant intactes les `{python} n_spikes` autres, puis on
+reconstruit la matrice.
 
 ```{python}
 bruit = valeurs_p <= lmax
@@ -384,6 +436,7 @@ gardant `{python} n_spikes - 15` valeurs propres au lieu de
 
 Cela comptera pour la suite : découpé en fenêtres avant/après rachat, chaque
 période comptera un millier de jours au lieu de
-`{python} f"{n_jours:,}".replace(",", " ")` : le ratio mots/jours montera bien
-au-dessus de `{python} f"{p_sur_n:.3f}".replace(".", ",")` et les matrices
-seront beaucoup plus bruitées qu'ici.
+`{python} f"{n_jours:,}".replace(",", " ")` : le rapport ajusté montera bien
+au-dessus de `{python} f"{q_fit:.2f}".replace(".", ",")` et les matrices seront
+beaucoup plus bruitées qu'ici. Raison de plus pour réajuster la loi sur chaque
+fenêtre plutôt que de lui faire confiance sur parole.
