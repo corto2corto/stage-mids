@@ -1,7 +1,9 @@
-"""Verifie les scripts de mapping de la phase 2 (Ouest-France via Selenium,
-La Provence via pagination page-N, Le Point / La Tribune / archives
-Liberation via l'API CDX de la Wayback Machine). A lancer sur le serveur
-depuis la racine du depot :
+"""Verifie les mappings de la phase 2 et des prospections suivantes :
+Ouest-France via Selenium (seul script dedie restant), La Provence via
+pagination page-N, Le Point / La Tribune / archives Liberation via l'API CDX
+de la Wayback Machine, Closer et CNews via sitemap, 20 Minutes et Le Progres
+via pages d'archives annuelles. A lancer sur le serveur depuis la racine du
+depot :
 
     python -m exploration.verifier_mappings_phase2
 
@@ -32,6 +34,10 @@ MEDIAS = {
     "lepoint": r"https://www\.lepoint\.fr/.+-\d{2}-\d{2}-\d{4}-\d+_\d+\.php$",
     "latribune": r"https://www\.latribune\.fr/(?:.+-\d{6,}\.html|article/.+)$",
     "liberation_archives": r"https://www\.liberation\.fr/.+",
+    "closermag": r"https://www\.closermag\.fr/.+-\d+$",
+    "cnews": r"https://www\.cnews\.fr/(?:[^/]+/)?\d{4}-\d{2}-\d{2}/[^/]+/?$",
+    "20minutes": r"https://www\.20minutes\.fr/[a-z0-9\-/]+/\d+-\d{8}-[a-z0-9\-]+$",
+    "leprogres": r"https://www\.leprogres\.fr/[^/]+/\d{4}/\d{2}/\d{2}/.+",
 }
 SORTIES = {"liberation_archives": "liberation_url.csv"}
 UA_NAVIGATEUR = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"}
@@ -42,10 +48,12 @@ env = {**os.environ, "MAPPING_LIMITE": "4"}
 for media, motif in MEDIAS.items():
     nom = f"smoke {media}"
     try:
-        p = subprocess.run(
-            [sys.executable, "-m", f"exploration.mapping_{media}"],
-            env=env, capture_output=True, text=True, timeout=600,
-        )
+        # ouest_france garde son script dedie (Firefox) ; les autres passent
+        # par le mapping generique et leur fiche du catalogue
+        commande = ([sys.executable, "-m", "exploration.mapping_ouest_france"]
+                    if media == "ouest_france"
+                    else [sys.executable, "-m", "exploration.mapping", media])
+        p = subprocess.run(commande, env=env, capture_output=True, text=True, timeout=600)
     except subprocess.TimeoutExpired:
         resultats.append((nom, False, "timeout 600s"))
         continue

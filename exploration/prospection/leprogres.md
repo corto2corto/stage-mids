@@ -117,7 +117,7 @@ basic, pas de `Crawl-delay` déclaré).
    `Disallow: /`, déjà présents chez le_monde/le_figaro/ouest_france en
    production) — décision de branchement final à Corto, ce dossier ne
    tranche pas.
-3. Lancer `python -m exploration.mapping_leprogres` sur gallica (~1h45,
+3. Lancer `python -m exploration.mapping leprogres` sur gallica (~1h45,
    ~3 100 pages-jour à 1,5s de politesse). Produit
    `exploration/leprogres_url.csv` (~1,5-2M URLs brutes attendues, cf volumes
    ci-dessous — avant filtrage gratuit/payant qui se fait au scraping, pas au

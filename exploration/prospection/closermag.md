@@ -123,7 +123,7 @@ d'exploiter le pré-2022 (cf exploration/prospection/closermag.md)`.
      `http://web.archive.org/cdx/search/cdx?url=closermag.fr/*&from=20090101&to=20230501`)
      pour récupérer le HTML des pages telles qu'archivées avant le
      re-templating de mai 2023.
-2. Lancer `python -m exploration.mapping_closermag` sur gallica (~221
+2. Lancer `python -m exploration.mapping closermag` sur gallica (~221
    requêtes, ~7 min). Produit `exploration/closermag_url.csv` (~219 000 URLs
    attendues).
 3. Ajouter l'entrée `"closermag"` ci-dessus dans `scraping/medias.py` —

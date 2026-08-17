@@ -85,7 +85,7 @@ défaut suffit (pas de spécificité repérée).
 
 ## Plan de branchement (à exécuter uniquement sur validation explicite de Corto)
 
-1. Lancer `python -m exploration.mapping_cnews` sur gallica (~36 min, 215
+1. Lancer `python -m exploration.mapping cnews` sur gallica (~36 min, 215
    pages × `Crawl-delay` 10 s). Produit `exploration/cnews_url.csv`
    (~190-200k URLs attendues, cf volumes ci-dessous).
 2. Ajouter l'entrée `"cnews"` ci-dessus dans `scraping/medias.py` —

@@ -128,9 +128,8 @@ trois fois, et sa correction est le premier résultat de la campagne.
    structurellement de la taille de la fenêtre, et la variance cumulée à
    6 composantes n'est donc plus une mesure comparable d'une fenêtre à
    l'autre. On utilise à la place `gain6` = cum6 / cum6 attendu sous cette
-   hypothèse nulle, qui compare le ratio entre ce qui est observé et ce
-   qu'on attendrait sous l'hypothèse nulle : plus ce ratio est élevé, plus
-   la variance réellement expliquée dépasse la variance attendue.
+   hypothèse nulle : plus il est élevé, plus la variance réellement
+   expliquée dépasse celle qu'on attendrait sans aucune structure.
 2. **Les marges et la petite matrice.** Une seconde hypothèse nulle : « les
    jours d'une même fenêtre ne sont pas réellement liés entre eux, seuls
    certains jours sont, en moyenne, plus ou moins variables que d'autres »
@@ -360,18 +359,19 @@ que le spectre brut y soit le plus plat de tous (16 % à 6 composantes).
   les plus extrêmes (jusqu'à 79 fenêtres, Mediapart ±70/seuil 6/noms
   propres) restent de toute façon sous 5 000 et sont exclues des
   comparaisons plutôt que gonflées artificiellement.
-- **Kernel PCA** : non exploré — la priorité est allée aux témoins nuls, et
-  la PCA linéaire n'est pas épuisée (les formes longues viennent d'être
-  découvertes). À reprendre si la classification bute sur du non-linéaire.
+- **Kernel PCA** : explorée depuis sur les quatre médias et trois grilles
+  (`kernel_pca.qmd`), conclusion négative — le noyau RBF n'a jamais concentré
+  la variance mieux que la PCA linéaire.
 - **Fenêtres par mot** (remarque Bouchot) et **périodes d'activité
   anormale** : hors périmètre, notées au to_do.
 
 ## Reproduction
 
 Tout est versionné dans `campagne_pca/` (GitHub) : runner
-(`rupture/campagne.py`), journal complet (`rapport_qmd/suivi.md`), récoltes
-(`data/resultats.csv`, 1 753 configs ; `data/resultats_rotation.csv`,
-2 304 configs au double témoin), cache PCA (`data/cache_pca/`) et scripts de
-figures (`scripts/figures_lib.py`, `scripts/figures.py`). Les données
-intermédiaires (pics s3, séries 40k, base ngram Mediapart) sont sur gallica
-dans `data/`.
+(`rupture/campagne.py`), récoltes (`data/resultats.csv`, 1 753 configs ;
+`data/resultats_rotation.csv`, 2 304 configs au double témoin), cache PCA
+(`data/cache_pca/`) et scripts de figures (`scripts/figures_lib.py`,
+`scripts/figures.py`). Les données intermédiaires (pics s3, séries 40k, base
+ngram Mediapart) sont sur gallica dans `data/`. Le catalogue des
+configurations candidates (`configurations.qmd`) et l'exploration Kernel PCA
+(`kernel_pca.qmd`) complètent ce rapport.

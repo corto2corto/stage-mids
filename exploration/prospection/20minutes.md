@@ -89,7 +89,7 @@ suffit (pas de spécificité repérée, aucun signe d'anti-bot en basic).
 
 ## Plan de branchement (à exécuter uniquement sur validation explicite de Corto)
 
-1. Lancer `python -m exploration.mapping_20minutes` sur gallica (~3h, ~7 400
+1. Lancer `python -m exploration.mapping 20minutes` sur gallica (~3h, ~7 400
    pages-jour + 21 pages-année à 1s de politesse). Produit
    `exploration/20minutes_url.csv` (500-800k URLs attendues, cf volumes
    ci-dessous). Relançable par année via la constante `ANNEES` en cas
