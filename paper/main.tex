@@ -43,7 +43,12 @@ in eighty years of the daily press}
 
 \section{Introduction}
  
-à écrire
+motivation: \cite{cutler1988moves}, \cite{aubrun2025riding}, \cite{marcaccioli2022exogenous}
+
+kewords: reflexivity, time change, news?
+
+main goal of Bouchad et al: show that jumps are not caused by news or volume, but by "endogeneous"  processes. what if it's already the case… for news themselves? 
+is there a structure across the journals or do some activity spikes appear out of nowhere?
 
 \section{Data collection}
 \label{sec:data}
@@ -161,21 +166,43 @@ For any day $t$, we note $K_t$ the number of words having a spike at this day.
 time series of of $K_t$  | fit with heavy tail and quantiles and max | 
 
 
-\section{Classification of single jumps (PUR AI SLOP)}
+\section{Classification of single jumps}
 \label{sec:single}
 
 \subsection{Methodology}
 
-The goal of this section is to find some regular time patterns around activity spikes. For this, we perform a PCA on time windows around spikes. More precisely, let $w$ be a word for which there is an anomalous activity spike at a certain day $t$. Let $D$ be a window size. We exctract a window of $D$ time units before and after the spike at time $t$, obtaining a vector of size $2D+1$, $Z^w_t = (X_{t-D}, \dots, X_{t-1}, X_t, X_{t+1}, \dots, X_{t+D})$. If $n$ is the total number of anomalous activity spikes detected in the corpus, we thus obtain a matrix $Z = (Z^w_t)_{w \in \mathcal{W}, t = 1, \dots, n}$ of size $n \times (2D+1)$. 
+The goal of this section is to find some regular time patterns around activity spikes. For this, we perform a PCA on time windows around spikes. More precisely, let $w$ be a word for which there is an anomalous activity spike at a certain day $t$. Let $D$ be a window size, to be chosen as a hyperparameter --- typically, $D = 15$ days. We extract a window of $D$ time units before and after the spike at time $t$, obtaining a vector of size $2D+1$, $Z^w_t = (X_{t-D}, \dots, X_{t-1}, X_t, X_{t+1}, \dots, X_{t+D})$. If $n$ is the total number of anomalous activity spikes detected in the corpus, we thus obtain a matrix $Z = (Z^w_t)_{\text{spike for }(w,t)}$ of size $n \times (2D+1)$. 
 
+Before performing a PCA, we need to standardize the lines of $Z$ to have mean 0 and variance 1. We could compute the standardized $z$-score for each window, but it is more sound to compute the mean and standard deviation in the window, \emph{excluding} the spike at time $t$. Thus, let $Z_s$ be a spike. We note 
+\begin{align*}
+  &m_s = \frac{1}{2D} \sum_{| i - t | \leq D, i \neq t} X_i, \\
+  &\sigma_s = \sqrt{\frac{1}{2D} \sum_{| i - t | \leq D, i \neq t} (X_i - m_s)^2}.
+\end{align*}
+and we replace $Z_s$ by its standardized version, $Z'_s = (Z_s - m_s) / \sigma_s$. We then perform a PCA (or a variant) on the standardized matrix $Z'$.
+
+\subsection{Results}
+
+plots: valeurs singulières avec fit marchenko-pastur, nombre d'outliers 
+
+part de la variance expliquée (K50, K90) y compris pour des hyperparamètres 
+
+formes des vecteurs propres et interprétations
+
+\begin{remark}
+We explored different variants of the classical PCA, with no noticeable improvements. In particular, Kernel PCA did not explain a significantly higher part of the data variance, showing that the data does primarily have a linear structure. Further results on these explorations are given in Appendix \ref{sec:pca}.
+\end{remark}
 
 
 \section{The structure of jumps across journals}
 \label{sec:journals}
 
-totalement à écrire 
+We now arrive to the main part of the paper, where we show patterns of activity jumps across the different $J$ \emph{journals}. To do so, we have to split the windows of the unified corpus into per-media windows. Our methodoly is as follows: for each detected spike $s=(w,t)$, we extract $J$ windows of activity around the spike and stack them. If 
+$$Z_{s,j} = (X_{t-D}^{w,j}, \dots, X_{t-1}^{w,j}, X_t^{w,j}, X_{t+1}^{w,j}, \dots, X_{t+D}^{w,j})$$
+is the window of activity around the spike for the word $w$ and the journal $j$, then we set 
+$$Z_s = (Z_{s,j})_{j = 1}^J \in \mathbb{R}^{J \times (2D+1)}$$
+the window of activity around the spike for the word $w$ and the journals. 
 
-PCA sur les windows média par média
+QUESTIONS: quelle normalisation adopter ?
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -183,13 +210,11 @@ PCA sur les windows média par média
 
 \section*{Data and code availability}
 
-\TODO{state what is released: derived count series, the event catalogue, the
-window matrices, the analysis code, and the public query interface. The article
-corpus itself cannot be redistributed.}
+
 
 \section*{Acknowledgements}
 
-\TODO{acknowledgements, funding, and compute.}
+
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
@@ -215,5 +240,8 @@ corpus itself cannot be redistributed.}
   \end{equation}
   as in \eqref{eq:nbpdf}. 
 
+  \section{Further results on PCA}\label{sec:pca}
+
+  Ici : kernel PCA etc
 
 \end{document}
