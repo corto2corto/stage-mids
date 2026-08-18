@@ -96,8 +96,8 @@ Objectif : enrichir le registre MEDIAS avec de nouveaux médias français, en pr
 
 Organiser une équipe d'agents (outil Agent), un média candidat à la fois :
 1. Agent mapping : trouve la source d'URLs du média (sitemap, archives, pagination — s'inspirer du module mapping/ : generique.py + catalogue.py pour les cas standard, scripts par média pour les cas spéciaux) et en tire un échantillon d'une dizaine d'URLs d'articles variées, gratuits ET payants.
-2. Agent scrapper : récupère le HTML de l'échantillon en basic — sur gallica uniquement, jamais de curl/fetch sur le Mac — et juge le contenu : payants complets, gratuits seuls exploitables, ou tronqués.
-3. Agent explorateur : fouille les HTML pour localiser titre/auteur/date/corps (stratégie json_ld en priorité, sinon balises — cf exploration/lister_balises.py et exploration/detail_metadonnees.md).
+2. Agent scrapper : récupère le HTML de l'échantillon en basic — sur gallica uniquement, jamais de curl/fetch sur le Mac — via `python -m exploration.recuperer basic <url>...` (ou `deux` pour comparer basic vs Firefox+bypass), et juge le contenu : payants complets, gratuits seuls exploitables, ou tronqués.
+3. Agent explorateur : fouille les HTML pour localiser titre/auteur/date/corps (stratégie json_ld en priorité, sinon balises) via `python -m exploration.explorer_html <fichier.html> ["texte à situer"]` — cf exploration/detail_metadonnees.md pour les pièges déjà rencontrés.
 4. Agent manager : croise les trois rapports et tranche : ajoutable en basic complet, ajoutable en gratuits seuls (filtre via la colonne free), ou écarté — règle absolue : jamais d'articles tronqués en base. Si ajoutable : faire écrire le mapping complet (fiche dans mapping/catalogue.py — 5 méthodes disponibles — + motif de contrôle dans mapping/verifier.py) et préparer l'entrée medias.py pour le branchement au pipeline — SANS brancher : présenter le dossier complet à Corto et attendre sa validation explicite.
 
 Commencer par proposer à Corto une liste de médias candidats (hors MEDIAS actuels de scrapping_v2 et hors écartés : lexpress, lepoint) et la faire valider avant de lancer les agents.
@@ -420,6 +420,66 @@ Conséquence : relancer une campagne à un autre seuil fait travailler le NMS su
 4. Vérifier que la contre-vérification find_peaks utilise bien la hauteur déduite, pas 4.0.
 
 Rester minimal : pas de refonte de nms.py, juste le paramétrage. Vérifier à la fin que sans argument le script produit exactement la même chose qu'avant.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
+## couverture-telegramme-sudouest — Trous de couverture : Le Télégramme s'arrête en 2011, Sud Ouest en 2018
+
+- Ajoutée : 2026-08-18
+- Branche : main
+
+**Contexte** : repéré en construisant les bases 1gram (18/08/2026). `le_telegramme.csv` pèse 1 Go et contient 797 070 articles, mais **tous datés entre le 24/06/2008 et le 31/05/2011** — plus rien après. `sud_ouest.csv` pèse 1,67 Go, 804 657 articles, qui s'arrêtent net au **01/02/2018**. Ce n'est pas un défaut de la construction : les logs montrent 0 ligne écartée pour ces deux médias, les bases reflètent fidèlement les CSV. Le trou est donc côté récolte (URLs jamais listées, jamais capturées, ou dates mal extraites en amont).
+
+**Piste envisagée** : distinguer les trois causes possibles avant de toucher à quoi que ce soit — URLs absentes de `urls.db`, URLs présentes mais jamais capturées, ou dates mal extraites à la capture. Les deux médias sont en moteur `firefox` + `json_ld` dans `scraping/medias.py`, donc une extraction de date cassée sur le gabarit récent est un candidat sérieux.
+
+**Prompt** :
+
+```
+En construisant les bases 1gram (18/08/2026), deux médias montrent un trou de couverture massif :
+- le_telegramme.csv : 1 Go, 797 070 articles, TOUS datés entre le 24/06/2008 et le 31/05/2011. Rien après.
+- sud_ouest.csv : 1,67 Go, 804 657 articles, qui s'arrêtent net au 01/02/2018.
+
+Ce n'est PAS un défaut de la construction 1gram : les logs (data/logs/1gram_le_telegramme.log et 1gram_sud_ouest.log sur gallica) indiquent 0 ligne écartée. Les CSV eux-mêmes ne contiennent rien de plus récent.
+
+Trois causes possibles, à départager AVANT toute correction :
+1. Les URLs récentes ne sont pas dans urls.db (problème de listage : sitemap ou moteur de découverte).
+2. Elles y sont mais n'ont jamais été capturées (regarder la répartition des états).
+3. Elles ont été capturées mais la date est mal extraite, donc l'article part avec une date ancienne ou vide.
+
+Dans l'ordre :
+1. Interroger urls.db sur ces deux médias : nombre d'URLs par état, et si possible une idée de leur ancienneté (les URL portent souvent la date). Requêtes indexées seulement, jamais de scan complet.
+2. Regarder la config des deux médias dans scraping/medias.py (ligne ~46 et ~49) : tous deux en moteur « firefox » avec stratégie « json_ld ». Vérifier sur une URL récente réelle que la date json-ld est bien présente et bien lue par scraping/extraction.py.
+3. Conclure sur la cause, puis proposer la correction avant de l'appliquer.
+
+Ne pas reconstruire les bases 1gram : si la récolte reprend, on ajoutera les nouveaux articles plus tard.
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
+## dates-repli-1970 — Articles datés du 1er janvier 1970 dans midilibre et paris_match
+
+- Ajoutée : 2026-08-18
+- Branche : main
+
+**Contexte** : repéré en construisant les bases 1gram (18/08/2026). Les bases `midilibre_1gram.db` et `paris_match_1gram.db` portent des articles datés du **1er janvier 1970**, la date de repli classique quand un champ date est vide (epoch Unix à zéro). Les volumes sont négligeables (moins de 1 M d'occurrences chacun, contre 20 à 28 M pour une année normale), mais ces articles créent une année parasite qui faussera toute série longue ou tout calcul de fréquence relative sur les premières années.
+
+**Piste envisagée** : trouver d'où vient le repli (extracteur ou pipeline), le corriger pour que l'article parte sans date plutôt qu'avec 1970, puis nettoyer l'existant par DELETE ciblé sur `date = 19700101` dans les deux bases — pas de reconstruction, les bases ont coûté 44 min et 9 min.
+
+**Prompt** :
+
+```
+Les bases 1gram construites le 18/08/2026 révèlent des articles datés du 1er janvier 1970 (epoch Unix, date de repli quand le champ date est vide) chez deux médias : midilibre et paris_match.
+
+Volumes négligeables (moins de 1 M d'occurrences chacun, contre 20 à 28 M pour une année normale), mais ils créent une année parasite qui faussera les séries longues et les fréquences relatives.
+
+À faire, dans l'ordre :
+1. Mesurer l'ampleur réelle : dans data/corpus/midilibre_1gram.db et paris_match_1gram.db, la table total_unigram est minuscule (une ligne par jour) — y lire le total pour date = 19700101. Puis compter les lignes correspondantes dans les CSV data/csv/midilibre.csv et paris_match.csv.
+2. Trouver l'origine du repli : regarder comment la date est extraite pour ces deux médias (scraping/medias.py pour la config, scraping/extraction.py pour la lecture). Vérifier si c'est un timestamp 0 converti, ou une chaîne vide passée à une conversion qui retombe sur l'epoch.
+3. Corriger pour qu'un article sans date parte SANS date (champ vide) plutôt qu'avec 1970 : la construction 1gram écarte déjà proprement les lignes sans date.
+4. Nettoyer l'existant par DELETE ciblé sur date = 19700101 dans unigram et total_unigram des deux bases. NE PAS reconstruire (midilibre a coûté 44 min, paris_match 9 min). Penser à retirer ensuite du token local les mots devenus orphelins, si l'opération en crée.
+5. Vérifier à la fin que la plus ancienne date de chaque base est cohérente (midilibre devrait démarrer en 2011, paris_match dans les années 1990).
+
+Au passage, vérifier si d'autres bases 1gram ont le même souci (une requête par base sur total_unigram, c'est très peu coûteux).
 
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```

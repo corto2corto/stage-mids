@@ -1,6 +1,8 @@
 # Détail des métadonnées par média
 
-Pour chaque média, inspection du HTML réel (post-bypass, via `exploration/<media>.html`) pour identifier les balises BeautifulSoup à cibler. Métadonnées recherchées : titre, auteur, date, corps de l'article.
+Pour chaque média, inspection du HTML réel (post-bypass) pour identifier les balises BeautifulSoup à cibler. Métadonnées recherchées : titre, auteur, date, corps de l'article.
+
+Outillage : `python -m exploration.recuperer <basic|firefox|deux> <url>` récupère le HTML dans `exploration/html/`, puis `python -m exploration.explorer_html <fichier.html> ["texte à situer"]` en sort le JSON-LD, les `<meta>`, les conteneurs les plus riches en `<p>` et le chemin d'un texte connu.
 
 ## Le Capital
 
@@ -236,7 +238,7 @@ Note : pas de section/content_tier dans les meta, mais présence d'un `<script i
 
 ## JSON-LD : cas difficiles
 
-Pour les médias où l'extraction classique coince, on a inspecté le `<script type="application/ld+json">` (schema.org `NewsArticle`), en localisant le texte connu dans le HTML (script `situer_texte.py`) et en parsant le JSON-LD.
+Pour les médias où l'extraction classique coince, on a inspecté le `<script type="application/ld+json">` (schema.org `NewsArticle`), en localisant le texte connu dans le HTML (2e argument de `explorer_html.py`) et en parsant le JSON-LD.
 
 **Les Échos** (classes hashées) → le **JSON-LD est le meilleur socle**, plus fiable que les `<meta>` :
 

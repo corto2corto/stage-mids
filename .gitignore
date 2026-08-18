@@ -3,6 +3,7 @@
 # Barre initiale : uniquement le data/ de la racine, pas campagne_pca/data/
 /data/
 exploration/*.html
+exploration/html/
 exploration/*.csv
 exploration/figures/
 *.json

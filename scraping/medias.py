@@ -29,7 +29,7 @@ MEDIAS = {
     # Corps limité aux vrais paragraphes (11/07) : les encarts « Lire aussi »
     # (p.ds-article-title, « Article réservé aux abonnés ») et signatures dans
     # .article__content déclenchaient est_bloque à tort -> ~13 % d'échecs
-    # déterministes (diagnostic exploration/tester_residu_lemonde.py).
+    # déterministes (diagnostic du 11/07, détail dans journal.md).
     "le_monde":              {"moteur": "log", "attente": 3, "meta": {"strategie": "json_ld", "corps": ".article__content p.article__paragraph"}},
     # telerama : prototype moteur hybride (07/07) — l'anti-bot ne freine que Firefox
     # (40-65 % de timeouts), le client HTTP est servi en <1 s ; bypass en secours.
