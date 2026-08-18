@@ -2,14 +2,18 @@
 # Repond a « quels mots parlent des memes jours ». Pas de valeurs propres ici :
 # la matrice se lit ligne par ligne (le voisinage d'un mot).
 #
-# Les trois pieges de volume, et leur parade :
-#  1. volume du mot (guerre >> francisco) -> on fait une CORRELATION, pas une
-#     covariance : chaque mot est ramene a un ecart-type de 1, tous pesent pareil.
-#  2. volume du jour (journal epais = tous les mots montent) -> l'attendu du jour
-#     est mu_w * N_t, donc le residu ne depend plus de l'epaisseur du journal.
-#  3. bruit de comptage des mots rares (correlations tirees vers 0) -> plancher de
-#     vocabulaire : au top-600, fiabilite m/(m+r) ~ 0,7-0,9 sur 2000-2025 (corpus
-#     plus dense qu'en moyenne 1944-2025), atenuation limitee.
+# Correlation de Spearman (rang), pas Pearson sur residu de Poisson : les mots
+# sont surdisperses (bursty — cf. tests khi2 Poisson/binomiale negative des
+# fiches-mots), un residu (X - mu*N) / sqrt(mu*N) sous-estime leur variance
+# reelle sur les gros comptes et force un clip artificiel pour compenser. Le
+# rang evite d'avoir a supposer une loi :
+#  1. volume du mot (guerre >> francisco) -> la correlation sur les rangs est
+#     invariante a toute transformation monotone par mot, l'echelle ne compte pas.
+#  2. volume du jour (journal epais = tous les mots montent) -> on range les
+#     TAUX (mot / total du jour), pas les comptes bruts, avant de classer.
+#  3. bruit de comptage des mots rares -> plancher de vocabulaire (top-K) ; le
+#     rang est deja robuste aux queues, mais pas au bruit d'un jour minuscule,
+#     d'ou le filtre sur les jours quasi vides (N_MIN) plus bas.
 #
 # Selection du vocabulaire : top-K par occurrences sur la periode, parmi les
 # noms / noms propres / adjectifs (vocab_categories.csv, Lexique + spaCy), moins
@@ -20,9 +24,6 @@
 # mots absents de vocab_categories.csv sont GARDES (sinon on perd le vocabulaire
 # recent : immigration, ukraine, macron, covid sont sous la coupe du recensement
 # 1944-2025 existant, cf. vocab_lemonde_2000.py).
-#
-# Residu : Pearson (X - mu*N) / sqrt(mu*N), winsorise a +/- CLIP (sans quoi une
-# poignee de journees geantes — mars 2020 — piloterait les correlations).
 #
 # Usage (sur gallica) : python -m exploration.matrice_lemonde_2000 [K]
 import os
@@ -40,8 +41,8 @@ DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 ICI = os.path.dirname(os.path.abspath(__file__))
 CATEGORIES = os.path.join(ICI, "..", "campagne_pca", "data", "vocab_categories.csv")
 DEBUT, FIN = 20000101, 20251231
-N_MIN = 5_000   # jours a corpus quasi vide ecartes (convention V2 de rupture/pca.py)
-CLIP = 8.0
+N_MIN = 5_000   # jours a corpus quasi vide ecartes (convention V2 de rupture/pca.py) ;
+                # protege aussi la stabilite du rang Spearman sur les jours creux
 GARDEES = ("nom", "nom_propre", "adj")
 TESTS = ("immigration", "chômage", "guerre", "climat", "covid", "hôpital")
 
@@ -138,20 +139,16 @@ for i in range(0, len(ids), PAS):
     np.add.at(X, (lignes, colmap[df["w1"].to_numpy()]), df["n"].to_numpy())
     print(f"[{i // PAS + 1}/{(len(ids) - 1) // PAS + 1}] {time.time() - debut:.0f} s", flush=True)
 
-# 4. Nettoyage des jours quasi vides, puis residus
+# 4. Nettoyage des jours quasi vides, puis taux et rangs
 garde = N >= N_MIN
 print(f"{int((~garde).sum())} jours a moins de {N_MIN} mots ecartes", flush=True)
 X, N, dates = X[garde], N[garde], dates[garde]
 mu = X.sum(axis=0) / N.sum()
-attendu = np.outer(N, mu)
-R = (X - attendu) / np.sqrt(attendu)
-n_clip = int((np.abs(R) > CLIP).sum())
-print(f"residus : {n_clip} valeurs winsorisees a +/-{CLIP} "
-      f"({100 * n_clip / R.size:.3f} %), max avant clip {np.abs(R).max():.0f}", flush=True)
-R = np.clip(R, -CLIP, CLIP)
+taux = X / N[:, None]
+rangs = pd.DataFrame(taux).rank().to_numpy()
 
-# 5. La matrice
-C = np.corrcoef(R, rowvar=False)
+# 5. La matrice (Spearman = Pearson sur les rangs)
+C = np.corrcoef(rangs, rowvar=False)
 hors_diag = C[~np.eye(len(C), dtype=bool)]
 print(f"\nmatrice {C.shape[0]} x {C.shape[0]} | correlation moyenne "
       f"{hors_diag.mean():+.4f} (force du mode commun) | "
