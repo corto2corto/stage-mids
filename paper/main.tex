@@ -41,9 +41,22 @@ in eighty years of the daily press}
 
 \tableofcontents
 
+\newpage 
+
+
 \section{Introduction}
  
 motivation: \cite{cutler1988moves}, \cite{aubrun2025riding}, \cite{marcaccioli2022exogenous}
+
+Gallicagram: \cite{azoulay2023gallicagram} + exemples d'utilisation ?
+
+Sornette \cite{sornette2004endogenous} and Crane \cite{crane2008robust}
+
+Lehmann \cite{lehmann2012dynamical}
+
+studies on word/token counts \cite{katz1996distribution}, \cite{michel2011quantitative}
+
+change detection \cite{kulkarni2015statistically,hamilton2016diachronic}
 
 kewords: reflexivity, time change, news?
 
@@ -173,7 +186,9 @@ time series of of $K_t$  | fit with heavy tail and quantiles and max |
 
 The goal of this section is to find some regular time patterns around activity spikes. For this, we perform a PCA on time windows around spikes. More precisely, let $w$ be a word for which there is an anomalous activity spike at a certain day $t$. Let $D$ be a window size, to be chosen as a hyperparameter --- typically, $D = 15$ days. We extract a window of $D$ time units before and after the spike at time $t$, obtaining a vector of size $2D+1$, $Z^w_t = (X_{t-D}, \dots, X_{t-1}, X_t, X_{t+1}, \dots, X_{t+D})$. If $n$ is the total number of anomalous activity spikes detected in the corpus, we thus obtain a matrix $Z = (Z^w_t)_{\text{spike for }(w,t)}$ of size $n \times (2D+1)$. 
 
-Before performing a PCA, we need to standardize the lines of $Z$ to have mean 0 and variance 1. We could compute the standardized $z$-score for each window, but it is more sound to compute the mean and standard deviation in the window, \emph{excluding} the spike at time $t$. Thus, let $Z_s$ be a spike. We note 
+\paragraph{Non-maximal suppression}. talk abt NMS \cite{bodla2017soft}
+
+\paragraph{Standardization of the windows}. Before performing a PCA, we need to standardize the lines of $Z$ to have mean 0 and variance 1. We could compute the standardized $z$-score for each window, but it is more sound to compute the mean and standard deviation in the window, \emph{excluding} the spike at time $t$. Thus, let $Z_s$ be a spike. We note 
 \begin{align*}
   &m_s = \frac{1}{2D} \sum_{| i - t | \leq D, i \neq t} X_i, \\
   &\sigma_s = \sqrt{\frac{1}{2D} \sum_{| i - t | \leq D, i \neq t} (X_i - m_s)^2}.
@@ -219,6 +234,7 @@ QUESTIONS: quelle normalisation adopter ?
 \bibliographystyle{plainnat}
 \bibliography{refs}
 
+\newpage 
 \appendix
 
   \section{Negative binomial distribution}
