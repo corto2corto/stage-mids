@@ -273,7 +273,7 @@ def donnees_synthese():
 
 def vue_synthese_axes(r, chemin):
     """Effets des 4 axes (media, grille, demi-fenetre, seuil) sur exces6/alignement6."""
-    from rupture.graphes import BLEU, ORANGE
+    from rupture.graphes import ORANGE
     fig, axs = plt.subplots(1, 4, figsize=(10.4, 3.2), sharey=True)
     for ax, (col, titre, etiquettes, ordre) in zip(axs, AXES_SYNTHESE):
         m = r.groupby(col)[["exces6", "alignement6"]].mean().loc[ordre]
@@ -299,7 +299,6 @@ def vue_synthese_axes(r, chemin):
 
 def vue_synthese_carte(r, chemin):
     """Carte (exces6, alignement6) des media x grilles a la config de reference."""
-    from rupture.graphes import BLEU
     ref = r[(r["demi"] == 15) & (r["seuil"] == 4.0) & (r["filtre"] == "tous")]
     fig, ax = plt.subplots(figsize=(6.4, 4.6))
     ax.axhline(1, lw=.8, color=GRILLE)

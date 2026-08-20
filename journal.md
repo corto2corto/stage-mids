@@ -1674,6 +1674,25 @@ format que les autres médias du pipeline. Détails dans
 [`scraping/ouest_france/sources.md`](scraping/ouest_france/sources.md). La récolte est
 lancée.
 
+## Co-sauts : situer un pic sans 2-grams (20/08/2026)
+
+Pour étiqueter un pic (« guerre » le 01/03/2022 — mais quelle guerre ?),
+pas besoin de construire les bases 2-grams : les **co-sauts** suffisent.
+Dans `pics_<media>.csv`, les autres mots qui piquent à la même date,
+classés par surprise, identifient l'événement sans ambiguïté :
+« guerre » 01/03/2022 → l'invasion, sanctions, russie ;
+« compte » 02/04/2013 → mensonge, jérôme (les aveux de Cahuzac) ;
+« reprise » 08/09/2009 → cours, reprennent (la rentrée scolaire).
+C'est même plus informatif qu'une collocation de 2-gram (« guerre en »,
+« compte de »…), et gratuit — une lecture du CSV déjà produit. La méthode
+a corrigé deux interprétations posées de tête : « conseiller » 07/03/2014
+n'est pas les municipales mais l'affaire des écoutes Sarkozy (le
+conseiller Azibert), « reprise » 09/2009 n'est pas la sortie de crise.
+Première utilisation : les étiquettes entre parenthèses des fenêtres
+archétypes du corpus unifié
+([`campagne_pca/rapport_qmd/corpus_unifie.qmd`](campagne_pca/rapport_qmd/corpus_unifie.qmd),
+co-sauts lus dans `pics_unifie3j.csv`, arbitrage final à la main).
+
 A FAIRE : 
 - Section d'une page où il faudra décrire le corpus 
 - Choix du vocabulaire 
