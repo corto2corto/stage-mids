@@ -14,7 +14,7 @@
 # rouge vif. ACCENT sert aux annotations, distinct de la couleur du media.
 
 ACCENT = "#e34948"
-BLEU_ETUDE = "#2a78d6"          # bleu neutre des planches « optimale »
+BLEU_ETUDE = "#7d1620"          # rouge fonce neutre des planches « optimale »
 
 COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860",
             "lesechos": "#b00005", "mediapart": "#fc392b"}

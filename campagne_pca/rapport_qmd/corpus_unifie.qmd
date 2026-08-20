@@ -1,6 +1,6 @@
 ---
 title: "PCA des sauts — corpus unifié"
-subtitle: "La réunion des 36 médias traitée comme un seul journal, dans la configuration du Monde (blocs de 3 jours, fenêtre ±15 blocs), aux seuils 4 et 6"
+subtitle: "Les 36 médias traités comme un seul journal, dans la configuration du Monde (blocs de 3 jours, fenêtre ±15 blocs), aux seuils 4 et 6"
 lang: fr
 format:
   typst:
@@ -39,12 +39,23 @@ nms = pd.read_csv(D / "pics_unifie3j_nms.csv")
 fen = np.load(D / "fenetres_unifie3j.npz")
 
 # meme mesure a deux seuils : une teinte, deux paliers de clarte
-BLEU_S4, BLEU_S6 = "#77aee6", lib.BLEU
+BLEU_S4, BLEU_S6 = "#e0949a", lib.BLEU
 
 res = {}                                          # PCA aux deux seuils
 for s in (4, 6):
-    F, _ = normaliser(fen["fenetres"][fen["surprise"] >= s].astype(np.float64), "z")
-    res[s] = pca(F) + (len(F),)
+    m = fen["surprise"] >= s
+    Z, garde = normaliser(fen["fenetres"][m].astype(np.float64), "z")
+    comp, var, proj = pca(Z)
+    # le signe d'une composante est arbitraire : on l'oriente du cote de la
+    # queue lourde des projections, la ou vivent les archetypes — la forme
+    # tracee est alors celle des fenetres reelles qui lui ressemblent
+    signes = np.sign((proj ** 3).sum(axis=0))
+    comp, proj = comp * signes[:, None], proj * signes
+    res[s] = dict(comp=comp, var=var, proj=proj, Z=Z, n=len(Z),
+                  mot=fen["mot"][m][garde], date=fen["date"][m][garde],
+                  X=fen["X_t"][m][garde])
+
+VOCAB600 = set(Path(D / "vocab600.txt").read_text().split("\n"))
 ```
 
 ```{=typst}
@@ -54,31 +65,22 @@ for s in (4, 6):
 #show heading.where(level: 2): set text(size: 13pt)
 ```
 
-Le **corpus unifié** est la réunion des 36 bases n-grammes du pipeline,
-traitée comme un seul journal : les occurrences $X_t$ et les totaux $N_t$
-sont sommés média par média, jour par jour, sur une grille **calendaire**
-(tous les jours du 01/01/2008 au 17/08/2026, soit 6 804 jours — on ne
-s'occupe plus des jours de parution), puis agrégés en **2 268 blocs de
-3 jours** ; 8,0 milliards de tokens au total, environ treize fois Le Monde
-seul sur la même période. Le vocabulaire est le **top-10 000 du Monde
-repris tel quel** : mêmes mots, même ordre, si bien que chaque composante
-se compare colonne à colonne avec celles du Monde. La chaîne est celle du
-catalogue, inchangée : mélange Bernoulli × binomiale négative ajusté en
-double fit sur chaque mot, pics à surprise ≥ seuil, NMS glouton de portée
-31 blocs, fenêtres ±15 blocs, z-score par fenêtre, PCA. Deux seuils sont
-présentés : 4 (le défaut historique) et 6 (celui de la configuration
-optimale de `rapport.pdf`). Le passage de 4 à 6 se fait par simple
-filtrage : un pic à surprise ≥ 6 ne pouvant être supprimé que par un pic
-plus surprenant que lui, le NMS du sous-ensemble coïncide avec le
-sous-ensemble du NMS (vérifié : 16 390 pics dans les deux sens).
+Le **corpus unifié** additionne les 36 bases n-grammes du pipeline comme si
+tous les articles paraissaient dans un même journal : occurrences et totaux
+sommés jour par jour sur une grille calendaire (2008–2026), puis regroupés
+en **2 268 blocs de 3 jours** — 8,0 milliards de tokens, treize fois
+Le Monde seul. Le vocabulaire est le top-10 000 du Monde repris tel quel,
+et la chaîne celle du catalogue : BNB en double fit, pics à surprise
+≥ seuil, NMS, fenêtres ±15 blocs, z-score, PCA. Le seuil 6 s'obtient par
+simple filtrage du seuil 4 (le NMS du sous-ensemble coïncide avec le
+sous-ensemble du NMS — vérifié, 16 390 pics des deux façons).
 
-La concentration est mesurée **relativement au nombre de composantes**
-(31 blocs, rang utile 30) : `gain6` = cum6 / (6/30), le facteur gagné sur
-un spectre plat (1 = plat) ; `K50_frac`, la part du rang nécessaire pour
-50 % de la variance ; `rang_eff_frac`, le rang effectif du spectre rapporté
-au rang total (1 = plat). À géométrie identique, le corpus unifié
-concentre mieux que Le Monde aux deux seuils, et son seuil 4 vaut à peu
-près le seuil 6 du Monde.
+La concentration est rapportée au rang total (30) : `gain6` = cum6 / (6/30),
+1 = spectre plat ; `K50_frac`, part du rang pour la moitié de la variance ;
+`rang_eff_frac`, rang effectif sur rang total. À géométrie égale, l'unifié
+fait mieux que Le Monde aux deux seuils — son seuil 4 vaut le seuil 6 du
+Monde, et son seuil 6 garde plus de fenêtres que la configuration optimale
+du Monde.
 
 ```{=typst}
 #set text(size: 9pt)
@@ -98,7 +100,13 @@ près le seuil 6 du Monde.
 #set text(size: 10.5pt)
 ```
 
-## Détection des pics, trimestre par trimestre
+## Pics par trimestre
+
+Les années chargées ne sont pas des artefacts : mars 2008 et mars 2026
+sont les municipales — dans un corpus dominé par la presse régionale,
+« listes », « voix » ou « adjoint » piquent dans des centaines de communes
+à la fois — et mars 2020 le confinement. 2008 cumule en plus le démarrage
+du panel et la crise financière.
 
 ```{python}
 def trimestres(df, seuil):
@@ -108,17 +116,23 @@ def trimestres(df, seuil):
     return t.value_counts().reindex(grille, fill_value=0)
 
 
-def histogramme(df, ylab):
+def histogramme(df, ylab, evenements=()):
     q4, q6 = trimestres(df, 4), trimestres(df, 6)
     x = np.arange(len(q4))
-    fig, ax = plt.subplots(figsize=(6.6, 2.4))
+    fig, ax = plt.subplots(figsize=(6.6, 2.6))
     ax.bar(x, q4, width=0.8, color=BLEU_S4, label="seuil 4")
     ax.bar(x, q6, width=0.8, color=BLEU_S6, label="dont seuil 6")
+    for periode, texte in evenements:
+        i = q4.index.get_loc(pd.Period(periode, freq="Q"))
+        ax.annotate(texte, (i, q4.iloc[i]), xytext=(0, 4),
+                    textcoords="offset points", ha="center",
+                    fontsize=7.5, color=lib.ENCRE2)
     annees = [i for i, p in enumerate(q4.index) if p.quarter == 1]
     ax.set_xticks(annees[::2])
     ax.set_xticklabels([str(q4.index[i].year) for i in annees[::2]], fontsize=8)
     ax.set_ylabel(ylab)
     ax.set_xlim(-0.8, len(q4) - 0.2)
+    ax.margins(y=0.12)
     ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
     ax.set_axisbelow(True)
     ax.legend(frameon=False, fontsize=8, loc="upper right")
@@ -128,51 +142,25 @@ def histogramme(df, ylab):
 
 ```{python}
 #| label: fig-hist-detectes
-#| fig-cap: "Pics détectés par trimestre (82 887 au seuil 4, dont 31 815 au seuil 6). Les trois sur-densités sont des événements réels : les municipales de mars 2008 et de mars 2026 — le corpus est dominé par la presse régionale, qui couvre chaque commune —, et le confinement de mars 2020. L'année 2008 reste globalement plus dense : le panel démarre et l'actualité (campagne américaine, crise financière) s'y ajoute."
+#| fig-cap: "Pics détectés par trimestre : 82 887 au seuil 4, dont 31 815 au seuil 6."
 histogramme(tous, "pics détectés")
 ```
 
 ```{python}
 #| label: fig-hist-nms
-#| fig-cap: "Pics gardés par le NMS (39 980 au seuil 4, dont 16 390 au seuil 6) : le dédoublonnage garde 48 % des pics — contre 75 % sur Le Monde en blocs de 3 jours, les pics du corpus unifié étant plus rapprochés — et rabote surtout les trimestres denses, où les épisodes longs se réduisent à un représentant."
-histogramme(nms, "pics gardés par NMS")
+#| fig-cap: "Après NMS : 39 980 pics (dont 16 390 au seuil 6), soit 48 % — contre 75 % sur Le Monde, les pics du corpus unifié étant plus rapprochés. Le dédoublonnage rabote surtout les trimestres denses, où les épisodes longs se réduisent à un représentant."
+histogramme(nms, "pics gardés par NMS",
+            [("2008Q1", "municipales"), ("2012Q2", "présidentielle"),
+             ("2020Q1", "Covid"), ("2024Q3", "JO"), ("2026Q1", "municipales")])
 ```
 
-## Spectre et composantes
-
-```{python}
-#| label: fig-spectre
-#| fig-cap: "Variance expliquée par composante (échelle log). Le seuil 6 concentre davantage (cum6 51,9 % contre 44,8 %), tout en gardant 15 903 fenêtres — plus que la configuration optimale du Monde (14 102)."
-fig, ax = plt.subplots(figsize=(6.4, 3.0))
-rangs = np.arange(1, 31)
-for s, coul, dy in ((4, BLEU_S4, -11), (6, BLEU_S6, 4)):
-    v = res[s][1][:30] * 100
-    ax.plot(rangs, v, lw=1.6, color=coul,
-            label=f"seuil {s} ({res[s][3]:,} fenêtres)".replace(",", " "))
-    ax.scatter(rangs[:1], v[:1], s=14, color=coul)
-    ax.annotate(f"{v[0]:.1f} %".replace(".", ","), (1, v[0]), xytext=(6, dy),
-                textcoords="offset points", fontsize=8, color=lib.ENCRE2)
-ax.axhline(100 / 30, lw=1, ls="--", color=lib.GRIS, label="spectre plat (3,3 %)")
-ax.set_yscale("log")
-ax.set_yticks([2, 3, 5, 10, 20, 30])
-ax.yaxis.set_major_formatter("{x:g}")
-ax.yaxis.set_minor_formatter("")
-ax.set_xlim(0.5, 30.5)
-ax.set_ylim(1.5, 40)
-ax.set_xlabel("rang de la composante")
-ax.set_ylabel("variance expliquée (%)")
-ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
-ax.set_axisbelow(True)
-ax.legend(frameon=False, fontsize=8)
-fig.tight_layout()
-plt.show()
-```
+## Composantes et archétypes
 
 ```{python}
 #| label: fig-composantes
-#| fig-cap: "Les six premières composantes aux deux seuils (signe aligné, le signe d'une composante étant arbitraire) : les formes sont les mêmes, le seuil ne fait que renforcer leur poids — le passage de 4 à 6 épure l'échantillon sans changer la structure."
-comp4, var4, _, _ = res[4]
-comp6, var6, _, _ = res[6]
+#| fig-cap: "Les six premières composantes aux deux seuils (signe aligné) : mêmes formes, le passage de 4 à 6 épure l'échantillon sans changer la structure."
+comp4, var4 = res[4]["comp"], res[4]["var"]
+comp6, var6 = res[6]["comp"], res[6]["var"]
 js = np.arange(-15, 16)
 fig, axes = plt.subplots(2, 3, figsize=(9.6, 4.6), sharex=True)
 for k, ax in enumerate(axes.flat):
@@ -190,21 +178,70 @@ for k, ax in enumerate(axes.flat):
     ax.set_xticks([-15, 0, 15])
     ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
     ax.set_axisbelow(True)
-axes[0, 0].legend(frameon=False, fontsize=8, loc="lower left")
+axes[0, 0].legend(frameon=False, fontsize=8, loc="upper left")
 for ax in axes[1]:
     ax.set_xlabel("blocs de 3 jours autour du pic")
 fig.tight_layout()
 plt.show()
 ```
 
-Deux réserves sur les données, mesurées et non corrigées à ce stade.
-**Bascules de panel** : la composition du corpus change au fil de la
-période (Le Télégramme s'arrête en 2011, Sud-Ouest en 2018, Le Figaro en
-mars 2024, Les Échos en octobre 2024) ; les pics ne se concentrent pas
-visiblement à ces dates, mais l'effet reste à borner. **Déversements** :
-sur 119 blocs (5,2 %), un média publie à lui seul plus de 10 % du corpus
-du bloc — les sept pires sont La Provence en 2024, jusqu'à 33 % d'un bloc
-en contenu santé — et 8,6 % des pics gardés y tombent.
+```{=typst}
+#pagebreak()
+```
+
+```{python}
+#| label: fig-archetypes
+#| fig-cap: "Fenêtres archétypes (seuil 6) : les trois sauts réels les plus alignés sur chacune des quatre premières composantes, parmi les 1 108 fenêtres dont le mot appartient au vocabulaire des matrices mot × mot (600 noms, noms propres et adjectifs à charge thématique). L'étiquette entre parenthèses situe le saut ; elle s'appuie sur les co-sauts du même bloc — les mots les plus surprenants à la même date, qui identifient l'événement sans ambiguïté : « l'invasion, sanctions, russie » derrière « guerre », « mensonge, jérôme » derrière « compte » (Cahuzac), « écoute, conversations » derrière « conseiller » (l'affaire des écoutes). Sur la composante 4, « santé » (29/08/2024) tombe sur le pire bloc de déversement de La Provence. Le point rouge marque le bloc du pic."
+d6 = res[6]
+eligibles = np.where(np.isin(d6["mot"], list(VOCAB600)))[0]
+# etiquette entre parentheses : le contexte du saut, pose a la main en
+# s'appuyant sur les co-sauts du meme bloc (mots les plus surprenants de
+# pics_unifie3j.csv a la meme date) — pas besoin des 2-grams
+CONTEXTES = {
+    ("guerre", 20220301): "Ukraine",
+    ("situation", 20200320): "confinement",
+    ("mesures", 20200317): "confinement",
+    ("liste", 20200305): "électorale",
+    ("conseiller", 20140307): "écoutes Sarkozy",
+    ("reprise", 20090908): "rentrée",
+    ("mandat", 20260322): "municipales",
+    ("semaines", 20200510): "déconfinement",
+    ("compte", 20130402): "Cahuzac",
+    ("heure", 20200419): "déconfinement",
+    ("possibilité", 20200419): "déconfinement",
+    ("santé", 20240829): "artefact La Provence",
+}
+fig, axes = plt.subplots(4, 3, figsize=(9.2, 9.0), sharex=True)
+for k in range(4):
+    meilleurs = eligibles[np.argsort(d6["proj"][eligibles, k])[-3:][::-1]]
+    for c, i in enumerate(meilleurs):
+        ax = axes[k, c]
+        ax.axhline(0, lw=.6, color=lib.GRILLE)
+        ax.axvline(0, lw=.6, color=lib.GRILLE)
+        ax.plot(js, d6["Z"][i], lw=1.4, color=BLEU_S6)
+        ax.scatter([0], [d6["Z"][i, 15]], s=16, color=lib.ROUGE, zorder=3)
+        quand = pd.to_datetime(str(d6["date"][i])).strftime("%d/%m/%Y")
+        ctx = CONTEXTES.get((str(d6["mot"][i]), int(d6["date"][i])))
+        nom = f"{d6['mot'][i]} ({ctx})" if ctx else str(d6["mot"][i])
+        ax.set_title(f"{nom} — {quand}\n{int(d6['X'][i])} occ. au pic",
+                     fontsize=8.5, color=lib.ENCRE2)
+        ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+        ax.set_axisbelow(True)
+        if c == 0:
+            ax.set_ylabel(f"comp. {k + 1}", fontsize=8.5)
+for ax in axes[-1]:
+    ax.set_xticks([-15, 0, 15])
+    ax.set_xlabel("blocs de 3 jours autour du pic")
+fig.tight_layout()
+plt.show()
+```
+
+Deux réserves, mesurées et non corrigées à ce stade : la composition du
+corpus change au fil de la période (Le Télégramme s'arrête en 2011,
+Sud-Ouest en 2018, Le Figaro en mars 2024, Les Échos en octobre 2024),
+sans concentration visible des pics à ces dates ; et sur 119 blocs (5,2 %),
+un média déverse à lui seul plus de 10 % du corpus du bloc — les sept
+pires sont La Provence en 2024, en contenu santé.
 
 ```{=typst}
 #v(0.4cm)

@@ -35,8 +35,9 @@ def diag(*args, **kwargs):
     if not SOUS_JUPYTER:
         print(*args, **kwargs)
 
-# palette de la campagne (valeurs reprises telles quelles des anciens scripts)
-BLEU, ROUGE = "#2a78d6", "#e34948"
+# palette de la campagne. BLEU garde son nom (utilise dans plusieurs scripts)
+# mais porte desormais le rouge fonce de la charte des planches.
+BLEU, ROUGE = "#7d1620", "#e34948"
 GRILLE, ENCRE, ENCRE2, GRIS, AXE = "#e1e0d9", "#1a1a1a", "#52514e", "#c9ced6", "#c3c2b7"
 
 plt.rcParams.update({
