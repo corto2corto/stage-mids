@@ -85,8 +85,8 @@ un App ID précis — une clé de `76T47RYM6W` ne marchera jamais avec
 
 Récupération automatique (remplace le relevé manuel dans l'onglet Réseau) :
 
-    eval $(python ouest_france/recuperer_cle.py --export)   # OF_ALGOLIA_KEY + APP_ID
-    python ouest_france/recuperer_cle.py                    # simple affichage
+    eval $(python scraping/ouest_france/recuperer_cle.py --export)   # OF_ALGOLIA_KEY + APP_ID
+    python scraping/ouest_france/recuperer_cle.py                    # simple affichage
 
 `recuperer_cle.py` ouvre `/recherche/` sous Firefox headless et lit les en-têtes
 `x-algolia-api-key` / `x-algolia-application-id` dans le journal réseau du
@@ -125,7 +125,7 @@ corpus comparables dans le même index. Dates et modalités à vérifier (non fa
 
 ## Récolte au format du pipeline
 
-`python -m ouest_france.recolte <début> <fin> [--titre of]`, bornes en année
+`python -m scraping.ouest_france.recolte <début> <fin> [--titre of]`, bornes en année
 (`2024`) ou en date (`2024-03-10`). Sans `--titre`, les 8 titres sont récoltés
 l'un après l'autre, un CSV chacun (voir [sources.md](sources.md) pour les noms).
 

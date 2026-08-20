@@ -371,14 +371,14 @@ Vérifier à la fin en recompilant campagne_pca/rapport_qmd/configuration_optima
 - Ajoutée : 2026-08-12
 - Branche : main
 
-**Contexte** : la récolte Ouest-France passe par l'API Algolia (index `articles_bydate_desc`, cf. `ouest_france/algolia.md`), qui donne `id`, `url`, `titre`, `date`, `section`, `free` et surtout le texte intégral — y compris pour les articles payants, donc sans scraping ni bypass. Seule la colonne `auteur` de `scraping/stockage.py:26` reste vide : l'index n'a aucun champ auteur. Vérifié sur 500 articles : `producteurs` et `proprietaires` ne comptent que 9 et 3 UUID distincts, ce sont des services de rédaction, pas des journalistes. Décision prise le 12/08 : ne pas bloquer la récolte pour ça, traiter l'auteur en second temps.
+**Contexte** : la récolte Ouest-France passe par l'API Algolia (index `articles_bydate_desc`, cf. `scraping/ouest_france/algolia.md`), qui donne `id`, `url`, `titre`, `date`, `section`, `free` et surtout le texte intégral — y compris pour les articles payants, donc sans scraping ni bypass. Seule la colonne `auteur` de `scraping/stockage.py:26` reste vide : l'index n'a aucun champ auteur. Vérifié sur 500 articles : `producteurs` et `proprietaires` ne comptent que 9 et 3 UUID distincts, ce sont des services de rédaction, pas des journalistes. Décision prise le 12/08 : ne pas bloquer la récolte pour ça, traiter l'auteur en second temps.
 
 **Piste envisagée** : script séparé, lancé après la récolte, qui ouvre le HTML de chaque URL et lit l'auteur dans le JSON-LD (champ `author`, exactement comme `meta_json_ld()` dans `scraping/extraction.py`), puis met à jour la seule colonne `auteur` du CSV existant. Coût à mesurer d'abord sur un échantillon : c'est une requête HTTP par article, sur un corpus qui se compte en millions — un sous-ensemble (années ou zones utiles au mémoire) sera sans doute plus raisonnable que la totalité.
 
 **Prompt** :
 
 ```
-Le CSV Ouest-France est produit par la récolte Algolia (voir ouest_france/algolia.md et le script de récolte ouest_france/recolte.py). Toutes les colonnes de scraping/stockage.py:26 sont remplies sauf « auteur » : l'index Algolia n'a aucun champ auteur (vérifié sur 500 articles — producteurs/proprietaires ne sont que 9 et 3 UUID de services de rédaction, pas des journalistes).
+Le CSV Ouest-France est produit par la récolte Algolia (voir scraping/ouest_france/algolia.md et le script de récolte scraping/ouest_france/recolte.py). Toutes les colonnes de scraping/stockage.py:26 sont remplies sauf « auteur » : l'index Algolia n'a aucun champ auteur (vérifié sur 500 articles — producteurs/proprietaires ne sont que 9 et 3 UUID de services de rédaction, pas des journalistes).
 
 À faire : un script séparé qui enrichit a posteriori la colonne auteur du CSV, sans retoucher les autres colonnes.
 

@@ -368,9 +368,9 @@ Maine Libre (1,48 M), Le Marin, Agence API, Voiles et Voiliers et le desk
 faits divers (quelques dizaines à centaines de milliers) — mais ces volumes
 viennent de l'index brut (papier + web confondus) : leur équivalent web-only
 reste à vérifier, une extraction en cours sur gallica traîne (disque saturé
-par le scrapping). Récolte autonome via `ouest_france/recolte.py`
+par le scrapping). Récolte autonome via `scraping/ouest_france/recolte.py`
 (découpage temporel, reprise, renouvellement de clé), détails dans
-`ouest_france/algolia.md`. Un corpus Ille-et-Vilaine (1995-2026, ~6,8 Go)
+`scraping/ouest_france/algolia.md`. Un corpus Ille-et-Vilaine (1995-2026, ~6,8 Go)
 existe déjà sur gallica dans `/data/corpus/ouestfranceweb/`, collecté par
 une chaîne à part.
 
@@ -1661,17 +1661,17 @@ du reste du pipeline, avec une méthode différente : plutôt que du
 scraping avec bypass paywall, on interroge directement l'API Algolia du
 site, qui sert le texte intégral des articles — y compris les payants.
 Un premier script
-([`ouest_france/recuperer_cle.py`](ouest_france/recuperer_cle.py))
+([`scraping/ouest_france/recuperer_cle.py`](scraping/ouest_france/recuperer_cle.py))
 récupère la clé d'accès à cette API, valable environ 24h : il ouvre une
 recherche sur le site avec Firefox et intercepte la clé dans le trafic
 réseau. Un second script
-([`ouest_france/recolte.py`](ouest_france/recolte.py)) interroge
+([`scraping/ouest_france/recolte.py`](scraping/ouest_france/recolte.py)) interroge
 ensuite l'API par tranches de dates, renouvelle automatiquement la clé
 quand elle expire, et stocke le résultat dans des CSV — un par titre du
 groupe (Ouest-France, Courrier de l'Ouest, Presse Océan, etc.), au même
 format que les autres médias du pipeline. Détails dans
-[`ouest_france/algolia.md`](ouest_france/algolia.md) et
-[`ouest_france/sources.md`](ouest_france/sources.md). La récolte est
+[`scraping/ouest_france/algolia.md`](scraping/ouest_france/algolia.md) et
+[`scraping/ouest_france/sources.md`](scraping/ouest_france/sources.md). La récolte est
 lancée.
 
 A FAIRE : 

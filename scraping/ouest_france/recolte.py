@@ -3,7 +3,7 @@ format CSV du pipeline (scraping/stockage.COLONNES).
 
 L'API sert le texte intégral — y compris pour les articles payants — donc pas
 de scraping ni de bypass. Deux points à respecter, détaillés dans
-ouest_france/algolia.md :
+scraping/ouest_france/algolia.md :
 - le champ `texte` n'existe que sur l'index `articles_bydate_desc`, jamais sur
   `articles` ;
 - une requête ne rend jamais plus de 1000 résultats. On découpe donc le temps
@@ -19,12 +19,12 @@ auteur-ouest-france dans .claude/taches.md).
 
 Les clés ne valent que ~24 h. Le script en récupère une au démarrage si
 OF_ALGOLIA_KEY n'est pas posée, et la renouvelle tout seul quand elle expire,
-via ouest_france/recuperer_cle.py (Firefox headless) — une récolte de plusieurs
+via scraping/ouest_france/recuperer_cle.py (Firefox headless) — une récolte de plusieurs
 jours tourne donc sans intervention.
 
-    python -m ouest_france.recolte 1990 2026              # tout le groupe
-    python -m ouest_france.recolte 1990 2026 --titre of   # un seul titre
-    python -m ouest_france.recolte 2026-03-10 2026-03-11  # une période précise
+    python -m scraping.ouest_france.recolte 1990 2026              # tout le groupe
+    python -m scraping.ouest_france.recolte 1990 2026 --titre of   # un seul titre
+    python -m scraping.ouest_france.recolte 2026-03-10 2026-03-11  # une période précise
 """
 import argparse
 import csv
@@ -68,7 +68,7 @@ _cle = os.environ.get("OF_ALGOLIA_KEY", "")
 
 
 def renouveler():
-    """Va chercher une clé fraîche avec ouest_france/recuperer_cle.py (Firefox).
+    """Va chercher une clé fraîche avec scraping/ouest_france/recuperer_cle.py (Firefox).
     Les clés ne valent que ~24 h : une récolte longue en consomme plusieurs."""
     global _cle
     print("    clé expirée — récupération d'une nouvelle clé…")
