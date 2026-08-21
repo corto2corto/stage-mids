@@ -1,3 +1,7 @@
+# ATTENTION — SCRIPT PLUS À JOUR (20/08/2026) : il attribue les ids de token
+# localement (INSERT OR IGNORE), incompatible avec le vocabulaire partagé
+# (data/corpus/vocabulaire.db) des bases 1gram. À adapter avant tout usage.
+#
 # MAJ quotidienne des comptes ngram d'un média : lit le CSV produit par le
 # scrapping (data/csv/<media>.csv), saute les articles déjà comptés (table
 # maj_articles dans la base), et ajoute les comptes des nouveaux par paquets.

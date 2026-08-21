@@ -1,6 +1,7 @@
 ---
 name: qmd-pdf
 description: Génère un PDF depuis un fichier .md ou .qmd via quarto (moteur typst), puis supprime les fichiers annexes de quarto (dossier *_files, .html, .typ, .quarto) pour ne laisser que le .qmd et le .pdf. Utiliser quand Corto demande un PDF depuis un markdown, ou quand Claude rédige un document destiné à être rendu en PDF.
+model: claude-sonnet-5
 ---
 
 # Skill /qmd-pdf

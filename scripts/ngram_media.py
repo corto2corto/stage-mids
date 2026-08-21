@@ -1,39 +1,72 @@
-# Comptes uni/bi/trigrammes de Le Monde, par jour, dans lemonde_ngram.db.
-# Lecture du CSV par chunks (11 Go) ; tokenisation identique au ngram_light.py de la team.
+# Comptes uni/bi/trigrammes d'un média, par jour, dans <media>_ngram.db.
+# Fusion des anciens ngram_lemonde/lesechos/lefigaro/mediapart.py : même
+# mécanisme partout (staging puis tables finales, filtre > 10), seuls changent
+# le CSV source et la façon d'en tirer la date et le texte.
+# Usage : python -m scripts.ngram_media lemonde|lesechos|lefigaro|mediapart
 
 import os
 os.environ["SQLITE_TMPDIR"] = "/data/elias/stage-mids/data"  # gros temp, pas /tmp
 
 import sqlite3
+import sys
 from collections import Counter
+
 import pandas as pd
 
 from scripts.tokenisation import phrases
 
-conn = sqlite3.connect("/data/elias/stage-mids/data/corpus/lemonde_ngram.db")
-conn.executescript("""
+MEDIAS = {
+    # csv (sous data/), colonnes lues, chunksize, cache SQLite (ko)
+    "lemonde":   ("corpus/lemonde.csv",  ["text", "year", "month", "day"],       50_000, 8_000_000),
+    "lesechos":  ("corpus/lesechos.csv", ["headline", "text", "date_published"], 50_000, 8_000_000),
+    "lefigaro":  ("corpus/lefigaro.csv", ["headline", "text", "date_published"], 50_000, 8_000_000),
+    "mediapart": ("csv/mediapart.csv",   ["date", "contenu"],                    20_000, 4_000_000),
+}
+
+media = sys.argv[1]
+csv, usecols, chunksize, cache_ko = MEDIAS[media]
+
+
+def preparer(chunk):
+    # Normalise un chunk en deux colonnes : date (int YYYYMMDD) et txt.
+    if media == "lemonde":  # date en trois colonnes year/month/day
+        chunk = chunk.dropna(subset=["text", "year", "month", "day"]).astype(
+            {"year": int, "month": int, "day": int})
+        return chunk.assign(date=chunk["year"] * 10000 + chunk["month"] * 100 + chunk["day"],
+                            txt=chunk["text"])
+    if media == "mediapart":  # date ISO, texte dans contenu
+        chunk = chunk.dropna(subset=["date", "contenu"])
+        chunk = chunk[chunk["date"].str.len() >= 10]
+        return chunk.assign(date=chunk["date"].str[:10].str.replace("-", "").astype(int),
+                            txt=chunk["contenu"])
+    # lesechos, lefigaro : date_published ISO, texte = titre + corps
+    d = pd.to_datetime(chunk["date_published"].str[:10], format="%Y-%m-%d", errors="coerce")
+    chunk = chunk.assign(date=d.dt.strftime("%Y%m%d"),
+                         txt=chunk["headline"].fillna("") + "\n" + chunk["text"].fillna(""))
+    return chunk.dropna(subset=["date"]).astype({"date": int})
+
+
+conn = sqlite3.connect(f"/data/elias/stage-mids/data/corpus/{media}_ngram.db")
+conn.executescript(f"""
     PRAGMA page_size = 65536;       -- 64 ko/page : ~16x moins d'operations sur disque lent
     PRAGMA journal_mode = OFF;
     PRAGMA synchronous = OFF;
-    PRAGMA cache_size = -8000000;   -- ~8 Go de cache en RAM (negatif = ko)
+    PRAGMA cache_size = -{cache_ko};   -- cache en RAM (negatif = ko)
     CREATE TABLE IF NOT EXISTS token (id INTEGER PRIMARY KEY, word TEXT UNIQUE);
     CREATE TABLE IF NOT EXISTS unigram_staging (w1, date, n);
     CREATE TABLE IF NOT EXISTS bigram_staging  (w1, w2, date, n);
     CREATE TABLE IF NOT EXISTS trigram_staging (w1, w2, w3, date, n);
 """)
 
-reader = pd.read_csv("/data/elias/stage-mids/data/corpus/lemonde.csv",
-                     usecols=["text", "year", "month", "day"], chunksize=50_000)
+reader = pd.read_csv(f"/data/elias/stage-mids/data/{csv}", usecols=usecols, chunksize=chunksize)
 
 for chunk in reader:
-    chunk = chunk.dropna(subset=["text", "year", "month", "day"]).astype(
-        {"year": int, "month": int, "day": int})
-    chunk = chunk.assign(date=chunk["year"] * 10000 + chunk["month"] * 100 + chunk["day"])
+    chunk = preparer(chunk)
 
     for date, group in chunk.groupby("date"):
         date = int(date)
         uni, bi, tri = Counter(), Counter(), Counter()
-        for text in group["text"]:
+        for text in group["txt"]:
             for tokens in phrases(text):
                 uni.update(tokens)
                 bi.update(zip(tokens, tokens[1:]))
@@ -97,3 +130,4 @@ conn.executescript("""
 conn.execute("PRAGMA journal_mode = WAL")
 conn.execute("VACUUM")
 conn.close()
+print(f"FINI : {media}_ngram.db construite")

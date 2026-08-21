@@ -1,5 +1,5 @@
 # Comptes UNIGRAMMES d'un média du pipeline, par jour, dans <media>_1gram.db.
-# Variante allégée de ngram_mediapart.py : pas de bi/trigrammes, pas de filtre
+# Variante allégée de ngram_media.py : pas de bi/trigrammes, pas de filtre
 # sur les occurrences (un mot rare chez un média peut être fréquent sur le
 # corpus unifié : filtrer avant l'agrégation le ferait disparaître partout).
 #
