@@ -28,10 +28,10 @@ sans occurrence compte 0) :
 
 ```{python}
 import sys, pathlib
-sys.path.insert(0, str(pathlib.Path.cwd()))
-from rapport_lib import *
+sys.path.insert(0, str(pathlib.Path.cwd().parents[1]))    # racine du depot
+from rupture.fiches import *
 
-mods = [ajuster(nom) for nom in MOTS]
+mods = [ajuster(nom, 20200101, 20241231) for nom in MOTS]
 mods.sort(key=lambda m: -m["mu"])
 
 chemin_stats = tab_stats(mods)
@@ -47,16 +47,16 @@ for m in mods:
 chemin_pics = tab_pics(mods)
 ```
 
+```{=typst}
+#show table: set par(justify: false)
+```
+
 ## Principales statistiques
 
-```{=typst}
-#figure(
-  image("build_rapport/tab_stats.png", width: 92%),
-  caption: [Statistiques observées des comptages quotidiens $X_t$, 2020–2024,
-    triées par fréquence décroissante.],
-  kind: "table",
-  supplement: [Tableau],
-)
+```{python}
+#| output: asis
+print(bloc_tableau(chemin_stats, "Statistiques observées des comptages quotidiens "
+                                 "$X_t$, 2020–2024, triées par fréquence décroissante."))
 ```
 
 Les six mots couvrent un large éventail de fréquences (d'environ 108 occurrences
@@ -91,14 +91,10 @@ binomiale négative il n'y a pas de forme fermée ; l'ajustement est fait
 numériquement avec `statsmodels` (`NegativeBinomial`, intercept seul,
 `exposure` $= N_t$).
 
-```{=typst}
-#figure(
-  image("build_rapport/tab_params.png", width: 72%),
-  caption: [Paramètres estimés par mot (fréquences pour 100 000 mots), triés par
-    fréquence décroissante.],
-  kind: "table",
-  supplement: [Tableau],
-)
+```{python}
+#| output: asis
+print(bloc_tableau(chemin_params, "Paramètres estimés par mot (fréquences pour "
+                                  "100 000 mots), triés par fréquence décroissante."))
 ```
 
 Deux lectures : $\hat\lambda \approx \hat\mu$ partout (les deux modèles s'accordent
@@ -122,9 +118,6 @@ Pour chaque mot, trois sorties :
 
 ```{python}
 #| output: asis
-def bloc_typst(corps):
-    return "\n\n```{=typst}\n" + corps + "\n```\n\n"
-
 for m in mods:
     c = chemins[m["nom"]]
     lib = m["lib"]
@@ -142,14 +135,8 @@ for m in mods:
         f'  caption: [Histogramme de $X_t$ et lois ajustées ; p-valeurs sous la NB — {lib}],\n'
         f')'
     ))
-    print(bloc_typst(
-        f'#figure(\n'
-        f'  image("{c["moments"]}", width: 72%),\n'
-        f'  caption: [Moments observés et moments des lois ajustées — {lib}],\n'
-        f'  kind: "table",\n'
-        f'  supplement: [Tableau],\n'
-        f')'
-    ))
+    print(bloc_tableau(c["moments"],
+                       f"Moments observés et moments des lois ajustées — {lib}"))
 ```
 
 ```{=typst}
@@ -165,13 +152,10 @@ du gouvernement Borne (04/07/2022), lendemain du second tour de la présidentiel
 l'« indemnité inflation » (21/10/2021), invasion de l'Ukraine (début mars 2022),
 censure du gouvernement Barnier (05/12/2024).
 
-```{=typst}
-#figure(
-  image("build_rapport/tab_pics.png", width: 78%),
-  caption: [Jours anormaux ($p_t < 10^(-4)$), triés par surprise décroissante.],
-  kind: "table",
-  supplement: [Tableau],
-)
+```{python}
+#| output: asis
+print(bloc_tableau(chemin_pics,
+                   "Jours anormaux ($p_t < 10^(-4)$), triés par surprise décroissante."))
 ```
 
 À noter : *guerre* ne produit que deux jours anormaux alors que la série change

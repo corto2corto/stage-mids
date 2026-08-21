@@ -1,6 +1,6 @@
 """Briques graphiques : fiche express d'un mot, planche des fenetres.
 
-Meme langage visuel que /fiche-mot (palette de rapport_lib) ; les fonctions
+Meme langage visuel que /fiche-mot (palette de rupture/fiches.py) ; les fonctions
 prennent des donnees deja calculees (serie enrichie, densite) — le calcul
 reste dans pics.py.
 """
@@ -12,7 +12,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-# palette de rapport_lib (+ vert Bern-NB des fiches)
+# palette de rupture/fiches.py (+ vert Bern-NB des fiches)
 BLEU, ROUGE, GRILLE, ENCRE2, AXE = "#2a78d6", "#e34948", "#e1e0d9", "#52514e", "#c3c2b7"
 GRIS, ORANGE, VERT = "#c9ced6", "#eb6834", "#2f9e6e"
 

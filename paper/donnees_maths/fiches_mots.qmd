@@ -1,0 +1,139 @@
+---
+title: "Recueil de fiches : 40 mots dans *Le Monde*"
+subtitle: "Séries quotidiennes, ajustements Poisson / binomiale négative, jours anormaux — prolongement de rapport.pdf"
+date: today
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2cm
+      y: 1.6cm
+    fontsize: 11pt
+    toc: false
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path.cwd().parents[1]))    # racine du depot
+from rupture.fiches import *
+
+
+# une fiche par mot : ajustements, test du chi2, figures et tableaux
+calculs = {}
+for groupe in RECUEIL.values():
+    for mot, d1, d2 in groupe:
+        m = ajuster(mot, d1, d2)
+        adeq = adequation(m)
+        k, pois, nb = melanges(m)
+        calculs[mot] = {"m": m, "adeq": adeq,
+                        "serie": fig_serie(m),
+                        "ajust": fig_ajustement(m, k, pois, nb),
+                        "zhist": fig_zhist(m, adeq),
+                        "chi2": tab_chi2(m, adeq),
+                        "moments": tab_moments(m, k, pois, nb)}
+
+# chiffres cites dans le texte, recalcules a chaque rendu
+ratios = [c["adeq"][0]["ratio"] for c in calculs.values()]
+gardees = [c["m"]["lib"] for c in calculs.values() if c["adeq"][1]["p"] >= 0.05]
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.1em, below: 1.3em)
+#show table: set par(justify: false)
+```
+
+Chaque fiche reprend le protocole de `rapport.pdf` : fréquence quotidienne
+$f_t = 10^5 X_t / N_t$, ajustement d'une loi de Poisson et d'une binomiale
+négative sur la période, détection des jours anormaux ($p_t < 10^{-4}$ sous la
+loi NB du jour). Les mots ont été choisis dans les tops annuels de fréquence des
+trois corpus (*Le Monde* 1944–2025, *Le Figaro* 2004–2024, *Les Échos*
+1991–2024) ; les séries sont toutes extraites du *Monde*, seul corpus assez
+profond pour les périodes longues. Les périodes varient volontairement — de 80 ans
+(*guerre*) à 2 ans (*jeux*, *dissolution*) — pour observer l'effet de la fenêtre
+sur les ajustements : plus la période est longue et le mot « à régimes »
+(guerres, présidences, technologies), plus la surdispersion est forte ($\hat r$
+petit) ; les mots-événements sur fenêtre courte se rapprochent davantage du
+régime Poisson.
+
+Chaque fiche comporte aussi le test d'adéquation du χ² sur les résidus de
+Pearson $z_t = (X_t - m_t)/\sqrt{v_t}$, chaque jour étant comparé à sa propre
+loi ($N_t$ varie) : la loi de Poisson est rejetée partout et de très loin
+(χ²/ddl de `{python} f"{min(ratios):.0f}"` à `{python} f"{max(ratios):.0f}"`) ;
+la binomiale négative ramène le χ²/ddl près de 1 mais reste le plus souvent
+rejetée au seuil de 5 % — sur des milliers de jours, le test a la puissance de
+détecter le moindre écart. Elle n'est pas rejetée pour
+`{python} str(len(gardees))` mots — *`{python} ", ".join(gardees)`* — pour
+lesquels la NB décrit correctement la loi des comptages jour par jour. Les
+colonnes χ²/ddl ci-dessous permettent de comparer la qualité d'ajustement d'un
+mot à l'autre.
+
+*intelligence artificielle* est un bigramme ($N_t$ = total des bigrammes du
+jour) ; *hollande* mêle le président et les Pays-Bas ; *jeux*, *crise*,
+*dissolution* sont polysémiques — la série porte sur la graphie, pas le sens.
+
+```{python}
+#| output: asis
+print(bloc_typst("#set text(size: 9pt)"))
+for titre, groupe in RECUEIL.items():
+    print(f"## {titre}\n")
+    print(bloc_typst("#" + tab_recueil([(calculs[mot]["m"], calculs[mot]["adeq"])
+                                        for mot, _, _ in groupe])))
+print(bloc_typst("#set text(size: 11pt)"))
+```
+
+```{python}
+#| output: asis
+for groupe in RECUEIL.values():
+    for mot, _, _ in groupe:
+        c = calculs[mot]
+        m, adeq = c["m"], c["adeq"]
+        d, lib, per = m["d"], m["lib"], m["per"]
+        pics = d[d["p_t"] < SEUIL]
+        verdict = "est aussi rejetée" if adeq[1]["p"] < 0.05 else "n'est pas rejetée"
+        p_nb = "p ≈ 0" if adeq[1]["p"] < 1e-15 else f"p = {fr_p(adeq[1]['p'])}"
+
+        print(bloc_typst("#pagebreak()"))
+        print(f"## *{lib}* dans *Le Monde*, {per}\n")
+        print(
+            f"Ajustement sur {len(d)} jours : $\\hat\\lambda$ = {fr(m['lam'] * 1e5)} et "
+            f"$\\hat\\mu$ = {fr(m['mu'] * 1e5)} pour 100 000 mots ; "
+            f"$\\hat r$ = {fr(m['r'])} ; {len(pics)} "
+            f"{'jours anormaux' if len(pics) > 1 else 'jour anormal'} "
+            f"($p_t < 10^{{-4}}$ sous la loi NB du jour). Le test du χ² sur les "
+            f"résidus de Pearson rejette la loi de Poisson "
+            f"(χ²/ddl = {fr(adeq[0]['ratio'])}) ; la binomiale négative {verdict} "
+            f"(χ²/ddl = {fr(adeq[1]['ratio'])}, {p_nb}).\n"
+        )
+        print(bloc_typst(
+            f'#figure(\n'
+            f'  image("{c["serie"]}", width: 100%),\n'
+            f'  caption: [Fréquence quotidienne $f_t$ — {lib}],\n'
+            f')'
+        ))
+        print(bloc_typst(
+            f'#figure(\n'
+            f'  image("{c["ajust"]}", width: 100%),\n'
+            f'  caption: [Histogramme de $X_t$ et lois ajustées ; p-valeurs sous la NB — {lib}],\n'
+            f')'
+        ))
+        print(bloc_typst(
+            f'#figure(\n'
+            f'  grid(columns: (50%, 50%), gutter: 10pt,\n'
+            f'    align(horizon)[#set text(size: 8.5pt)\n#{c["chi2"]}],\n'
+            f'    align(horizon, image("{c["zhist"]}", width: 100%))),\n'
+            f'  caption: [Adéquation — test du χ² sur les résidus de Pearson\n'
+            f'    $z_t = (X_t - m_t)\\/sqrt(v_t)$, histogrammes vs loi normale — {lib}],\n'
+            f'  kind: image,\n'
+            f')'
+        ))
+        print(bloc_tableau(
+            c["moments"],
+            f"Moments observés et moments des lois ajustées — {lib}"))
+```

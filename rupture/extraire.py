@@ -1,7 +1,7 @@
 """Brique 0 : LE mecanisme d'extraction des series ngram (mot -> date, X_t, N_t).
 
 Mecanisme unique du pipeline : les briques rupture (via serie.charger) et la
-route /fiche de l'API s'appuient dessus ; extraire.sh est obsolete. 1 a 3 mots
+route /fiche de l'API s'appuient dessus (voir aussi series.py). 1 a 3 mots
 (uni/bi/trigrammes), graphies avec/sans accents sommees (doublons OCR — taper
 la graphie accentuee, l'autre est deduite), zeros reinjectes via total_<table>.
 Sur gallica : lecture sqlite directe (NGRAM_DIR surchargeable pour tester sur

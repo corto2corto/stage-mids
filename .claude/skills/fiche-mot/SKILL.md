@@ -5,7 +5,7 @@ description: Génère la fiche statistique d'un mot dans Le Monde sur une pério
 
 # Skill /fiche-mot
 
-Produit `paper/donnees_maths/fiches/fiche_<slug>_<debut>_<fin>.pdf` : une page A4 portrait au **même rendu que les pages mot-par-mot de rapport.pdf** (Quarto→typst : série $f_t$ avec pics anormaux, histogramme de $X_t$ vs lois ajustées + p-valeurs, adéquation par test du χ² sur les résidus de Pearson — tableau χ²/ddl/p-valeur/verdict + histogrammes des $z_t$ vs N(0,1), même calcul que la route /fiche de l'API — tableau des moments great_tables, légendes Fig./Tableau). Tout le calcul est dans `paper/donnees_maths/fiche.py` (qui réutilise les fonctions de `rapport_lib.py` puis compile via `quarto render` — ne modifier ni l'un ni l'autre sans demande).
+Produit `paper/donnees_maths/fiches/fiche_<slug>_<debut>_<fin>.pdf` : une page A4 portrait au **même rendu que les pages mot-par-mot de rapport.pdf** (Quarto→typst : série $f_t$ avec pics anormaux, histogramme de $X_t$ vs lois ajustées + p-valeurs, adéquation par test du χ² sur les résidus de Pearson — tableau χ²/ddl/p-valeur + histogrammes des $z_t$ vs N(0,1), même calcul que la route /fiche de l'API — tableau des moments, légendes Fig./Tableau ; tous les tableaux sont du typst natif, aucune image). Tout le calcul est dans `rupture/fiches.py`, la bibliothèque partagée avec `rapport.qmd` et le recueil `fiches_mots.qmd` ; `paper/donnees_maths/fiche.py` ne fait qu'assembler la page et compiler via `quarto render` — ne modifier ni l'un ni l'autre sans demande.
 
 ## Entrées
 
@@ -14,24 +14,32 @@ Produit `paper/donnees_maths/fiches/fiche_<slug>_<debut>_<fin>.pdf` : une page A
 
 ## Étapes
 
-1. **Slug** : minuscules, sans accents (`président` → `president`). Le CSV attendu est `paper/donnees_maths/<slug>_lemonde.csv`.
+1. **Générer** — le mot peut être donné avec ses accents ; le PDF est nommé
+   d'après le slug (`président` → `fiche_president_…`) :
 
-2. **Si le CSV manque, l'extraire** via le mécanisme unique `rupture/extraire.py` (serveur gallica en **lecture seule** — autorisé sans demander) :
    ```bash
    source .venv/bin/activate
-   python -c "from rupture import extraire; extraire.serie('<mot avec accents>').to_csv('paper/donnees_maths/<slug>_lemonde.csv', index=False)"
+   python paper/donnees_maths/fiche.py "<mot>" [debut] [fin]
    ```
-   Tout est automatique : graphies avec/sans accents sommées (doublons OCR), zéros réinjectés sur la grille des jours de parution, expressions de 2-3 mots gérées (tables bigram/trigram), lecture directe sur gallica ou via ssh depuis le Mac. La série couvre toute la période disponible, la fiche filtre ensuite.
-   Sanity check : nb de lignes plausible (~26 918 pour Le Monde complet), `X_t` non nul.
 
-3. **Générer** :
-   ```bash
-   source .venv/bin/activate
-   python paper/donnees_maths/fiche.py <slug> [debut] [fin]
-   ```
-   Le script imprime λ̂, μ̂, r̂, le nombre de pics et leurs dates, puis les χ²/ddl et p-valeurs des deux lois.
+   Le script imprime λ̂, μ̂, r̂, le nombre de pics et leurs dates, puis les χ²/ddl
+   et p-valeurs des deux lois.
 
-4. **Vérifier et rendre compte** : rasteriser le PDF (pymupdf, dans le scratchpad) et le regarder (axes, débordements) ; donner à Corto le chemin du PDF, les paramètres estimés et les pics datés (identifier l'événement si évident).
+2. **Les données sont trouvées toutes seules.** `rupture/fiches.py` lit d'abord
+   `paper/donnees_maths/series_mots.csv` (43 mots figés dans le dépôt, une
+   colonne par mot). Un mot absent de cette table est extrait de la base via
+   `rupture/extraire.py` (gallica en **lecture seule** — autorisé sans demander,
+   ~2 s) et mis en cache dans `rupture/cache/` : graphies avec/sans accents
+   sommées, zéros réinjectés, expressions de 2-3 mots gérées.
+
+3. **Pour figer un mot dans le dépôt** (fiche destinée au mémoire) : l'ajouter à
+   `MOTS` ou à `RECUEIL` dans `rupture/fiches.py`, puis relancer
+   `python paper/donnees_maths/series.py`.
+
+4. **Vérifier et rendre compte** : rasteriser le PDF (pymupdf, dans le
+   scratchpad) et le regarder (axes, débordements) ; donner à Corto le chemin du
+   PDF, les paramètres estimés et les pics datés (identifier l'événement si
+   évident).
 
 ## Règles
 

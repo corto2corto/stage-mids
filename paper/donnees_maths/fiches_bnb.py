@@ -7,23 +7,23 @@ Compare TROIS lois ajustees jour par jour (exposure = N_t) :
 
 Produit UN PDF multi-pages fiches_bnb.pdf (une page de synthese + une page par
 mot), un CSV recapitulatif machine, et une ligne stdout par mot. Meme mecanique
-que fiche.py : sys.path + rapport_lib, .qmd -> quarto render -> PDF typst.
+que fiche.py : rupture.fiches, .qmd -> quarto render -> PDF typst.
 
 Usage : python paper/donnees_maths/fiches_bnb.py
 """
 import os, subprocess, sys, warnings
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ICI = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(ICI)))    # racine du depot
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from great_tables import GT, style, loc
 from scipy.stats import chi2 as loi_chi2, poisson, nbinom, norm
 from statsmodels.discrete.discrete_model import NegativeBinomial
-from rapport_lib import (BUILD, SEUIL, BLEU, ORANGE, ROUGE, GRIS, GRILLE, ENCRE2,
-                         moments_obs, moments_pmf, _style, _sauver)
+from rupture.fiches import (SEUIL, BLEU, ORANGE, ROUGE, GRIS, GRILLE, ENCRE2,
+                            charger, moments_obs, moments_pmf, table_typst)
 
-ICI = os.path.dirname(os.path.abspath(__file__))
+BUILD = f"{ICI}/build_rapport"
 VERT = "#2f9e6e"                                  # couleur de la loi Bern-NB
 
 # 20 mots (slug -> libelle accentue pour l'affichage)
@@ -78,7 +78,7 @@ def melange_bnb(k, N, p0, mu_b, r_b):
     return out
 
 
-# --- figures (fonctions locales : rapport_lib n'est pas modifie) ---
+# --- figures (fonctions locales : rupture.fiches n'est pas modifie) ---
 
 def fig_serie(slug, lib, d):
     """Serie f_t + moyenne mobile 7 j ; jours anormaux sous Bern-NB en rouge."""
@@ -154,71 +154,44 @@ def fig_zhist(slug, zs):
     return f"build_rapport/bnb_zhist_{slug}.png"
 
 
-# --- tableaux great_tables ---
+# --- tableaux (markup typst natif) ---
 
-def tab_chi2(slug, adeq):
-    df = pd.DataFrame([{"loi": a["loi"], "chi2": a["chi2"], "ddl": a["ddl"],
-                        "ratio": a["ratio"], "p": fr_p(a["p"]),
-                        "verdict": "rejetée" if a["p"] < 0.05 else "non rejetée"}
-                       for a in adeq])
-    gt = (
-        GT(df, rowname_col="loi")
-        .cols_label(chi2="χ²", ddl="ddl", ratio="χ²/ddl", p="p-valeur",
-                    verdict="verdict")
-        .fmt_number(columns=["chi2"], decimals=0, locale="fr")
-        .fmt_number(columns=["ratio"], decimals=2, locale="fr")
-        .cols_align(align="right", columns=["chi2", "ddl", "ratio", "p"])
-        .tab_stubhead(label="Loi")
-    )
-    return _sauver(_style(gt), f"bnb_chi2_{slug}", vwidth=1250)
+def tab_chi2(adeq):
+    lignes = [[a["loi"], f"{a['chi2']:,.0f}".replace(",", " "), str(a["ddl"]),
+               fr(a["ratio"]), fr_p(a["p"])] for a in adeq]
+    return table_typst(["Loi", "$chi^2$", "ddl", "$chi^2$/ddl", "p-valeur"],
+                       lignes, ["left", "right", "right", "right", "right"])
 
 
-def tab_moments(slug, X, k, pois, nb, bnb):
-    rows = [("observé", *moments_obs(X)),
-            ("Poisson", *moments_pmf(pois, k)),
-            ("binomiale négative", *moments_pmf(nb, k)),
-            ("Bernoulli × NB", *moments_pmf(bnb, k))]
-    df = pd.DataFrame(rows, columns=["source", "moy", "std", "disp", "skew", "kurt"])
-    gt = (
-        GT(df, rowname_col="source")
-        .cols_label(moy="Moyenne", std="Écart-type", disp="Var/Moy",
-                    skew="Skewness", kurt="Kurtosis")
-        .fmt_number(columns=["moy", "std", "disp", "skew", "kurt"], decimals=2,
-                    locale="fr")
-        .cols_align(align="right", columns=["moy", "std", "disp", "skew", "kurt"])
-        .tab_stubhead(label="Source")
-        .tab_style(style=style.text(weight="bold"), locations=loc.body(rows=[0]))
-        .tab_style(style=style.text(weight="bold"), locations=loc.stub(rows=[0]))
-    )
-    return _sauver(_style(gt), f"bnb_moments_{slug}", vwidth=1150)
+def tab_moments(X, k, pois, nb, bnb):
+    sources = [("*observé*", moments_obs(X)), ("Poisson", moments_pmf(pois, k)),
+               ("binomiale négative", moments_pmf(nb, k)),
+               ("Bernoulli × NB", moments_pmf(bnb, k))]
+    lignes = [[nom] + [fr(v) for v in vals] for nom, vals in sources]
+    lignes[0] = [lignes[0][0]] + [f"*{v}*" for v in lignes[0][1:]]
+    return table_typst(
+        ["Source", "Moyenne", "Écart-type", "Var/Moy", "Skewness", "Kurtosis"],
+        lignes, ["left"] + ["right"] * 5)
 
 
 def tab_synthese(rows):
-    df = pd.DataFrame(rows).sort_values("p0", ascending=False).drop(columns=["slug"])
-    df["p0"] = df["p0"] * 100
-    gt = (
-        GT(df, rowname_col="lib")
-        .tab_spanner(label="r", columns=["r", "r_b"])
-        .tab_spanner(label="χ²/ddl", columns=["chi2_nb", "chi2_bnb"])
-        .tab_spanner(label="Pics", columns=["pics_nb", "pics_bnb"])
-        .cols_label(p0="% jours à 0", r="NB", r_b="Bern-NB",
-                    chi2_nb="NB", chi2_bnb="Bern-NB",
-                    pics_nb="NB", pics_bnb="Bern-NB")
-        .fmt_number(columns=["p0"], decimals=1, locale="fr")
-        .fmt_number(columns=["r", "r_b"], decimals=2, locale="fr")
-        .fmt_number(columns=["chi2_nb", "chi2_bnb"], decimals=1, locale="fr")
-        .cols_align(align="right", columns=["p0", "r", "r_b", "chi2_nb",
-                                            "chi2_bnb", "pics_nb", "pics_bnb"])
-        .tab_stubhead(label="Mot")
-    )
-    return _sauver(_style(gt), "bnb_synthese", vwidth=1500)
+    lignes = [[r["lib"], f"{r['p0'] * 100:.1f}".replace(".", ","),
+               fr(r["r"]), fr(r["r_b"]),
+               f"{r['chi2_nb']:.1f}".replace(".", ","),
+               f"{r['chi2_bnb']:.1f}".replace(".", ","),
+               str(r["pics_nb"]), str(r["pics_bnb"])]
+              for r in sorted(rows, key=lambda r: -r["p0"])]
+    return table_typst(
+        ["Mot", "% jours à 0", "NB", "Bern-NB", "NB", "Bern-NB", "NB", "Bern-NB"],
+        lignes, ["left"] + ["right"] * 7,
+        groupes=[("", 2), ("$r$", 2), ("$chi^2$/ddl", 2), ("Pics", 2)])
 
 
 # --- traitement d'un mot ---
 
 def traiter(slug):
     lib = MOTS[slug]
-    d = pd.read_csv(f"{ICI}/{slug}_lemonde.csv")
+    d = charger(lib)
     d["dt"] = pd.to_datetime(d["date"], format="%Y%m%d")
     d["f_t"] = 1e5 * d["X_t"] / d["N_t"]
     X, N = d["X_t"].to_numpy(), d["N_t"].to_numpy()
@@ -282,8 +255,8 @@ def traiter(slug):
     c_hist = fig_hist(slug, X, k, pois, nb, bnb, p_bnb[act], pics_bnb)
     c_zhist = fig_zhist(slug, [("Poisson", z_p, ORANGE), ("NB", z_n, BLEU),
                                ("Bern-NB", z_b, VERT)])
-    c_chi2 = tab_chi2(slug, adeq)
-    c_moments = tab_moments(slug, X, k, pois, nb, bnb)
+    c_chi2 = tab_chi2(adeq)
+    c_moments = tab_moments(X, k, pois, nb, bnb)
 
     print(f"{lib:14s} T={T} p0={p0*100:4.1f}% | lam={lam*1e5:.2f} mu={mu*1e5:.2f} "
           f"r={r:.2f} | mu_b={mu_b*1e5:.2f} r_b={r_b:.2f} | "
@@ -314,15 +287,16 @@ def traiter(slug):
 
 ```{{=typst}}
 #figure(
-  grid(columns: (38%, 62%), gutter: 10pt,
-    align(horizon, image("{c_chi2}", width: 100%)),
+  grid(columns: (44%, 56%), gutter: 10pt,
+    align(horizon)[#set text(size: 8.5pt)
+#{c_chi2}],
     align(horizon, image("{c_zhist}", width: 100%))),
   caption: [Adéquation — test du χ² sur les résidus de Pearson et histogrammes
-    des $z_t$ vs $N(0,1)$ pour les 3 lois — {lib}])
+    des $z_t$ vs $N(0,1)$ pour les 3 lois — {lib}], kind: image)
 ```
 
 ```{{=typst}}
-#figure(image("{c_moments}", width: 66%),
+#figure({c_moments},
   caption: [Moments observés et moments des 3 lois ajustées — {lib}],
   kind: "table", supplement: [Tableau])
 ```
@@ -362,6 +336,10 @@ format:
     toc: false
 ---
 
+```{{=typst}}
+#show table: set par(justify: false)
+```
+
 Comparaison de trois lois ajustées sur la série quotidienne complète (26 917 jours,
 exposition $N_t$). Le mélange **Bernoulli × NB** sépare la probabilité d'un jour
 sans occurrence (Bernoulli, $p_0$) de la loi des jours actifs (NB décalée sur
@@ -369,7 +347,7 @@ $X_t - 1$). Le tableau ci-dessous résume les 20 mots (tri par part de jours à 
 décroissante) ; une page détaillée par mot suit.
 
 ```{{=typst}}
-#figure(image("{c_syn}", width: 80%),
+#figure({c_syn},
   caption: [Synthèse des 20 mots — $p_0$, dispersion $r$, adéquation χ²/ddl et
     nombre de jours anormaux, sous NB et sous Bern-NB],
   kind: "table", supplement: [Tableau])
