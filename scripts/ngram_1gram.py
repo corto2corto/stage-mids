@@ -11,39 +11,45 @@
 # Corollaire : les constructions doivent rester SÉQUENTIELLES, jamais en
 # parallèle — deux processus écriraient le même vocabulaire en même temps.
 #
-# Les bases lemonde/lefigaro/lesechos/mediapart déjà construites ne suivent pas
-# cette numérotation (ids locaux, filtre > 10) : elles seront raccordées à part.
+# Depuis le 22/08/2026 : stdlib seule (csv, plus de pandas) et chemins
+# surchargeables (NGRAM_DIR, CSV_DIR), pour tourner aussi sur le serveur ENS
+# — même mécanique que ngram_2gram.py, comportement inchangé sur gallica.
 #
-# Usage (sur gallica) : python -m scripts.ngram_1gram <media>
+# Usage : python -m scripts.ngram_1gram <media>
 
 import os
-os.environ["SQLITE_TMPDIR"] = "/data/elias/stage-mids/data/sqlite_tmp"  # gros temp, pas /tmp
 
+DOSSIER = os.environ.get("NGRAM_DIR", "/data/elias/stage-mids/data/corpus")
+CSV_DIR = os.environ.get("CSV_DIR", "/data/elias/stage-mids/data/csv")
+TMPDIR = os.environ.get("SQLITE_TMPDIR", f"{DOSSIER}/../sqlite_tmp")
+os.environ["SQLITE_TMPDIR"] = TMPDIR   # gros temp du tri final, pas /tmp
+
+import csv
 import sqlite3
 import sys
 import time
 from collections import Counter
 
-import pandas as pd
-
 from scripts.tokenisation import phrases
 
 media = sys.argv[1]
-DOSSIER = "/data/elias/stage-mids/data/corpus"
-CSV = f"/data/elias/stage-mids/data/csv/{media}.csv"
+CSV = f"{CSV_DIR}/{media}.csv"
 DB = f"{DOSSIER}/{media}_1gram.db"
+CHUNK = int(os.environ.get("NGRAM_CHUNK", 20_000))   # articles entre deux flushs
+CACHE = os.environ.get("NGRAM_CACHE_KO", "-8000000")  # 8 Go gallica ; réduire sur ENS
 
-os.makedirs("/data/elias/stage-mids/data/sqlite_tmp", exist_ok=True)
+os.makedirs(TMPDIR, exist_ok=True)
 if os.path.exists(DB):
     sys.exit(f"ABANDON : {DB} existe déjà (le supprimer pour reconstruire).")
 
+csv.field_size_limit(100_000_000)   # articles longs : la limite par défaut (128 ko) rejette
 debut = time.time()
 conn = sqlite3.connect(DB)
 conn.executescript(f"""
     PRAGMA page_size = 65536;       -- 64 ko/page : ~16x moins d'operations sur disque lent
     PRAGMA journal_mode = OFF;
     PRAGMA synchronous = OFF;
-    PRAGMA cache_size = -8000000;   -- ~8 Go de cache en RAM (negatif = ko)
+    PRAGMA cache_size = {CACHE};
     ATTACH DATABASE '{DOSSIER}/vocabulaire.db' AS vocab;
     CREATE TABLE IF NOT EXISTS vocab.token (id INTEGER PRIMARY KEY, word TEXT UNIQUE);
     CREATE TABLE IF NOT EXISTS unigram_staging (w1, date, n);
@@ -56,33 +62,17 @@ prochain = max(ids.values(), default=0) + 1
 acquis = len(ids)
 print(f"[{media}] vocabulaire partagé au départ : {acquis} mots", flush=True)
 
-reader = pd.read_csv(CSV, usecols=["date", "contenu"], chunksize=20_000,
-                     on_bad_lines="skip")
-
 vus = set()          # mots employés par CE média (pour la copie locale de token)
 n_articles = 0
 n_rejets = 0
+n_chunk = 0
+jours = {}           # date -> Counter des unigrammes du chunk courant
 
-for i, chunk in enumerate(reader, start=1):
-    brut = len(chunk)
-    chunk = chunk.dropna(subset=["date", "contenu"])
-    chunk = chunk[chunk["date"].str.len() >= 10]
-    chunk = chunk.assign(
-        date=chunk["date"].str[:10].str.replace("-", "", regex=False).astype(int))
-    # garde-fou sur les dates aberrantes (champs vides ou corrompus selon les médias)
-    chunk = chunk[chunk["date"].between(19000101, 20301231)]
-    n_articles += len(chunk)
-    n_rejets += brut - len(chunk)
 
-    for date, group in chunk.groupby("date"):
-        date = int(date)
-        uni = Counter()
-        for text in group["contenu"]:
-            for tokens in phrases(text):
-                uni.update(tokens)
-        if not uni:
-            continue
-
+def flush():
+    """Écrit les compteurs du chunk en staging (+ mots nouveaux au vocabulaire)."""
+    global jours, prochain
+    for date, uni in jours.items():
         nouveaux = [w for w in uni if w not in ids]
         for w in nouveaux:
             ids[w] = prochain
@@ -94,12 +84,43 @@ for i, chunk in enumerate(reader, start=1):
                          [(ids[w], date, c) for w, c in uni.items()])
         vus.update(uni)
     conn.commit()   # le vocabulaire nouveau est validé en même temps que les comptes
+    jours = {}
 
-    ecoule = time.time() - debut
-    print(f"[{media}] chunk {i} | {n_articles} articles | {len(vus)} mots du média "
-          f"| +{len(ids) - acquis} mots au vocabulaire | {ecoule / 60:.1f} min "
-          f"({n_articles / max(ecoule, 1):.0f} art/s)", flush=True)
 
+with open(CSV, newline="") as f:
+    lecteur = csv.DictReader(f)
+    while True:
+        try:
+            ligne = next(lecteur)
+        except StopIteration:
+            break
+        except csv.Error:
+            n_rejets += 1
+            continue
+        date, contenu = ligne.get("date") or "", ligne.get("contenu") or ""
+        if len(date) < 10 or not contenu:
+            n_rejets += 1
+            continue
+        date = date[:10].replace("-", "")
+        if not date.isdigit() or not 19000101 <= int(date) <= 20301231:
+            n_rejets += 1
+            continue
+        date = int(date)
+
+        uni = jours.setdefault(date, Counter())
+        for tokens in phrases(contenu):
+            uni.update(tokens)
+        n_articles += 1
+
+        if n_articles % CHUNK == 0:
+            n_chunk += 1
+            flush()
+            ecoule = time.time() - debut
+            print(f"[{media}] chunk {n_chunk} | {n_articles} articles | {len(vus)} mots du média "
+                  f"| +{len(ids) - acquis} mots au vocabulaire | {ecoule / 60:.1f} min "
+                  f"({n_articles / max(ecoule, 1):.0f} art/s)", flush=True)
+
+flush()
 print(f"[{media}] lecture finie : {n_articles} articles, {n_rejets} lignes écartées "
       f"(date ou contenu manquant), {time.time() - debut:.0f} s", flush=True)
 
@@ -123,11 +144,11 @@ conn.executemany("INSERT INTO token(id, word) VALUES (?,?)",
 conn.commit()
 
 n_lignes = conn.execute("SELECT COUNT(*) FROM unigram").fetchone()[0]
-jours = conn.execute("SELECT COUNT(*), MIN(date), MAX(date) FROM total_unigram").fetchone()
+njours = conn.execute("SELECT COUNT(*), MIN(date), MAX(date) FROM total_unigram").fetchone()
 conn.execute("PRAGMA journal_mode = WAL")
 conn.execute("VACUUM")
 conn.close()
 
 print(f"FINI : {media}_1gram.db | {n_lignes} lignes unigram | {len(vus)} mots "
-      f"| {jours[0]} jours ({jours[1]} -> {jours[2]}) "
+      f"| {njours[0]} jours ({njours[1]} -> {njours[2]}) "
       f"| {(time.time() - debut) / 60:.1f} min", flush=True)
