@@ -1773,6 +1773,33 @@ Au passage, `rupture/nms.py` accepte une option `--pics` pour rejouer le NMS
 sur des pics produits à un autre seuil, la hauteur de la contre-vérification
 étant déduite du suffixe.
 
+## PCA jointe par triplets — Le Monde, Le Figaro, Ouest-France (23/08/2026)
+
+Mise en place de l'idée « PCA concaténée » (proche de la PCA fonctionnelle
+multivariée / des combined EOF) : pour un même mot, apparier les pics des trois
+médias (référence ≥ 4, suiveurs ≥ 3 à moins de 7 jours, NMS inter-médias),
+extraire la même fenêtre autour d'une date commune dans chacun, concaténer les
+trois segments z-scorés et faire la PCA dessus. `rupture/fenetres_triplets.py`
+(grille calendaire ancrée sur la date commune, option parution, option centre
+médiane) + `rupture/pca_trio.py` (deux lectures : segments par média, forme
+commune). *Ouest-France* remplace *Les Échos* (quotidien 7 j/7) : bases
+construites au passage (`scan_vocab_media`, `masse` acceptant les `_1gram.db`,
+pics s3 journalier et 3 j).
+
+Trois cycles, rapport dans `campagne_pca/trio/` (données dans
+`campagne_pca/data/trio/`). Cycle 1 : 3 358 triplets journaliers (±20 j) et
+1 930 en blocs de 3 j (±15), les quatre premières composantes sont des formes
+communes répétées à l'identique par les trois titres, la PC5 journalière est
+un axe de divergence. Cycle 2 : robustesse complète à la tolérance (3/7/14 j,
+triplets emboîtés à 97-98 %) et à la grille (parution = calendaire à cosinus
+1,00) ; la PC5 suit en fait l'identité du média de référence (artefact du
+centrage sur le pic le plus fort). Cycle 3 : recentrage sur la médiane des
+trois dates — l'artefact tombe (corr. 0,61 → 0,20), la direction survit et se
+révèle être un axe de **désynchronisation** (corrélé au décalage absolu d'OF,
++0,45) ; contrôle suiveurs ≥ 4 sans effet. Conclusion : les formes de saut
+sont des propriétés des événements, ce qui distingue les journaux est
+temporel (Figaro en avance, 1-2 jours, gommé dès les blocs de 3 j).
+
 A FAIRE : 
 - Section d'une page où il faudra décrire le corpus 
 - Choix du vocabulaire 
