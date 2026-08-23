@@ -1800,6 +1800,25 @@ révèle être un axe de **désynchronisation** (corrélé au décalage absolu d
 sont des propriétés des événements, ce qui distingue les journaux est
 temporel (Figaro en avance, 1-2 jours, gommé dès les blocs de 3 j).
 
+## Chevauchement d'agenda et contrôle positif Mediapart (23/08/2026)
+
+Deux chantiers en suite directe de la PCA jointe, ajoutés au rapport
+`campagne_pca/trio/`. **Chevauchement d'agenda**
+(`exploration/appariement_paires.py` + NMS `_s3` des 4 médias) : pour chaque
+paire ordonnée, part des événements de A (pics NMS ≥ 4) avec un écho dans B
+(pic du même mot à ±7 j). Résultat : l'écho est minoritaire partout — 21-24 %
+entre Le Monde et Le Figaro, 12-17 % avec Ouest-France, 6-10 % avec Mediapart ;
+il croît avec la surprise chez les généralistes (18 → 39 %) mais reste plat
+pour Mediapart (ses gros pics = ses exclusivités) ; bosse Covid 2020 sur
+Monde→OF. La différence entre médias est dans l'agenda, pas dans les formes.
+**Contrôle positif** : trio Monde/Figaro/Mediapart rejoué à l'identique —
+triplets divisés par deux, synchronie des paires Mediapart à 0,28 (témoin
+Monde-Figaro inchangé à 0,62), et l'axe de désynchronisation passe du 5e rang
+au 1er (6,9 %, corr −0,57 au décalage absolu de Mediapart). La méthode voit
+les différences éditoriales quand elles existent : le résultat du trio
+généraliste est un vrai résultat. Cache `appariement_paires.csv` et fenêtres
+`_mdp`/`_mdp_med` dans `campagne_pca/data/trio/`.
+
 A FAIRE : 
 - Section d'une page où il faudra décrire le corpus 
 - Choix du vocabulaire 

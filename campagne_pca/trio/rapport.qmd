@@ -34,8 +34,10 @@ import campagne_pca.scripts.figures_lib as lib
 from rupture.pca import pca
 
 D = Path("../data/trio")
-COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860", "ouestfrance": "#c8102e"}
-NOMS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro", "ouestfrance": "Ouest-France"}
+COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860", "ouestfrance": "#c8102e",
+            "mediapart": "#fc392b"}
+NOMS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro", "ouestfrance": "Ouest-France",
+        "mediapart": "Mediapart"}
 
 
 def charger(tag):
@@ -414,19 +416,204 @@ Le contrôle **suiveurs ≥ 4** ne change rien : composantes appariées une à u
 cinquième rang. Le seuil suiveur à 3 du cycle 1 n'introduisait donc aucun biais
 de composition.
 
+## Chevauchement d'agenda — ce que le triple accord écartait
+
+Les trois cycles conditionnent sur l'accord : en n'étudiant que les triplets,
+on ne garde que les événements où les trois journaux réagissent — moins de 1 %
+des pics. Ce chantier retourne la question et mesure les 99 % restants. Pour
+chaque paire ordonnée (A, B) parmi les quatre journaux (le trio plus
+*Mediapart*), on prend les **événements** de A — ses pics NMS à surprise ≥ 4,
+sur le vocabulaire commun à la paire et leur période commune — et on compte la
+part qui trouve un **écho** dans B : un pic du même mot (seuil 3) à moins de
+7 jours. C'est exactement le critère du suiveur des triplets, appliqué paire
+par paire, sans exiger le troisième journal.
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Part des événements de chaque journal (pics NMS, surprise ≥ 4) trouvant un écho chez les trois autres, par année (2009-2023, période où les quatre corpus sont pleins)."
+app = pd.read_csv(D / "appariement_paires.csv")
+QUATRE = ["lemonde", "lefigaro", "ouestfrance", "mediapart"]
+
+fig, axes = plt.subplots(1, 3, figsize=(9.6, 2.8), sharey=True)
+an = app[(app.annee >= 2009) & (app.annee <= 2023)].groupby(
+    ["media_a", "media_b", "annee"]).sum(numeric_only=True).reset_index()
+an["taux"] = an["echo"] / an["n"] * 100
+for ax, a in zip(axes, ("lemonde", "lefigaro", "ouestfrance")):
+    for b in QUATRE:
+        if b == a:
+            continue
+        s = an[(an.media_a == a) & (an.media_b == b)]
+        ax.plot(s["annee"], s["taux"], lw=1.4, color=COULEURS[b],
+                label=NOMS[b] if a == "lemonde" or b == "mediapart" else None)
+    ax.set_title(f"événements de {NOMS[a]}", fontsize=9.5, color=lib.ENCRE2)
+    ax.set_xticks([2010, 2015, 2020])
+    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+    ax.set_axisbelow(True)
+    ax.set_ylim(0, 42)
+axes[0].set_ylabel("écho chez l'autre (%)")
+axes[0].legend(frameon=False, fontsize=7.5)
+fig.tight_layout()
+plt.show()
+```
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Taux d'écho selon la force de l'événement (tranches de surprise du pic de A), toutes années confondues."
+tr = app.groupby(["media_a", "media_b", "tranche"]).sum(numeric_only=True).reset_index()
+tr["taux"] = tr["echo"] / tr["n"] * 100
+NOMS_TR = ["4-5", "5-6", "6-8", "8+"]
+fig, axes = plt.subplots(1, 3, figsize=(9.6, 2.8), sharey=True)
+for ax, a in zip(axes, ("lemonde", "lefigaro", "ouestfrance")):
+    for b in QUATRE:
+        if b == a:
+            continue
+        s = tr[(tr.media_a == a) & (tr.media_b == b)]
+        ax.plot(s["tranche"], s["taux"], lw=1.4, marker="o", ms=3,
+                color=COULEURS[b], label=NOMS[b] if a == "lemonde" else None)
+    ax.set_title(f"événements de {NOMS[a]}", fontsize=9.5, color=lib.ENCRE2)
+    ax.set_xticks(range(4))
+    ax.set_xticklabels(NOMS_TR)
+    ax.set_xlabel("surprise de l'événement")
+    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+    ax.set_axisbelow(True)
+    ax.set_ylim(0, 42)
+axes[0].set_ylabel("écho chez l'autre (%)")
+axes[0].legend(frameon=False, fontsize=7.5)
+fig.tight_layout()
+plt.show()
+```
+
+**La différence entre médias est là, et elle est massive.** Même entre les deux
+journaux les plus proches, l'écho est minoritaire : 21 % des événements du
+*Monde* se retrouvent au *Figaro*, 24 % dans l'autre sens. Avec *Ouest-France*,
+on tombe à 12-17 % ; avec *Mediapart*, à 6-10 %. Autrement dit, **78 à 95 % de
+ce qui fait pic dans un journal ne fait pas pic chez le voisin la même
+semaine**. Les formes de saut étaient identiques ; le choix des sujets, lui,
+est presque entièrement spécifique. La hiérarchie retrouve exactement celle de
+la synchronie du cycle 1 (*Monde*-*Figaro* devant, *Mediapart* loin derrière) —
+deux mesures indépendantes qui racontent la même géographie des titres.
+
+**La force de l'événement change tout — sauf pour Mediapart.** Chez les
+généralistes, le partage croît nettement avec la surprise : de 18 % à 39 % pour
+les événements du *Figaro* repris par *Le Monde*. Les gros événements sont des
+événements partagés — mais même à surprise ≥ 8, plus de 60 % restent sans écho.
+Pour *Mediapart*, la courbe est **plate** (9-11 % vers *Le Monde*, quelle que
+soit la taille du pic) : ses plus gros événements ne percent pas plus que les
+petits. C'est la signature d'un agenda propre — ses grands pics sont ses
+enquêtes exclusives, dont les autres titres ne reprennent pas le vocabulaire au
+même moment. À noter enfin la bosse de 2020 sur la paire
+*Monde*→*Ouest-France* (24 % contre 15-17 % en régime normal) : une crise
+totale comme le Covid synchronise temporairement les agendas.
+
+Une précision de lecture : l'écho exige le **même mot**. Deux journaux peuvent
+couvrir le même fait avec des vocabulaires différents, donc ces taux sont des
+planchers du chevauchement réel. Mais le biais est le même pour toutes les
+paires : le classement, les gradients et les évolutions restent interprétables.
+
+## Contrôle positif — Mediapart dans le trio
+
+Avant de conclure que « les médias ne diffèrent pas », il faut vérifier que la
+méthode *sait* détecter une différence quand elle existe. On rejoue donc toute
+la chaîne en remplaçant *Ouest-France* par ***Mediapart*** — un titre au profil
+éditorial délibérément différent : journal d'enquête, sans cycle quotidien
+généraliste, au corpus dix fois plus petit que celui du *Monde*. Mêmes
+paramètres qu'au cycle 1 (journalier ±20 j, tolérance 7 j, suiveurs ≥ 3), et la
+version recentrée sur la médiane pour lire les axes de divergence sans
+l'artefact du cycle 2. Si la PCA jointe ne voit rien non plus ici, c'est
+qu'elle est aveugle ; si elle voit, le résultat du trio généraliste est un vrai
+résultat.
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Corrélation médiane entre segments z-scorés, par paire de journaux, dans les deux trios (tous triplets, référence ≥ 4)."
+for t in ("j20_mdp", "j20_mdp_med"):
+    if t not in CFG:
+        CFG[t] = charger(t)
+RES[("j20_mdp_med", 6)] = pca_seuil(CFG["j20_mdp_med"], 6)
+
+def corr_paires(tag):
+    c = CFG[tag]
+    L = 2 * c["demi"] + 1
+    out = {}
+    for a, b in ((0, 1), (0, 2), (1, 2)):
+        r = (c["Z3"][:, a] * c["Z3"][:, b]).mean(axis=1) * L / (L - 1)
+        out[(c["medias"][a], c["medias"][b])] = float(np.median(r))
+    return out
+
+paires = [("trio Ouest-France", corr_paires("j20")),
+          ("trio Mediapart", corr_paires("j20_mdp"))]
+fig, axes = plt.subplots(1, 2, figsize=(8.2, 2.6), sharey=True)
+for ax, (nom, cp) in zip(axes, paires):
+    noms = [f"{NOMS[a]}\n{NOMS[b]}" for a, b in cp]
+    coul = [lib.BLEU if "mediapart" not in (a, b) else COULEURS["mediapart"]
+            for a, b in cp]
+    ax.bar(range(3), list(cp.values()), color=coul, width=0.62)
+    for i, v in enumerate(cp.values()):
+        ax.text(i, v + 0.015, f"{v:.2f}".replace(".", ","), ha="center",
+                fontsize=8.5, color=lib.ENCRE2)
+    ax.set_xticks(range(3))
+    ax.set_xticklabels(noms, fontsize=8)
+    ax.set_title(nom, fontsize=9.5, color=lib.ENCRE2)
+    ax.set_ylim(0, 0.75)
+    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+    ax.set_axisbelow(True)
+axes[0].set_ylabel("corrélation médiane")
+fig.tight_layout()
+plt.show()
+```
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes de la PCA jointe du trio Mediapart (centre médiane, référence ≥ 6, 996 fenêtres), un segment par média."
+planche("j20_mdp_med", 6, "medias")
+```
+
+**La méthode voit la différence — massivement.** Tout ce qui était stable dans
+le trio généraliste bascule dès qu'un titre au profil réellement différent
+entre dans le trio, pendant que la paire témoin *Monde*-*Figaro*, elle, ne
+bouge pas d'un millimètre (0,62 dans les deux trios) :
+
+d'abord l'**appariement** — 1 685 triplets contre 3 358, moitié moins, alors
+même que la période commune est plus longue et le vocabulaire commun plus grand
+(7 773 mots) : l'agenda isolé de *Mediapart*, déjà vu au chantier précédent, se
+paie au moment du triple accord. Ensuite la **synchronie** : les paires avec
+*Mediapart* tombent à 0,28, moitié moins que les paires avec *Ouest-France*
+(0,53-0,58). Puis le **tempo** : *Mediapart* est le plus en retard des quatre
+titres étudiés (+0,25 jour en moyenne, 43 % de retard strict contre 35 %
+d'avance) — il suit l'actualité commune à son propre rythme. Enfin, et c'est le
+plus parlant, la **structure de la PCA change** : l'axe de désynchronisation,
+relégué au cinquième rang (3,6 %) dans le trio généraliste, devient ici la
+**première composante** (6,9 %, corrélée à −0,57 au décalage absolu de
+*Mediapart*, segments anti-corrélés) — visible sur la planche : dès la première
+composante, la courbe rouge se détache des deux autres. Les formes communes
+habituelles ne disparaissent pas, elles reculent aux rangs 2 à 5, où on les
+retrouve quasi inchangées (cosinus 0,85 à 0,97 avec les formes communes du trio
+généraliste).
+
+Le contrôle est donc positif : la PCA jointe détecte sans ambiguïté un profil
+éditorial différent quand il existe. La quasi-absence de divergence entre *Le
+Monde*, *Le Figaro* et *Ouest-France* n'était pas une cécité de la méthode —
+c'est bien une propriété de ces trois titres.
+
 ## Ce qu'il faut retenir
 
-Trois cycles, un tableau cohérent. **Les formes de saut sont des propriétés des
-événements, pas des journaux** : les quatre premières composantes de chaque
-configuration sont répétées presque à l'identique par les trois titres
-(corrélations entre segments de 0,88 à 0,99), reprennent le catalogue des
-campagnes par média, et résistent à toutes les variantes essayées — tolérance
-de 3 à 14 jours, grille calendaire ou de parution, centrage sur la référence ou
-sur la médiane, suiveurs à 3 ou 4. **Ce qui distingue les journaux est
-temporel** : un décalage de un à deux jours (le *Figaro* le plus souvent en
-avance, *Le Monde* et *Ouest-France* en retard), visible au grain journalier et
-gommé dès les blocs de 3 jours, et un axe de désynchronisation qui isole les
-événements où un titre est à contretemps des deux autres. La PCA jointe tient
-sa promesse : elle retrouve les formes connues *et* met au jour la structure
-inter-médias — à condition, comme l'a montré le cycle 3, de neutraliser
-l'asymétrie de construction avant d'interpréter les axes de divergence.
+Trois cycles et deux chantiers, un tableau cohérent. **Les formes de saut sont
+des propriétés des événements, pas des journaux** : les quatre premières
+composantes du trio généraliste sont répétées presque à l'identique par les
+trois titres (corrélations entre segments de 0,88 à 0,99) et résistent à toutes
+les variantes essayées — tolérance de 3 à 14 jours, grille calendaire ou de
+parution, centrage sur la référence ou sur la médiane, suiveurs à 3 ou 4.
+**C'est dans le choix des sujets et dans le tempo que les journaux diffèrent.**
+Le chevauchement d'agenda est minoritaire partout (21-24 % d'écho entre les
+deux titres les plus proches, 6-10 % avec *Mediapart*) et croît avec la force
+de l'événement — sauf pour *Mediapart*, dont les gros pics sont des
+exclusivités. Le tempo sépare les titres au grain journalier (le *Figaro* en
+avance, *Mediapart* nettement en retard) et s'efface dès les blocs de 3 jours.
+Le contrôle positif ferme la boucle : introduire *Mediapart* dans le trio fait
+tout basculer (triplets divisés par deux, synchronie à 0,28, désynchronisation
+en première composante) pendant que la paire témoin *Monde*-*Figaro* reste
+identique — la méthode voit les différences éditoriales là où elles existent.
+Pour la suite du mémoire, c'est donc du côté de l'**agenda** (taux d'écho par
+paire, au fil du temps) et du **tempo** (axe de désynchronisation) qu'un effet
+de rachat a le plus de chances de se lire ; les formes communes, stables et
+universelles, serviront de point de contrôle.
