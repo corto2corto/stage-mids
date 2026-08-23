@@ -189,17 +189,18 @@
 <div class="wrap">
   <header class="top">
     <h1>Suivi stage MIDS</h1>
-    <span class="maj">Mise à jour : <strong>12 juillet 2026, 11 h 24</strong> · état serveur relevé en direct par Claude (ssh, lecture seule)</span>
+    <span class="maj">Mise à jour : <strong id="maj-heure">22 août 2026, 15 h 10</strong> · état serveur relevé en direct par Claude (ssh, lecture seule)</span>
   </header>
   <p class="sous-titre">Mémoire — impact des rachats de journaux français sur le contenu éditorial. Serveur gallica (157.136.252.194).</p>
 
   <h2>En ce moment</h2>
   <div class="carte">
     <ul class="encemoment">
-      <li><strong>Scraping en production, actif</strong> — la v2 (une boucle par média, 30 médias configurés) tourne dans la session tmux <span style="font-family: var(--mono)">scrapping</span>. <span style="font-family: var(--mono)">urls.db</span> écrit en continu (11 h 24). Corpus : <strong>4 165 775 articles collectés</strong> — +408 000 depuis le 11 au soir. API en ligne.</li>
-      <li><strong>File d'attente passée à 22,0 M d'URLs</strong> — le rattrapage des anciens sitemaps (chantier sitemaps) a versé en base l'historique des médias. C'est voulu : le pipeline a maintenant des mois de collecte devant lui. La file du 11 juillet (105 000) ne concernait que le flux quotidien.</li>
-      <li><strong>Inspection des URLs non-articles terminée</strong> — les 29 médias passés en revue : <strong>417 870 URLs marquées état 5</strong> (hors corpus : vidéos, galeries, artefacts…), règles par média dans <span style="font-family: var(--mono)">exploration/regles_non_articles.md</span>. Un filtre au versement (<span style="font-family: var(--mono)">est_non_article</span>) écarte désormais ces URLs dès la collecte des sitemaps — visible dans le cycle de ce matin.</li>
-      <li><strong>Collecte quotidienne des sitemaps « news »</strong> — cron 2×/jour (07 h 40 et 19 h 40) : dernier cycle terminé à 07 h 58, <strong>1 324 URLs insérées</strong> et 372 093 non-articles écartés (surtout l'historique <span style="font-family: var(--mono)">video.lefigaro.fr</span> présent dans les CSV d'URLs).</li>
+      <li><strong>Scraping en production, actif</strong> — la v2 (une boucle par média) tourne dans la session tmux <span style="font-family: var(--mono)">scrapping</span>, relancée automatiquement il y a 2 h. <span style="font-family: var(--mono)">urls.db</span> écrit en continu (14 h 30). Corpus : <strong><span data-articles>16 342 122</span> articles collectés</strong>.</li>
+      <li><strong>File d'attente réduite à <span data-file>5,3 M</span> d'URLs</strong> — il ne reste que trois médias à rattraper : <span style="font-family: var(--mono)">le_telegramme</span> (3,7 M), <span style="font-family: var(--mono)">la_depeche</span> (1,1 M) et <span style="font-family: var(--mono)">sud_ouest</span> (0,4 M). Les 28 autres médias sont à zéro reste.</li>
+      <li><strong>Bases 1-gramme par média terminées</strong> — 36 bases construites les 18-20 août (16 Go au total) sur un vocabulaire partagé (<span style="font-family: var(--mono)">vocabulaire.db</span>). Dernière série le 20 août : <span style="font-family: var(--mono)">le_figaro_1gram.db</span>, 25,6 M de lignes unigram sur 5 700 jours (2007 → 2026).</li>
+      <li><strong>Campagne sur le corpus unifié en cours</strong> — session tmux <span style="font-family: var(--mono)">unifie</span> : balayage détection de pics → NMS → fenêtres → PCA, sur le corpus unifié et sur Le Monde en comparaison. Rédaction en cours du rapport <span style="font-family: var(--mono)">corpus_unifie.qmd</span>.</li>
+      <li><strong>Collecte quotidienne des sitemaps « news »</strong> — cron 2×/jour (07 h 40 et 19 h 40) : dernier cycle terminé ce matin à 08 h 31, <strong>1 605 URLs insérées</strong>, non-articles écartés au versement.</li>
     </ul>
   </div>
 
@@ -210,22 +211,22 @@
       <li>
         <span class="etape-nom">Scraping — collecte du corpus</span>
         <span class="pastille p-cours">En cours</span>
-        <span class="etape-note">Pipeline v2 en production (30 médias, une boucle par média), <strong>4 165 775 articles collectés</strong> au 12 juillet (+408 000 depuis le 11 au soir). Rattrapage des anciens sitemaps versé en base : 22,0 M d'URLs en file, des mois de collecte devant. Inspection des non-articles terminée (417 870 URLs marquées état 5, filtre au versement en place). <strong>→ Ensuite :</strong> laisser tourner la collecte.</span>
+        <span class="etape-note">Pipeline v2 en production (31 médias suivis, une boucle par média), <strong><span data-articles>16 342 122</span> articles collectés</strong>. Le rattrapage des anciens sitemaps est presque absorbé : <span data-file>5,3 M</span> d'URLs en file, concentrées sur trois médias (le_telegramme, la_depeche, sud_ouest). <strong>→ Ensuite :</strong> laisser tourner la collecte jusqu'à épuisement de la file.</span>
       </li>
       <li>
         <span class="etape-nom">Bases n-grammes</span>
         <span class="pastille p-cours">En cours</span>
-        <span class="etape-note">Les 3 bases construites (Le Monde 1944-2025, Figaro, Échos) ; <strong>tops des 3 journaux terminés</strong> (uni/bi/trigrammes × jour/mois/année) et branchés sur le front. <strong>→ Ensuite :</strong> corriger les stop words résiduels dans les tops (« t il », « nc mpf »…), puis MAJ incrémentale.</span>
+        <span class="etape-note">Bases n-grammes des 3 journaux (Le Monde 1944-2025, Figaro, Échos) + Mediapart, tops branchés sur le front. Depuis le 18 août, <strong>36 bases 1-gramme par média</strong> sur vocabulaire partagé, plus les bigrammes (<span style="font-family: var(--mono)">ngram_2gram.py</span>). <strong>→ Ensuite :</strong> corriger les stop words résiduels dans les tops (« t il », « nc mpf »…), puis MAJ incrémentale.</span>
       </li>
       <li>
         <span class="etape-nom">API &amp; sites de suivi</span>
         <span class="pastille p-cours">En ligne</span>
-        <span class="etape-note">API type Gallicagram + front 3 onglets + site Evidence (tops des 3 journaux servis au front). La session tmux <span style="font-family: var(--mono)">api</span> a été relancée le 10 juillet : le front répond de nouveau. Site Evidence en ligne.</span>
+        <span class="etape-note">API type Gallicagram + front 3 onglets (tops des 3 journaux servis au front). La session tmux <span style="font-family: var(--mono)">api</span> tourne sans interruption depuis le 21 juillet. Dépôt séparé <span style="font-family: var(--mono)">ngram-press</span> pour le déploiement visé sur le serveur de l'ENS.</span>
       </li>
       <li>
         <span class="etape-nom">Analyse — détection de ruptures</span>
-        <span class="pastille p-neutre">À démarrer</span>
-        <span class="etape-note">Plan de recherche posé (métriques, bursts, scattering). <strong>→ Ensuite :</strong> premiers comptages sur 10 000 articles par média, choisir la métrique des séries 1D.</span>
+        <span class="pastille p-cours">En cours</span>
+        <span class="etape-note">Chaîne détection de pics → NMS → fenêtres → PCA en place (<span style="font-family: var(--mono)">rupture/</span>). Campagne 48 h livrée le 1<sup>er</sup> août (formes d'événement vs texture, hiérarchies de médias inverses) ; campagne sur le corpus unifié en cours. <strong>→ Ensuite :</strong> finir le rapport <span style="font-family: var(--mono)">corpus_unifie.qmd</span> et arrêter les réglages de fenêtre.</span>
       </li>
     </ol>
   </div>
@@ -242,45 +243,18 @@
     </div>
     <p class="desc">Des mots outils passent encore le filtre des tops (« t il », « nc mpf »…). Piste : compléter <span style="font-family: var(--mono)">MOTS_OUTILS</span> (scripts/top_ngram.py) puis mettre à jour le drapeau <span style="font-family: var(--mono)">stop</span> dans les 3 bases <span style="font-family: var(--mono)">*_top.db</span> par UPDATE ciblé — sans reconstruction.</p>
     <div class="panneau-prompt" id="prompt-stopwords-tops" hidden>
-      <pre>Dans les tops n-grammes servis par l'API (route /top, onglets « Top » et « Avant / après » du front), des mots outils passent encore le filtre : « t il », « nc mpf », et probablement d'autres fragments du même genre (élisions et restes de tokenisation).
+      <pre>Dans les tops n-grammes servis par l&#x27;API (route /top, onglets « Top » et « Avant / après » du front), des mots outils passent encore le filtre : « t il », « nc mpf », et probablement d&#x27;autres fragments du même genre (élisions et restes de tokenisation).
 
-Le filtre vient de scripts/top_ngram.py : la liste MOTS_OUTILS (ligne ~24) sert à poser stop=1 sur les n-grammes dont tous les mots sont des mots outils ou des nombres (colonne stop de la table top), et l'API filtre là-dessus. Les 3 bases lefigaro_top.db, lesechos_top.db et lemonde_top.db sont déjà construites — on ne veut PAS les reconstruire.
+Le filtre vient de scripts/top_ngram.py : la liste MOTS_OUTILS (ligne ~24) sert à poser stop=1 sur les n-grammes dont tous les mots sont des mots outils ou des nombres (colonne stop de la table top), et l&#x27;API filtre là-dessus. Les 3 bases lefigaro_top.db, lesechos_top.db et lemonde_top.db sont déjà construites — on ne veut PAS les reconstruire.
 
 À faire :
 1. Repérer les fragments qui passent : regarder les n-grammes stop=0 à fort volume dans les *_top.db pour lister les candidats. Requêtes indexées seulement, pas de scan complet.
 2. Compléter MOTS_OUTILS dans scripts/top_ngram.py (pour les futures constructions).
 3. Mettre à jour le drapeau stop dans les 3 bases *_top.db existantes par UPDATE ciblé sur la table top, avec la même règle que le script (tous les mots dans la liste ou nombres).
-4. Vérifier via l'API (/top) que les tops des 3 journaux sont propres.
+4. Vérifier via l&#x27;API (/top) que les tops des 3 journaux sont propres.
 
 Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
       <button class="btn-copier" data-copie="prompt-stopwords-tops">Copier</button>
-    </div>
-  </div>
-
-  <div class="carte" id="tache-bases-ngram-13-medias" style="margin-top: 14px">
-    <div class="carte-tete">
-      <div>
-        <div class="carte-titre">Construire les bases n-grammes des 13 autres médias</div>
-        <div class="carte-sous">ajoutée le 5 juillet · n-grammes</div>
-      </div>
-      <button class="btn-prompt" data-panneau="prompt-bases-ngram-13-medias" aria-expanded="false">Prompt</button>
-    </div>
-    <p class="desc">13 CSV de <span style="font-family: var(--mono)">data/csv/</span> (schéma commun titre / contenu / date) sans base n-grammes. Piste : un script générique calqué sur <span style="font-family: var(--mono)">scripts/ngram_lesechos.py</span>, testé sur un petit média avant d'enchaîner les autres.</p>
-    <div class="panneau-prompt" id="prompt-bases-ngram-13-medias" hidden>
-      <pre>Les 3 bases n-grammes d'archives (Le Monde, Le Figaro, Les Échos) sont construites ; il reste à construire celles des 13 autres médias à partir des CSV de data/csv/ sur gallica : Atlantico, Challenges, L'Opinion, La Dépêche, Capital, JDD, Le Nouvel Obs, Le Télégramme, Nice-Matin, Paris Match, Sud Ouest, Télérama, Valeurs actuelles.
-
-Points établis :
-- Ces CSV partagent un schéma commun titre / contenu / date, différent des 3 gros CSV d'archives.
-- Modèle à imiter : scripts/ngram_lesechos.py (lecture par chunks pandas, tokenisation par phrases, date YYYYMMDD, tables staging puis finales, filtre n &gt; 10, totaux journaliers en base) — mêmes choix de tokenisation, même schéma de base &lt;media&gt;_ngram.db.
-- Écrire UN script générique scripts/ngram_media.py qui prend le média en argument (plutôt que 13 copies), en adaptant seulement la lecture du CSV au schéma commun.
-
-Dans l'ordre :
-1. Vérifier le schéma réel de 2-3 CSV de data/csv/ (noms de colonnes exacts, format de date) avant d'écrire du code.
-2. Écrire le script générique et me le faire relire.
-3. Tester sur UN petit média, vérifier la base produite (schéma, index, requêtes indexées seulement), puis enchaîner les 12 autres en série dans une session tmux dédiée.
-
-Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
-      <button class="btn-copier" data-copie="prompt-bases-ngram-13-medias">Copier</button>
     </div>
   </div>
 
@@ -294,49 +268,25 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
     </div>
     <p class="desc">Les bases sont construites en one-shot depuis des CSV figés, alors que les corpus vont grossir chaque jour. Piste : rester sur SQLite — MAJ quotidienne append-only sans filtre, tops exacts via tables cumulatives « mois / année courants », gel du top d'une période à sa clôture ; mesurer d'abord l'inflation sans filtre <span style="font-family: var(--mono)">&gt; 10</span> sur Les Échos.</p>
     <div class="panneau-prompt" id="prompt-maj-quotidienne-ngram-top" hidden>
-      <pre>Les bases *_ngram.db et *_top.db sur gallica sont construites en one-shot depuis des CSV figés ; il faut les passer en MAJ quotidienne (les CSV vont recevoir chaque jour les nouveaux articles de chaque média), sans reconstruction complète et avec l'API qui continue de servir pendant l'écriture.
+      <pre>Les bases *_ngram.db et *_top.db sur gallica sont construites en one-shot depuis des CSV figés ; il faut les passer en MAJ quotidienne (les CSV vont recevoir chaque jour les nouveaux articles de chaque média), sans reconstruction complète et avec l&#x27;API qui continue de servir pendant l&#x27;écriture.
 
 Architecture discutée et retenue le 05/07/2026 (rester sur SQLite) :
 - Les CSV par média restent la source de vérité ; les bases ngram/top sont des vues dérivées reconstructibles.
 - MAJ quotidienne : tokeniser les nouveaux articles (mêmes choix que scripts/ngram_lemonde.py), insérer les comptes du jour dans unigram/bigram/trigram + totaux, en une transaction, SANS appliquer le filtre &gt; 10. PRAGMA en WAL + synchronous=NORMAL (pas les PRAGMA OFF des scripts de build, réservés aux builds hors ligne). Tenir une trace des articles déjà traités pour ne jamais recompter.
-- Tops : le top d'une période close ne change plus. Maintenir des tables cumulatives « mois courant » et « année courante » par taille de ngram (ngram -&gt; n cumulé, index sur n) mises à jour par upsert quotidien ; top 500 = lecture d'index, exact. À la clôture d'une période, geler son top dans top.db et vider la table cumulative. Le top du jour se calcule depuis les comptes du jour.
+- Tops : le top d&#x27;une période close ne change plus. Maintenir des tables cumulatives « mois courant » et « année courante » par taille de ngram (ngram -&gt; n cumulé, index sur n) mises à jour par upsert quotidien ; top 500 = lecture d&#x27;index, exact. À la clôture d&#x27;une période, geler son top dans top.db et vider la table cumulative. Le top du jour se calcule depuis les comptes du jour.
 - Filtre global &gt; 10 (posé uniquement pour la taille) : non tranché. Première étape : construire lesechos_ngram sans filtre dans un fichier séparé, comparer les tailles, puis décider avec Corto (sans filtre / filtre trigrams seulement / filtre + rebuild mensuel qui rattrape).
-- Si rebuild périodique : construire dans un NOUVEAU fichier puis renommer par-dessus, pour que l'API ne serve jamais une base à moitié construite.
+- Si rebuild périodique : construire dans un NOUVEAU fichier puis renommer par-dessus, pour que l&#x27;API ne serve jamais une base à moitié construite.
 
-Avant de coder, valider avec Corto le déroulé d'une journée type (ordre des opérations, rattrapage si le scraping d'un jour arrive en retard). Vérification finale : MAJ d'un jour de test en quelques minutes, requêtes API inchangées pendant l'écriture, tops des périodes ouvertes corrects.
+Avant de coder, valider avec Corto le déroulé d&#x27;une journée type (ordre des opérations, rattrapage si le scraping d&#x27;un jour arrive en retard). Vérification finale : MAJ d&#x27;un jour de test en quelques minutes, requêtes API inchangées pendant l&#x27;écriture, tops des périodes ouvertes corrects.
 Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
       <button class="btn-copier" data-copie="prompt-maj-quotidienne-ngram-top">Copier</button>
-    </div>
-  </div>
-
-  <div class="carte" id="tache-equipe-agents-nouveaux-medias" style="margin-top: 14px">
-    <div class="carte-tete">
-      <div>
-        <div class="carte-titre">Enrichir la base de médias avec une équipe d'agents (priorité basic)</div>
-        <div class="carte-sous">ajoutée le 6 juillet · scrapping_v2</div>
-      </div>
-      <button class="btn-prompt" data-panneau="prompt-equipe-agents-nouveaux-medias" aria-expanded="false">Prompt</button>
-    </div>
-    <p class="desc">Continuer à ajouter des médias au registre <span style="font-family: var(--mono)">MEDIAS</span> en priorisant le moteur <span style="font-family: var(--mono)">basic</span>, via une équipe d'agents : mapping (échantillon d'URLs), scrapper (HTML en basic satisfaisant ?), explorateur (localise les métadonnées), manager (tranche ajoutable/écarté, lance le mapping complet et prépare l'entrée <span style="font-family: var(--mono)">medias.py</span> — validation de Corto avant tout branchement).</p>
-    <div class="panneau-prompt" id="prompt-equipe-agents-nouveaux-medias" hidden>
-      <pre>Objectif : enrichir le registre MEDIAS avec de nouveaux médias français, en priorisant ceux qui passent en moteur « basic » (simple requête HTTP, le moins coûteux et le plus rapide). Tout se passe sur la branche scrapping_v2 (scraping/medias.py, scraping/basic.py) — ne pas toucher main, et lire la branche via git show plutôt qu'en switchant le dépôt principal.
-
-Organiser une équipe d'agents (outil Agent), un média candidat à la fois :
-1. Agent mapping : trouve la source d'URLs du média (sitemap, archives, pagination — s'inspirer des exploration/mapping_*.py existants) et en tire un échantillon d'une dizaine d'URLs d'articles variées, gratuits ET payants.
-2. Agent scrapper : récupère le HTML de l'échantillon en basic — sur gallica uniquement, jamais de curl/fetch sur le Mac — et juge le contenu : payants complets, gratuits seuls exploitables, ou tronqués.
-3. Agent explorateur : fouille les HTML pour localiser titre/auteur/date/corps (stratégie json_ld en priorité, sinon balises — cf exploration/lister_balises.py et exploration/detail_metadonnees.md).
-4. Agent manager : croise les trois rapports et tranche : ajoutable en basic complet, ajoutable en gratuits seuls (filtre via la colonne free), ou écarté — règle absolue : jamais d'articles tronqués en base. Si ajoutable : faire écrire le script de mapping complet (exploration/mapping_&lt;media&gt;.py + passage dans exploration/verifier_mappings.py) et préparer l'entrée medias.py pour le branchement au pipeline — SANS brancher : présenter le dossier complet à Corto et attendre sa validation explicite.
-
-Commencer par proposer à Corto une liste de médias candidats (hors MEDIAS actuels de scrapping_v2 et hors écartés : lexpress, lepoint) et la faire valider avant de lancer les agents.
-Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
-      <button class="btn-copier" data-copie="prompt-equipe-agents-nouveaux-medias">Copier</button>
     </div>
   </div>
 
   <div class="carte" id="tache-extracteur-francesoir" style="margin-top: 14px">
     <div class="carte-tete">
       <div>
-        <div class="carte-titre">Corriger l'extracteur francesoir (date brute + pied de page promo)</div>
+        <div class="carte-titre">Corriger l&#x27;extracteur francesoir (date brute + pied de page promo)</div>
         <div class="carte-sous">ajoutée le 11 juillet · main</div>
       </div>
       <button class="btn-prompt" data-panneau="prompt-extracteur-francesoir" aria-expanded="false">Prompt</button>
@@ -344,12 +294,12 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
     <p class="desc">Dans <span style="font-family: var(--mono)">francesoir.csv</span>, la date sort en texte brut (« Publié le 30 septembre 2022 - 14:20 ») et chaque contenu embarque un bloc promo France-Soir en fin d'article. Piste : corriger l'extracteur (date depuis les métadonnées, bloc promo exclu du corps — <span style="font-family: var(--mono)">medias.py</span> ligne ~63), puis one-shot de nettoyage du CSV existant.</p>
     <div class="panneau-prompt" id="prompt-extracteur-francesoir" hidden>
       <pre>Deux défauts dans data/csv/francesoir.csv (435 Mo, sur gallica), constatés le 11/07/2026 :
-1. Le champ date est du texte brut français « Publié le 30 septembre 2022 - 14:20 » au lieu de l'ISO des autres médias. Cause : scraping/medias.py ligne ~63, la date est lue sur le texte affiché (sélecteur div.field--name-field-date.me-3, stratégie balises) ; cf aussi le fallback texte brut dans scraping/extraction.py (~ligne 62).
+1. Le champ date est du texte brut français « Publié le 30 septembre 2022 - 14:20 » au lieu de l&#x27;ISO des autres médias. Cause : scraping/medias.py ligne ~63, la date est lue sur le texte affiché (sélecteur div.field--name-field-date.me-3, stratégie balises) ; cf aussi le fallback texte brut dans scraping/extraction.py (~ligne 62).
 2. Chaque contenu se termine par un bloc promo du site (« …France-Soir est un rendez-vous journalistique incontournable [...] Lire la suite ») embarqué par le sélecteur de corps div.field--name-body.
 
-À faire, dans l'ordre :
-1. Corriger l'extracteur pour les scrapes futurs : prendre la date ISO dans les métadonnées de la page (json-ld ou balise meta — vérifier sur 2-3 HTML réels ce que francesoir expose) et exclure le bloc promo du corps (identifier sa balise/classe dans le HTML pour l'écarter du sélecteur).
-2. One-shot de nettoyage du CSV existant : conversion des dates françaises en ISO (motif fixe, mois français → mm ; logguer les lignes qui ne matchent pas au lieu de deviner) + troncature du contenu à la première occurrence d'un marqueur stable du début du bloc promo (vérifier d'abord sur quelques articles où le bloc commence exactement, et compter les occurrences avant de couper). Réécriture via fichier temporaire puis mv, scrapping en pause pendant l'opération.
+À faire, dans l&#x27;ordre :
+1. Corriger l&#x27;extracteur pour les scrapes futurs : prendre la date ISO dans les métadonnées de la page (json-ld ou balise meta — vérifier sur 2-3 HTML réels ce que francesoir expose) et exclure le bloc promo du corps (identifier sa balise/classe dans le HTML pour l&#x27;écarter du sélecteur).
+2. One-shot de nettoyage du CSV existant : conversion des dates françaises en ISO (motif fixe, mois français → mm ; logguer les lignes qui ne matchent pas au lieu de deviner) + troncature du contenu à la première occurrence d&#x27;un marqueur stable du début du bloc promo (vérifier d&#x27;abord sur quelques articles où le bloc commence exactement, et compter les occurrences avant de couper). Réécriture via fichier temporaire puis mv, scrapping en pause pendant l&#x27;opération.
 3. Vérifier sur les 5 derniers articles : date ISO, plus de pied de page, contenu intact.
 
 Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
@@ -357,67 +307,267 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
     </div>
   </div>
 
-  <div class="carte" id="tache-nms-suffixe-seuil" style="margin-top: 14px">
+  <div class="carte" id="tache-exposer-api-publique" style="margin-top: 14px">
     <div class="carte-tete">
       <div>
-        <div class="carte-titre">Découpler nms.py du seuil de surprise par défaut</div>
-        <div class="carte-sous">ajoutée le 17 août · main</div>
+        <div class="carte-titre">Rendre l&#x27;API ngram accessible depuis l&#x27;extérieur</div>
+        <div class="carte-sous">ajoutée le 21 juillet · main</div>
       </div>
-      <button class="btn-prompt" data-panneau="prompt-nms-suffixe-seuil" aria-expanded="false">Prompt</button>
+      <button class="btn-prompt" data-panneau="prompt-exposer-api-publique" aria-expanded="false">Prompt</button>
     </div>
-    <p class="desc">Relancer une campagne à un autre seuil de surprise produit des sorties suffixées <span style="font-family: var(--mono)">_s&lt;x&gt;</span> que <span style="font-family: var(--mono)">nms.py</span> ne lit pas : il ouvre <span style="font-family: var(--mono)">pics_&lt;media&gt;.csv</span> en dur et garde <span style="font-family: var(--mono)">HAUTEUR = 4.0</span>. Piste : lui donner le même argument de suffixe que <span style="font-family: var(--mono)">campagne.py</span> et déduire la hauteur du seuil.</p>
-    <div class="panneau-prompt" id="prompt-nms-suffixe-seuil" hidden>
-      <pre>Dans la chaîne de détection de pics, rupture/nms.py est couplé en dur au seuil de surprise par défaut, alors que les deux autres maillons sont paramétrables.
+    <p class="desc">L'API Flask (<span style="font-family: var(--mono)">api/app.py</span>) n'est joignable que par tunnel ssh (localhost:8501) ; un front public sur GitHub Pages ne peut ni l'appeler ni héberger Flask et les bases SQLite. Piste : garder l'API et les bases sur gallica et les exposer derrière un reverse proxy HTTPS, avec authentification si besoin — serveur partagé, rien à installer sans accord.</p>
+    <div class="panneau-prompt" id="prompt-exposer-api-publique" hidden>
+      <pre>Objectif : rendre l&#x27;API ngram (api/app.py, Flask) accessible depuis l&#x27;extérieur, pour qu&#x27;un front statique publié sur GitHub Pages (le front React de Benoît) puisse l&#x27;appeler.
 
-Constat :
-- rupture/pics_masse.py prend un 4e argument « surprise » (défaut 4, soit p &lt; 1e-4) et, s'il diffère de 4, suffixe ses sorties en pics_&lt;media&gt;_s&lt;x&gt;.csv.
-- rupture/campagne.py sait relire ces fichiers via --pics _s3.
-- rupture/nms.py, lui, lit pics_&lt;media&gt;.csv en dur (ligne 58), écrit pics_&lt;media&gt;_nms.csv et pics_&lt;media&gt;_nms_ecarts.txt sans suffixe, et sa constante HAUTEUR = 4.0 (ligne 31) est codée en dur alors qu'elle vaut -log10(seuil).
+Contrainte de fond : GitHub Pages ne sert que du statique — il ne peut ni exécuter Flask ni héberger les bases SQLite ngram. L&#x27;API et les bases doivent donc rester sur gallica ; seul le front part sur Pages. Aujourd&#x27;hui l&#x27;API n&#x27;est joignable que via un tunnel SSH privé (localhost:8501), ce qui ne convient pas à un front public.
 
-Conséquence : relancer une campagne à un autre seuil fait travailler le NMS sur l'ancien fichier au seuil 4, sans erreur ni avertissement.
+À faire, dans l&#x27;ordre :
+1. Regarder comment l&#x27;API est lancée et exposée aujourd&#x27;hui sur gallica (session tmux, port 8501, tunnel SSH) — cf mémoire API ngram et reference_serveur_ssh.
+2. Choisir et décrire l&#x27;exposition publique : reverse proxy (nginx ?) devant Flask, HTTPS (nom de domaine ou service type Cloudflare Tunnel), et une authentification si l&#x27;API ne doit pas être ouverte à tous. Peser les options avec Corto avant d&#x27;installer quoi que ce soit — gallica est un serveur partagé (user ubuntu commun), ne rien toucher de partagé sans accord.
+3. Adapter le front (URL de l&#x27;API en dur → URL publique) et gérer le CORS côté Flask pour autoriser l&#x27;origine GitHub Pages.
+4. Vérifier de bout en bout : le front sur Pages interroge l&#x27;API publique et affiche les résultats.
 
-À faire :
-1. Ajouter à nms.py un argument optionnel de suffixe, sur le même modèle que --pics de campagne.py (garder la compatibilité : sans argument, comportement actuel inchangé).
-2. Appliquer le suffixe au fichier lu ET aux deux fichiers écrits.
-3. Déduire HAUTEUR du suffixe au lieu de la coder en dur (c'est la valeur « surprise » passée à pics_masse.py) ; garder 4.0 par défaut.
-4. Vérifier que la contre-vérification find_peaks utilise bien la hauteur déduite, pas 4.0.
-
-Rester minimal : pas de refonte de nms.py, juste le paramétrage. Vérifier à la fin que sans argument le script produit exactement la même chose qu'avant.
-
-Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
-      <button class="btn-copier" data-copie="prompt-nms-suffixe-seuil">Copier</button>
+Me demander avant de lancer ou d&#x27;installer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-exposer-api-publique">Copier</button>
     </div>
   </div>
 
-  <div class="carte" id="tache-couverture-telegramme-sudouest" style="margin-top: 14px">
+  <div class="carte" id="tache-campagne-frequence-minimale" style="margin-top: 14px">
     <div class="carte-tete">
       <div>
-        <div class="carte-titre">Trous de couverture : Le Télégramme s'arrête en 2011, Sud Ouest en 2018</div>
-        <div class="carte-sous">ajoutée le 18 août · main</div>
+        <div class="carte-titre">Ajouter la fréquence minimale comme hyperparamètre à part entière de la campagne PCA</div>
+        <div class="carte-sous">ajoutée le 5 août · main</div>
       </div>
-      <button class="btn-prompt" data-panneau="prompt-couverture-telegramme-sudouest" aria-expanded="false">Prompt</button>
+      <button class="btn-prompt" data-panneau="prompt-campagne-frequence-minimale" aria-expanded="false">Prompt</button>
     </div>
-    <p class="desc">Repéré en construisant les bases 1gram : <span style="font-family: var(--mono)">le_telegramme.csv</span> (1 Go, 797 070 articles) s'arrête au 31/05/2011 et <span style="font-family: var(--mono)">sud_ouest.csv</span> (1,67 Go, 804 657 articles) au 01/02/2018. Ce n'est pas la construction qui écarte des lignes (0 rejet) : le trou est côté récolte. Piste : départager URLs jamais listées, jamais capturées, ou dates mal extraites.</p>
-    <div class="panneau-prompt" id="prompt-couverture-telegramme-sudouest" hidden>
-      <pre>En construisant les bases 1gram (18/08/2026), deux médias montrent un trou de couverture massif :
-- le_telegramme.csv : 1 Go, 797 070 articles, TOUS datés entre le 24/06/2008 et le 31/05/2011. Rien après.
-- sud_ouest.csv : 1,67 Go, 804 657 articles, qui s'arrêtent net au 01/02/2018.
+    <p class="desc">Le seuil <span style="font-family: var(--mono)">--nettoie</span> de <span style="font-family: var(--mono)">rupture/campagne.py</span> (jour trop peu fourni, donc interpolé) n'a servi qu'en tout ou rien : 5 000 sur les grilles journalières, 0 sur les grilles agrégées. Piste : le balayer comme les autres axes (2 000 / 5 000 / 10 000) et mesurer l'effet sur K50_frac et sur le nombre de fenêtres écartées, y compris sur une grille 3j ou 7j.</p>
+    <div class="panneau-prompt" id="prompt-campagne-frequence-minimale" hidden>
+      <pre>Dans rupture/campagne.py, le paramètre --nettoie (seuil N_t de tokens sous lequel un jour est interpolé, nettoyage V2) existe déjà mais a toujours été utilisé avec une valeur fixe : 5000 sur les grilles journalières, 0 (désactivé) sur les grilles agrégées 3j/7j. Je veux le traiter comme un vrai axe de balayage de la campagne, au même titre que média/grille/fenêtre/seuil de surprise/filtre grammatical, pas comme un interrupteur binaire.
 
-Ce n'est PAS un défaut de la construction 1gram : les logs (data/logs/1gram_le_telegramme.log et 1gram_sud_ouest.log sur gallica) indiquent 0 ligne écartée. Les CSV eux-mêmes ne contiennent rien de plus récent.
+Contexte récent : campagne_pca/configurations_A_C.qmd compare plusieurs configurations (Le Monde, Le Figaro, Les Échos, Mediapart) avec une colonne &quot;Nettoyage&quot; qui vaut n5000 ou &quot;—&quot; selon la grille — ça montre bien que ce paramètre est traité à part, pas balayé.
 
-Trois causes possibles, à départager AVANT toute correction :
-1. Les URLs récentes ne sont pas dans urls.db (problème de listage : sitemap ou moteur de découverte).
-2. Elles y sont mais n'ont jamais été capturées (regarder la répartition des états).
-3. Elles ont été capturées mais la date est mal extraite, donc l'article part avec une date ancienne ou vide.
+À faire :
+1. Sur les grilles journalières (lemonde, lesechos, mediapart), balayer --nettoie sur plusieurs valeurs (par exemple 2000, 5000, 10000, et éventuellement 0 pour comparer à l&#x27;absence de nettoyage) à demi/seuil fixés sur une config déjà connue (ex. reprendre les configs D/F de configurations_A_C.qmd), et mesurer l&#x27;effet sur K50_frac et sur le nombre de fenêtres réellement conservées (n_fenetres, n_centres_ecartes dans la sortie du runner).
+2. Sur au moins une grille agrégée (3j ou 7j), vérifier si le seuil a un effet mesurable une fois qu&#x27;un point agrège déjà plusieurs jours de tokens (hypothèse à date : négligeable, mais à vérifier plutôt qu&#x27;à supposer) plutôt que de le laisser désactivé par défaut.
+3. Présenter les résultats sous forme de tableau comparatif (comme les autres balayages de la campagne), avant de décider s&#x27;il faut l&#x27;intégrer aux configurations déjà retenues (A/C/D/F...) ou en proposer de nouvelles.
 
-Dans l'ordre :
-1. Interroger urls.db sur ces deux médias : nombre d'URLs par état, et si possible une idée de leur ancienneté (les URL portent souvent la date). Requêtes indexées seulement, jamais de scan complet.
-2. Regarder la config des deux médias dans scraping/medias.py (ligne ~46 et ~49) : tous deux en moteur « firefox » avec stratégie « json_ld ». Vérifier sur une URL récente réelle que la date json-ld est bien présente et bien lue par scraping/extraction.py.
-3. Conclure sur la cause, puis proposer la correction avant de l'appliquer.
+Pas de calcul sur le serveur sans me demander avant si ça implique de rapatrier de nouvelles données ou de lancer quoi que ce soit de long.</pre>
+      <button class="btn-copier" data-copie="prompt-campagne-frequence-minimale">Copier</button>
+    </div>
+  </div>
 
-Ne pas reconstruire les bases 1gram : si la récolte reprend, on ajoutera les nouveaux articles plus tard.
+  <div class="carte" id="tache-cooccurrence-mots-archetypes" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Afficher les mots associés au mot cible sur les graphes d&#x27;archétypes (idée Benoît)</div>
+        <div class="carte-sous">ajoutée le 5 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-cooccurrence-mots-archetypes" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Idée de Benoît : afficher sur chaque graphe d'archétype les 4 mots qui accompagnent le plus souvent le mot cible — l'archétype « zone » du Figaro est resté incompris jusqu'à ce qu'on réalise qu'il s'agissait de « zone euro ». Piste : revenir au texte brut (colonne <span style="font-family: var(--mono)">contenu</span> des CSV par média), les matrices <span style="font-family: var(--mono)">vocab_series_*</span> déjà agrégées ne suffisent pas.</p>
+    <div class="panneau-prompt" id="prompt-cooccurrence-mots-archetypes" hidden>
+      <pre>Benoît a proposé une amélioration des graphes d&#x27;archétypes de la PCA (voir figures_config.py et figures_optimale.py, panneau &quot;archétypes&quot; : les 3 fenêtres réelles les plus alignées par composante) : afficher, sur chaque sous-graphe d&#x27;archétype, les mots qui accompagnent le plus souvent le mot cible autour de son pic. Exemple qui a motivé la demande : sur Le Figaro, l&#x27;archétype &quot;zone&quot; a été incompréhensible jusqu&#x27;à réaliser que c&#x27;était en fait &quot;zone euro&quot; — l&#x27;info était dans le texte de l&#x27;article mais invisible sur le graphe (qui ne montre qu&#x27;une courbe de fréquence).
+
+Version retenue par Benoît (plus simple qu&#x27;une règle à seuil) : sur chaque sous-graphe d&#x27;archétype, afficher systématiquement les 4 mots qui co-occurrent le plus souvent avec le mot cible dans la fenêtre du pic.
+
+Point important : les scripts de figures actuels (figures_config.py, figures_optimale.py) ne travaillent que sur les matrices vocab_series_&lt;media&gt;.npz déjà agrégées (comptes mot x jour) — pas de texte brut, donc pas de notion de &quot;mots voisins dans le même article&quot;. Pour calculer une vraie co-occurrence, il faudra remonter aux CSV sources par média (data/csv/&lt;media&gt;.csv, colonne contenu) et, pour chaque pic archétype affiché, regarder les articles publiés dans sa fenêtre temporelle (ou contenant le mot cible) et compter les mots qui y apparaissent le plus souvent à ses côtés.
+
+À faire, dans l&#x27;ordre :
+1. Définir précisément ce qu&#x27;est &quot;un mot qui accompagne&quot; : co-occurrence dans le même article, ou dans les articles du même jour/bloc que le pic ? Trancher avec Corto avant de coder — ça change le calcul.
+2. Prototyper le calcul de co-occurrence sur UN mot cible connu (ex. &quot;zone&quot; sur Le Figaro) pour vérifier qu&#x27;on retrouve bien &quot;euro&quot; en tête, avant de généraliser.
+3. Intégrer l&#x27;affichage (4 mots en légende ou annotation sous chaque sous-graphe d&#x27;archétype) dans figures_config.py, en gardant le script lisible — pas de couplage fort avec le calcul de co-occurrence si ça peut rester une fonction séparée.
+4. Vérifier le rendu sur une des configurations déjà produites (campagne_pca/configurations_A_C.qmd) avant de régénérer toutes les figures existantes.
+
+Pas de piste de fichier ni de méthode déjà validée — c&#x27;est une idée neuve à explorer, pas un bug diagnostiqué. Me proposer une approche avant de coder.</pre>
+      <button class="btn-copier" data-copie="prompt-cooccurrence-mots-archetypes">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-critere-frequence-archetypes" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Ajouter un critère de fréquence minimale pour la sélection des archétypes</div>
+        <div class="carte-sous">ajoutée le 5 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-critere-frequence-archetypes" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Les archétypes sont choisis sur la seule projection (<span style="font-family: var(--mono)">np.argsort(proj[:, k])</span>), sans critère de fréquence : un mot rare (« nettoyage », ~100 occurrences au maximum) peut dominer une composante par simple bruit d'échantillonnage. Piste : un plancher de fréquence en amont de la sélection — mesure et seuil à fixer sur la distribution réelle, pas à l'arbitraire.</p>
+    <div class="panneau-prompt" id="prompt-critere-frequence-archetypes" hidden>
+      <pre>Aujourd&#x27;hui, dans figures_config.py et figures_optimale.py (panneau &quot;archétypes&quot;), les 3 (ou 4) fenêtres affichées par composante sont choisies uniquement par np.argsort(proj[:, k])[-3:][::-1] — les projections les plus fortes sur la composante k, sans aucun critère de fréquence du mot. Problème constaté (échange avec Benoît) : des mots très rares (ex. &quot;nettoyage&quot;, ~100 occurrences max) peuvent dominer un archétype juste parce que leur z-score par fenêtre est bruité (comptages journaliers minuscules → sauts relatifs énormes par hasard), pas parce que la forme est un vrai motif éditorial représentatif.
+
+À faire :
+1. Écrire dans le script (commentaire clair, ou dans campagne_pca/configurations_A_C.qmd / rapport.qmd) une explication courte du mécanisme actuel de sélection des archétypes, pour que ce soit clair pour qui relit le code.
+2. Ajouter un critère de fréquence minimale avant la sélection des archétypes : décider avec Corto de la mesure (fréquence max atteinte dans la fenêtre, total d&#x27;occurrences du mot dans tout le corpus, ou N_t au jour du pic) et du seuil (proposer une valeur en regardant la distribution réelle des fréquences des mots actuellement sélectionnés comme archétypes, pas une valeur arbitraire).
+3. Comparer les archétypes avant/après sur une configuration déjà connue (ex. config D ou F de configurations_A_C.qmd) pour vérifier que le nouveau critère écarte bien les cas bruités type &quot;nettoyage&quot; sans perdre les archétypes réellement parlants (type &quot;jaunes&quot;, &quot;fermées&quot;/&quot;distance&quot; pour le confinement).
+
+Proposer l&#x27;approche à Corto avant de coder le critère de fréquence (le seuil exact n&#x27;est pas encore tranché).</pre>
+      <button class="btn-copier" data-copie="prompt-critere-frequence-archetypes">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-jours-semaine-stopwords" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Ajouter les jours de la semaine aux mots outils du vocabulaire</div>
+        <div class="carte-sous">ajoutée le 6 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-jours-semaine-stopwords" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Les sept jours de la semaine passent les deux filtres (<span style="font-family: var(--mono)">MOTS_OUTILS</span> de <span style="font-family: var(--mono)">scripts/tokenisation.py</span> et le filtre grammatical) et occupent le haut du vocabulaire : « mercredi » au rang 133 chez Mediapart, 191 pics portés par ces mots. Piste : les ajouter aux mots outils, et filtrer en aval les données locales déjà produites plutôt que de reconstruire.</p>
+    <div class="panneau-prompt" id="prompt-jours-semaine-stopwords" hidden>
+      <pre>Les sept jours de la semaine (lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche) polluent le vocabulaire des campagnes PCA : ce sont des marqueurs de calendrier, pas du contenu éditorial, et leur série porte surtout la périodicité hebdomadaire de publication du média.
+
+Constat (06/08/2026), le plus marqué sur Mediapart : dans campagne_pca/data_local/vocab_mediapart_top10000.csv, « mercredi » est au rang 133 et « samedi » au 185, les cinq autres entre les rangs 519 et 730. Et campagne_pca/data_local/pics_mediapart_s3.csv contient 191 pics portés par ces mots. Le problème existe aussi sur lemonde, lefigaro et lesechos (les sept jours sont dans leurs top-10000) — à traiter pour les quatre, pas seulement Mediapart.
+
+Pourquoi ils passent : les deux filtres existants les laissent tous les deux passer.
+- scripts/tokenisation.py, liste MOTS_OUTILS (ligne 10), appliquée dans rupture/masse.py ligne 37 (v = v[~v[&quot;mot&quot;].isin(set(MOTS_OUTILS))]) : les jours n&#x27;y sont pas.
+- Le filtre grammatical : campagne_pca/vocab_categories.csv les classe « nom » (source lexique), donc conservés.
+
+À faire :
+1. Ajouter les sept jours à MOTS_OUTILS dans scripts/tokenisation.py. Vérifier avant de le faire que cette liste ne sert pas ailleurs à quelque chose qui casserait (elle est aussi utilisée côté tops n-grammes) — si l&#x27;exclusion ne doit pas être globale, prévoir plutôt une liste d&#x27;exclusion propre à la campagne PCA.
+2. Pour les données locales déjà produites (campagne_pca/data_local/vocab_*_top10000.csv et les vocab_series_*.npz) : ne PAS reconstruire via rupture/masse.py sur gallica. Filtrer en aval, côté campagne, en écartant les colonnes correspondantes.
+3. Rejouer une configuration déjà connue (config D ou F de campagne_pca/configurations_A_C.qmd) avant/après pour mesurer ce que le retrait change : K50_frac, et surtout les archétypes — vérifier si des archétypes actuels étaient portés par un jour de la semaine.
+4. Regarder au passage s&#x27;il y a d&#x27;autres marqueurs de calendrier du même genre à traiter en même temps (mois : janvier, février... ; « hier », « aujourd&#x27;hui », « demain») et me proposer la liste avant de l&#x27;ajouter.
+
 Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
-      <button class="btn-copier" data-copie="prompt-couverture-telegramme-sudouest">Copier</button>
+      <button class="btn-copier" data-copie="prompt-jours-semaine-stopwords">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-saisonnalite-modele-nb" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Introduire une saisonnalité dans les paramètres de la loi NB (lambda_t)</div>
+        <div class="carte-sous">ajoutée le 6 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-saisonnalite-modele-nb" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Les χ² d'adéquation sont mauvais même pour NB et BNB : <span style="font-family: var(--mono)">rupture/pics.py</span> ajuste un paramètre constant dans le temps, normalisé par la seule exposition N_t — la périodicité hebdomadaire de publication n'est pas capturée. Piste : un paramètre <span style="font-family: var(--mono)">lambda_t</span> qui évolue doucement (lissage, ou effet jour-de-semaine plus tendance lente), en surveillant les degrés de liberté du χ².</p>
+    <div class="panneau-prompt" id="prompt-saisonnalite-modele-nb" hidden>
+      <pre>Les χ² d&#x27;adéquation du modèle probabiliste sont mauvais, y compris pour NB et BNB (pas seulement Poisson) — constaté via la route /fiche de api/app.py, qui affiche chi2/ddl/p-valeur pour les trois lois (ajoutés en 07/2026, cf tâche faite chi2-fit-fiche).
+
+Le cœur du modèle est dans rupture/pics.py :
+- ajuster() (ligne 54) fit un paramètre CONSTANT sur toute la période : lam pour poisson, mu/r pour nb, p0/mu_b/r_b pour bnb — normalisé seulement par l&#x27;exposition N_t (le volume de tokens du jour).
+- adequation() (ligne 90) calcule le χ² de Pearson jour par jour à partir de ce paramètre constant.
+- densite() (ligne 103) et pvaleurs() (ligne 40) utilisent aussi ce paramètre constant.
+
+Objectif : introduire une saisonnalité dans le paramètre de la loi plutôt que de le garder constant — fitter un lambda_t (ou mu_t) qui évolue doucement dans le temps (tendance lente / lissage), pas un saut jour à jour. Exemple de départ : Poisson de paramètre lambda_t, X_t ~ P(lambda_t * N_t), avec lambda_t obtenu par un lissage (à définir : moyenne mobile, spline, GAM, ou modèle à effet saisonnier hebdomadaire + tendance lente — comparer plusieurs options avant de trancher).
+
+À faire, dans l&#x27;ordre :
+1. Vérifier d&#x27;abord l&#x27;hypothèse : sur un mot et un média connus (reprendre un cas déjà étudié dans une fiche existante), regarder si les résidus de Pearson (z dans adequation()) montrent un motif temporel (cycle hebdomadaire, dérive lente) plutôt que du bruit pur — ça confirme que la saisonnalité est bien le problème avant de recoder le fit.
+2. Proposer à Corto 2-3 approches pour faire évoluer lambda_t dans le temps (lissage non paramétrique type moyenne mobile/spline, ou modèle paramétrique avec effet jour-de-semaine + tendance), avec les avantages/inconvénients de chacune (nombre de paramètres, risque de sur-ajustement, ddl restants pour le χ²), avant de coder.
+3. Adapter ajuster()/pvaleurs()/adequation()/densite() dans rupture/pics.py pour un paramètre variable dans le temps — attention à K_PARAMS et ddl (le nombre de degrés de liberté du χ² doit refléter le nombre réel de paramètres estimés, potentiellement bien plus élevé qu&#x27;avec un paramètre constant).
+4. Comparer les χ²/ddl avant/après sur plusieurs mots et médias déjà utilisés dans des fiches existantes, vérifier que l&#x27;ajustement s&#x27;améliore réellement et que /fiche (api/app.py) continue de fonctionner.
+
+Pas de calcul long sur le serveur sans me demander avant.</pre>
+      <button class="btn-copier" data-copie="prompt-saisonnalite-modele-nb">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-quantile-residuals-pca" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Remplacer la normalisation z-score par des résidus quantiles (Dunn-Smyth) avant la PCA</div>
+        <div class="carte-sous">ajoutée le 6 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-quantile-residuals-pca" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Idée de Benoît : la PCA travaille sur des fenêtres z-scorées (<span style="font-family: var(--mono)">normaliser()</span> dans <span style="font-family: var(--mono)">rupture/pca.py</span>), une normalisation choisie à la main. Piste : des résidus quantiles (Dunn-Smyth) calculés depuis les lois déjà ajustées mot par mot — gaussiens si le modèle est bon, sans échelle arbitraire ; à comparer aux trois normalisations en place.</p>
+    <div class="panneau-prompt" id="prompt-quantile-residuals-pca" hidden>
+      <pre>Idée de Benoît (échange du 31/07/2026, capture d&#x27;écran + vocal) : remplacer la normalisation actuelle des fenêtres avant la PCA par des résidus quantiles (Dunn-Smyth / quantile residuals), plutôt que le z-score ou le minmax.
+
+Contexte technique existant :
+- rupture/pca.py, fonction normaliser() (ligne 44) : normalise chaque fenêtre en z-score (&quot;z&quot;, option par défaut), minmax (&quot;01&quot;), ou standardisation colonne (&quot;col&quot;, témoin réservé à la remarque de Benoît, pas une normalisation candidate).
+- rupture/pics.py : ajuster() (ligne 54) fit déjà une loi de comptage (Poisson/NB/BNB) par mot, normalisée par l&#x27;exposition N_t ; pvaleurs() (ligne 40) calcule p_t = P(X &gt;= X_t) sous la loi ajustée.
+
+Principe des résidus quantiles (Dunn-Smyth) : pour une donnée discrète X_t avec un modèle stat ajusté, calculer la valeur de la fonction de répartition (PIT, en gérant l&#x27;aléatorisation pour les distributions discrètes — tirer uniformément entre F(X_t - 1) et F(X_t)), puis appliquer l&#x27;inverse de la fonction de répartition d&#x27;une gaussienne standard. Le résultat est gaussien si le modèle est correct, sans notion d&#x27;échelle arbitraire (contrairement au z-score sur une fenêtre ou au minmax) — commencer par lire une référence claire sur le calcul exact (l&#x27;article original de Dunn &amp; Smyth 1996 est aride, préférer une source pédagogique récente ou vulgarisée) avant de coder.
+
+À faire, dans l&#x27;ordre :
+1. Étudier la méthode exacte de calcul des résidus quantiles aléatorisés pour des lois discrètes (Poisson, NB), et comment gérer le cas BNB (mélange avec masse en 0).
+2. Prototyper le calcul sur UN mot déjà bien caractérisé (reprendre un cas connu d&#x27;une fiche existante), en réutilisant les lois déjà ajustées par rupture/pics.py — vérifier visuellement (QQ-plot) que les résidus obtenus sont bien approximativement gaussiens quand le modèle est bon.
+3. Adapter rupture/pca.py pour ajouter une 4e option de normalisation (résidus quantiles) dans normaliser(), en gardant les 3 existantes pour comparaison.
+4. Comparer la PCA obtenue (variance expliquée, composantes, archétypes) entre résidus quantiles et z-score sur une configuration déjà connue (campagne_pca/configurations_A_C.qmd), avant de basculer les configurations retenues.
+
+Pas de calcul long sur le serveur sans me demander avant.</pre>
+      <button class="btn-copier" data-copie="prompt-quantile-residuals-pca">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-resolution-detection-vs-classification" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Séparer la résolution de détection des pics de celle de classification des fenêtres</div>
+        <div class="carte-sous">ajoutée le 6 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-resolution-detection-vs-classification" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Une seule largeur (<span style="font-family: var(--mono)">--demi</span>) sert aujourd'hui à repérer les pics ET à découper les fenêtres données à la PCA. Piste (Benoît) : détecter à résolution large — un mois anormal — puis classifier la forme à résolution fine, l'idée étant que si le mois englobant n'est pas anormal, le pic journalier est sans doute du bruit.</p>
+    <div class="panneau-prompt" id="prompt-resolution-detection-vs-classification" hidden>
+      <pre>Idée de Benoît (échange du 31/07/2026, à la suite d&#x27;une remarque sur configurations_A_C.qmd où les configs comparées n&#x27;avaient pas le même taux de surprise/fenêtre) : séparer la résolution utilisée pour DÉTECTER un pic de celle utilisée pour CLASSIFIER la forme de la série autour de ce pic.
+
+Constat de Benoît : la détection de pic dépend beaucoup du zoom temporel — en résolution mensuelle, &quot;covid&quot; est un pic écrasant, ce qui peut se diluer en résolution journalière. Proposition : détecter d&#x27;abord à une résolution large (ex. un MOIS anormal, avec un critère éventuellement plus généreux qu&#x27;aujourd&#x27;hui), puis, seulement pour les pics ainsi validés, classifier la time series avec des fenêtres fines (ex. 3 jours) comme aujourd&#x27;hui. Intuition de Corto, à vérifier : si le mois englobant n&#x27;est pas anormal, le &quot;pic&quot; journalier n&#x27;est probablement pas un vrai événement — plutôt du bruit d&#x27;échantillonnage.
+
+État actuel de la chaîne, dans rupture/campagne.py : les pics viennent de pics_&lt;media&gt;.csv (déjà détectés en amont, cf rupture/pics.py, à résolution journalière), filtrés par surprise &gt;= --seuil, puis NMS (rupture/nms.py, portée 2*--demi+1) et découpés en fenêtres +/-  --demi pour la PCA (rupture/pca.py). Une seule résolution (--demi) sert donc aux deux usages : espacement des pics ET largeur de la fenêtre classifiée.
+
+À faire, dans l&#x27;ordre :
+1. Discuter avec Corto le critère exact du &quot;mois anormal&quot; : sur quelle grille agréger (mensuelle stricte, ou fenêtre glissante plus large que le --demi actuel), avec quel test (réutiliser le test de surprise déjà en place sur des comptes agrégés, ou un nouveau critère) et quel seuil (&quot;éventuellement plus généreux&quot; reste à quantifier).
+2. Proposer une architecture à deux résolutions dans la chaîne pics → NMS → fenêtres → PCA, en réutilisant au maximum le code existant (rupture/pics.py, rupture/nms.py, rupture/campagne.py, rupture/pca.py) plutôt que de dupliquer la chaîne.
+3. Prototyper sur UN média déjà connu (comparer avec une config existante de configurations_A_C.qmd) : combien de pics journaliers survivent au filtre &quot;mois anormal&quot;, et si les archétypes obtenus sont plus propres/interprétables.
+4. Si concluant, comparer proprement dans un tableau (comme les autres balayages de la campagne) avant de proposer une nouvelle configuration retenue.
+
+Pas de calcul long sur le serveur sans me demander avant.</pre>
+      <button class="btn-copier" data-copie="prompt-resolution-detection-vs-classification">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-orientation-composantes-pca" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Fixer le signe des composantes (archétypes discordants avec le texte)</div>
+        <div class="carte-sous">ajoutée le 11 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-orientation-composantes-pca" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">La SVD ne fixe pas le signe des vecteurs propres : le cache reconstruit le 11/08 donne, pour la composante 3 d'<span style="font-family: var(--mono)">optimale</span>, des archétypes opposés à ceux commentés dans le rapport (« fermées » et « distance », le confinement, sont passés du côté négatif). Piste : trancher entre laisser tel quel, réécrire le texte, ou fixer une convention de signe — la convention naïve « bloc central positif » ne tient pas pour toutes les formes.</p>
+    <div class="panneau-prompt" id="prompt-orientation-composantes-pca" hidden>
+      <pre>Les composantes de la PCA n&#x27;ont pas d&#x27;orientation fixée : la SVD ne détermine pas le signe des vecteurs propres, et rien dans campagne_pca/scripts/figures_lib.py (charger(), qui appelle rupture.pca.pca) ne le contraint. Conséquence constatée le 11/08 : le cache PCA reconstruit (campagne_pca/data/cache_pca/optimale.npz) donne pour la composante 3 les archétypes « lionel », « second », « chaleur », alors que campagne_pca/rapport_qmd/configuration_optimale.qmd commente « fermées » et « distance » au 20/03/2020 — le confinement. Vérifié : ces deux-là sont les extrêmes NÉGATIFS de la composante ; le signe est inversé par rapport au calcul qui avait servi aux figures d&#x27;origine. Le calcul est le même, seule la lecture s&#x27;inverse.
+
+Le filtre de volume n&#x27;est PAS en cause : optimale a vol_q=0 et vol_min=0 dans campagne_pca/scripts/configs.py, et filtre_volume rend bien seuil 0 / 8 764 éligibles sur 8 764. (La question du filtre de fréquence est suivie à part, voir la tâche critere-frequence-archetypes.)
+
+À faire :
+1. Me présenter les trois options avant de coder : (a) laisser tel quel, (b) adapter le texte du rapport aux archétypes actuels, (c) fixer une convention de signe dans charger(). Recommander, mais me laisser trancher — (c) modifie les résultats affichés.
+2. Si (c) est retenue : attention, une convention « coefficient du bloc central positif » ne marche pas. Testée le 11/08, elle rétablit bien les comp. 1, 3 et 4 d&#x27;optimale, mais change la comp. 2 (montée progressive puis chute, sans pic au centre) : on obtient « timbre », « orient », « golfe » au lieu de « organisé », « régionales », « ordonnance ». Chercher une convention qui vaille pour toutes les formes, et la vérifier composante par composante contre les figures d&#x27;origine.
+3. Les figures d&#x27;origine sont récupérables dans l&#x27;historique git (commit 3a00f79, campagne_pca/rapport_qmd/figures/optimale_*.png) — s&#x27;en servir comme référence de comparaison.
+4. Si la convention change les caches, ne pas les reconstruire sur le serveur sans me demander : l&#x27;orientation peut être appliquée à la lecture dans depuis_cache().
+
+Vérifier à la fin en recompilant campagne_pca/rapport_qmd/configuration_optimale.qmd et en comparant les 4 panneaux d&#x27;archétypes aux figures du commit 3a00f79.</pre>
+      <button class="btn-copier" data-copie="prompt-orientation-composantes-pca">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-auteur-ouest-france" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Renseigner la colonne auteur du CSV Ouest-France</div>
+        <div class="carte-sous">ajoutée le 12 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-auteur-ouest-france" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">La récolte Algolia remplit toutes les colonnes du CSV sauf <span style="font-family: var(--mono)">auteur</span> : l'index n'a pas de champ auteur (vérifié sur 500 articles — <span style="font-family: var(--mono)">producteurs</span> et <span style="font-family: var(--mono)">proprietaires</span> ne sont que des services de rédaction). Piste : un script séparé qui lit l'auteur dans le JSON-LD de chaque page, soit une requête HTTP par article — mesurer le coût sur un échantillon et choisir un périmètre.</p>
+    <div class="panneau-prompt" id="prompt-auteur-ouest-france" hidden>
+      <pre>Le CSV Ouest-France est produit par la récolte Algolia (voir scraping/ouest_france/algolia.md et le script de récolte scraping/ouest_france/recolte.py). Toutes les colonnes de scraping/stockage.py:26 sont remplies sauf « auteur » : l&#x27;index Algolia n&#x27;a aucun champ auteur (vérifié sur 500 articles — producteurs/proprietaires ne sont que 9 et 3 UUID de services de rédaction, pas des journalistes).
+
+À faire : un script séparé qui enrichit a posteriori la colonne auteur du CSV, sans retoucher les autres colonnes.
+
+1. Prendre un échantillon d&#x27;une trentaine d&#x27;URLs du CSV et vérifier que l&#x27;auteur est bien dans le JSON-LD de la page (champ author) — la logique de meta_json_ld() dans scraping/extraction.py est directement réutilisable. Vérifier aussi sur des articles payants : si le JSON-LD n&#x27;est servi qu&#x27;aux abonnés, la piste tombe et il faut me le dire avant d&#x27;aller plus loin.
+2. Mesurer sur cet échantillon le temps par article, et m&#x27;en donner l&#x27;extrapolation sur le corpus complet avant toute récolte en masse.
+3. Écrire le script : lecture du CSV, requête par URL, mise à jour de la seule colonne auteur, reprise possible après interruption (ne pas refaire les lignes déjà renseignées), écriture progressive.
+4. Me proposer le périmètre (toutes les lignes ou un sous-ensemble par années/zones) plutôt que de lancer sur la totalité.
+
+Vérifier à la fin sur une centaine de lignes que l&#x27;auteur est cohérent avec ce qu&#x27;affiche la page, et que les autres colonnes sont inchangées.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-auteur-ouest-france">Copier</button>
     </div>
   </div>
 
@@ -433,19 +583,54 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
     <div class="panneau-prompt" id="prompt-dates-repli-1970" hidden>
       <pre>Les bases 1gram construites le 18/08/2026 révèlent des articles datés du 1er janvier 1970 (epoch Unix, date de repli quand le champ date est vide) chez deux médias : midilibre et paris_match.
 
-Volumes négligeables (moins de 1 M d'occurrences chacun, contre 20 à 28 M pour une année normale), mais ils créent une année parasite qui faussera les séries longues et les fréquences relatives.
+Volumes négligeables (moins de 1 M d&#x27;occurrences chacun, contre 20 à 28 M pour une année normale), mais ils créent une année parasite qui faussera les séries longues et les fréquences relatives.
 
-À faire, dans l'ordre :
-1. Mesurer l'ampleur réelle : dans data/corpus/midilibre_1gram.db et paris_match_1gram.db, la table total_unigram est minuscule (une ligne par jour) — y lire le total pour date = 19700101. Puis compter les lignes correspondantes dans les CSV data/csv/midilibre.csv et paris_match.csv.
-2. Trouver l'origine du repli : regarder comment la date est extraite pour ces deux médias (scraping/medias.py pour la config, scraping/extraction.py pour la lecture). Vérifier si c'est un timestamp 0 converti, ou une chaîne vide passée à une conversion qui retombe sur l'epoch.
-3. Corriger pour qu'un article sans date parte SANS date (champ vide) plutôt qu'avec 1970 : la construction 1gram écarte déjà proprement les lignes sans date.
-4. Nettoyer l'existant par DELETE ciblé sur date = 19700101 dans unigram et total_unigram des deux bases. NE PAS reconstruire (midilibre a coûté 44 min, paris_match 9 min). Penser à retirer ensuite du token local les mots devenus orphelins, si l'opération en crée.
+À faire, dans l&#x27;ordre :
+1. Mesurer l&#x27;ampleur réelle : dans data/corpus/midilibre_1gram.db et paris_match_1gram.db, la table total_unigram est minuscule (une ligne par jour) — y lire le total pour date = 19700101. Puis compter les lignes correspondantes dans les CSV data/csv/midilibre.csv et paris_match.csv.
+2. Trouver l&#x27;origine du repli : regarder comment la date est extraite pour ces deux médias (scraping/medias.py pour la config, scraping/extraction.py pour la lecture). Vérifier si c&#x27;est un timestamp 0 converti, ou une chaîne vide passée à une conversion qui retombe sur l&#x27;epoch.
+3. Corriger pour qu&#x27;un article sans date parte SANS date (champ vide) plutôt qu&#x27;avec 1970 : la construction 1gram écarte déjà proprement les lignes sans date.
+4. Nettoyer l&#x27;existant par DELETE ciblé sur date = 19700101 dans unigram et total_unigram des deux bases. NE PAS reconstruire (midilibre a coûté 44 min, paris_match 9 min). Penser à retirer ensuite du token local les mots devenus orphelins, si l&#x27;opération en crée.
 5. Vérifier à la fin que la plus ancienne date de chaque base est cohérente (midilibre devrait démarrer en 2011, paris_match dans les années 1990).
 
-Au passage, vérifier si d'autres bases 1gram ont le même souci (une requête par base sur total_unigram, c'est très peu coûteux).
+Au passage, vérifier si d&#x27;autres bases 1gram ont le même souci (une requête par base sur total_unigram, c&#x27;est très peu coûteux).
 
 Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
       <button class="btn-copier" data-copie="prompt-dates-repli-1970">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-separer-scripts-grams-depots" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Séparer les scripts de construction des n-grammes selon les dépôts</div>
+        <div class="carte-sous">ajoutée le 22 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-separer-scripts-grams-depots" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Les deux jumeaux <span style="font-family: var(--mono)">ngram_1gram.py</span> et <span style="font-family: var(--mono)">ngram_2gram.py</span> vivent dans des dépôts différents : le 2gram tourne sur gram depuis un clone de <span style="font-family: var(--mono)">stage-mids</span>, la version ENS du 1gram est dans <span style="font-family: var(--mono)">ngram-press</span> et n'est pas commitée. Piste : tout regrouper dans <span style="font-family: var(--mono)">ngram-press</span> — « ce qui tourne sur ENS » — et laisser à <span style="font-family: var(--mono)">stage-mids</span> le scrapping et l'analyse du mémoire.</p>
+    <div class="panneau-prompt" id="prompt-separer-scripts-grams-depots" hidden>
+      <pre>Les scripts de construction des bases n-grammes sont éparpillés entre deux dépôts, alors que depuis le 22/08/2026 la répartition des rôles est tranchée : gram (ENS, /opt/bazoulay/stage-mids/) est la machine de calcul et de service grâce à ses SSD, gallica redevient stockage et scrapping, et plus rien n&#x27;est exposé là-bas.
+
+État actuel :
+- scripts/ngram_2gram.py (stage-mids) tourne sur gram depuis un clone du dépôt, ~/stage-mids/stage-mids, piloté par data/construire_2gram.sh qui exporte NGRAM_DIR et CSV_DIR ;
+- scripts/ngram_1gram.py (stage-mids) est resté en version gallica : chemins /data/elias en dur et dépendance à pandas, inutilisable sur gram ;
+- une version ENS du 1gram a été écrite le 22/08 dans ngram-press/scripts/ngram_1gram.py (stdlib seule, chemins par NGRAM_DIR / CSV_DIR / NGRAM_CHUNK, défauts sur /opt/bazoulay/stage-mids/data), testée sur un mini corpus mais jamais commitée ni déployée.
+
+À faire :
+1. Valider avec moi le découpage exact avant de déplacer quoi que ce soit.
+2. Déplacer les deux jumeaux ngram_1gram.py et ngram_2gram.py dans ngram-press/scripts/, à côté de tokenisation.py et top_ngram.py.
+3. Y déplacer aussi construire_2gram.sh, qui vit aujourd&#x27;hui dans data/ sur gram, hors de tout dépôt.
+4. Sur gram, basculer les lancements sur le clone ngram-press, puis supprimer le clone de stage-mids une fois qu&#x27;il ne sert plus à rien.
+5. Retirer de stage-mids les scripts déplacés, ou les marquer comme historiques (ngram_media.py et l&#x27;ancien ngram_1gram.py sont dans le même cas).
+
+Deux contraintes à ne pas perdre en route :
+- scripts/tokenisation.py doit rester rigoureusement identique entre les deux dépôts, sinon les requêtes ne découperont plus les mots comme les bases ont été construites (c&#x27;est déjà écrit dans le README de ngram-press) ;
+- toutes les constructions se partagent vocabulaire.db et doivent rester SÉQUENTIELLES, jamais deux en parallèle.
+
+Vérifier à la fin qu&#x27;une construction lancée depuis ngram-press donne exactement les mêmes comptes qu&#x27;avant : reconstruire un petit média dans un dossier isolé et comparer ses totaux journaliers à sa base existante.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-separer-scripts-grams-depots">Copier</button>
     </div>
   </div>
 
@@ -461,14 +646,14 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
       </div>
       <dl class="infos">
         <dt>Commande</dt><dd>python -u -m scraping.pipeline (via lancer.sh)</dd>
-        <dt>Médias</dt><dd>30 configurés · 29 actifs (liberation en pause)</dd>
-        <dt>Articles</dt><dd>4 165 775 · 22,0 M en file (sitemaps historiques versés)</dd>
+        <dt>Médias</dt><dd>31 suivis · file non vide sur 3 d'entre eux</dd>
+        <dt>Articles</dt><dd><span data-articles>16 342 122</span> · <span data-file>5,3 M</span> en file</dd>
       </dl>
-      <div class="journal">nice_matin   etat=2 (succès en 4.3s)
-le_figaro    etat=2 (succès en 5.0s)
-sud_ouest    etat=2 (succès en 4.5s)
-la_depeche   etat=2 (succès en 1.6s)</div>
-      <p class="desc">Une boucle par média (sessions de 4 h, relance auto). urls.db écrit en continu (11 h 24). Le pane ne montre que des succès ce matin, Le Figaro compris.</p>
+      <div class="journal">ouest_france    etat=2 (succès en 1.2s)
+la_depeche      etat=2 (succès en 1.1s)
+le_telegramme   etat=2 (succès en 4.5s)
+sud_ouest       etat=2 (succès en 4.5s)</div>
+      <p class="desc">Une boucle par média (sessions de 4 h 30, relance auto ; la boucle courante tourne depuis 2 h). urls.db écrit en continu (14 h 30). Le pane ne montre que des succès, sur les trois médias qu'il reste à rattraper.</p>
     </div>
 
     <div class="carte">
@@ -482,7 +667,7 @@ la_depeche   etat=2 (succès en 1.6s)</div>
       <dl class="infos">
         <dt>Commande</dt><dd>scripts/cron_sitemaps.sh (flock)</dd>
         <dt>Cycle</dt><dd>sitemap_news → verser_nouveaux (~18 min)</dd>
-        <dt>Dernier</dt><dd>07 h 58 — 1 324 URLs versées</dd>
+        <dt>Dernier</dt><dd>08 h 31 — 1 605 URLs versées</dd>
       </dl>
       <p class="desc">Lit les sitemaps news des médias et n'insère que les URLs manquantes (INSERT OR IGNORE sur l'index unique), en écartant désormais les non-articles (<span style="font-family: var(--mono)">est_non_article</span>). Le corpus se met à jour tout seul chaque jour.</p>
     </div>
@@ -498,16 +683,32 @@ la_depeche   etat=2 (succès en 1.6s)</div>
       <dl class="infos">
         <dt>Commande</dt><dd>.venv/bin/python -m api.app</dd>
         <dt>Port</dt><dd>8501 (tunnel ssh)</dd>
-        <dt>État</dt><dd>relancée le 11 juillet, 19 h 00</dd>
+        <dt>État</dt><dd>en ligne depuis le 21 juillet</dd>
       </dl>
-      <p class="desc">La session tmux <span style="font-family: var(--mono)">api</span> tourne depuis sa relance du 11 juillet (après l'incident tmux). La collecte automatique <span style="font-family: var(--mono)">statut</span> (état du serveur) reste à l'arrêt depuis le reboot du 7 juillet — ce dashboard est relevé en direct par ssh.</p>
+      <p class="desc">La session tmux <span style="font-family: var(--mono)">api</span> tourne sans interruption depuis le 21 juillet. Ce dashboard, lui, est relevé en direct par ssh à chaque mise à jour.</p>
+    </div>
+
+    <div class="carte">
+      <div class="carte-tete">
+        <div>
+          <div class="carte-titre">Campagne corpus unifié</div>
+          <div class="carte-sous">tmux : unifie</div>
+        </div>
+        <span class="pastille p-cours">En cours</span>
+      </div>
+      <dl class="infos">
+        <dt>Commande</dt><dd>rupture/campagne.py (balayages)</dd>
+        <dt>Chaîne</dt><dd>pics → NMS → fenêtres → PCA</dd>
+        <dt>Dernier</dt><dd>unifie3j_d15_s8 — 16 610 pics → 9 004 après NMS</dd>
+      </dl>
+      <p class="desc">Balayage des réglages de fenêtre sur le corpus unifié, comparé à Le Monde seul (cum6 ≈ 54-56 %, gain6 ≈ 2,7-2,8 contre un nul par rotation). Alimente le rapport <span style="font-family: var(--mono)">corpus_unifie.qmd</span>.</p>
     </div>
   </div>
 
   <div class="disque">
     <span class="disque-txt">Disque /data</span>
-    <div class="disque-barre" role="img" aria-label="Disque /data rempli à 39 %"><div class="disque-rempli" style="width:39%"></div></div>
-    <span class="disque-txt"><strong>2,0 To</strong> / 5 To (39 %) — 3,1 To libres</span>
+    <div class="disque-barre" role="img" aria-label="Disque /data rempli à 41 %"><div class="disque-rempli" id="disque-rempli" style="width:41%"></div></div>
+    <span class="disque-txt" id="disque-detail"><strong>2 To</strong> / 5 To (41 %) — 3 To libres</span>
   </div>
 
   <h2>Bases de données</h2>
@@ -517,16 +718,23 @@ la_depeche   etat=2 (succès en 1.6s)</div>
         <tr><th>Base</th><th class="num">Taille</th><th>Dernière écriture</th><th>État</th></tr>
       </thead>
       <tbody>
-        <tr><td>urls.db (scraping)</td><td class="num">13 Go</td><td>11 h 24 (en continu)</td><td><span class="pastille p-cours">Écrit en continu</span></td></tr>
-        <tr><td>lemonde_ngram.db</td><td class="num">59 Go</td><td>3 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
-        <tr><td>lefigaro_ngram.db</td><td class="num">11 Go</td><td>2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
-        <tr><td>lesechos_ngram.db</td><td class="num">8,3 Go</td><td>2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
-        <tr><td>lefigaro_top.db</td><td class="num">318 Mo</td><td>4 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
-        <tr><td>lesechos_top.db</td><td class="num">503 Mo</td><td>4 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
-        <tr><td>lemonde_top.db</td><td class="num">1,3 Go</td><td>11 h 48 (5 juil.)</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>urls.db (scraping)</td><td class="num" data-taille="urls.db">13 Go</td><td data-ecriture="urls.db">aujourd'hui 15 h 09</td><td><span class="pastille p-cours">Écrit en continu</span></td></tr>
+        <tr><td>lemonde_ngram.db</td><td class="num" data-taille="lemonde_ngram.db">59 Go</td><td data-ecriture="lemonde_ngram.db">3 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
+        <tr><td>lefigaro_ngram.db</td><td class="num" data-taille="lefigaro_ngram.db">10 Go</td><td data-ecriture="lefigaro_ngram.db">2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
+        <tr><td>lesechos_ngram.db</td><td class="num" data-taille="lesechos_ngram.db">8,2 Go</td><td data-ecriture="lesechos_ngram.db">2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
+        <tr><td>mediapart_ngram.db</td><td class="num" data-taille="mediapart_ngram.db">1,2 Go</td><td data-ecriture="mediapart_ngram.db">31 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
+        <tr><td>lemonde_top.db</td><td class="num" data-taille="lemonde_top.db">1,3 Go</td><td data-ecriture="lemonde_top.db">5 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>lefigaro_top.db</td><td class="num" data-taille="lefigaro_top.db">317 Mo</td><td data-ecriture="lefigaro_top.db">4 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>lesechos_top.db</td><td class="num" data-taille="lesechos_top.db">503 Mo</td><td data-ecriture="lesechos_top.db">4 juillet</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>vocabulaire.db (partagé 1gram)</td><td class="num" data-taille="vocabulaire.db">274 Mo</td><td data-ecriture="vocabulaire.db">20 août</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>le_figaro_1gram.db</td><td class="num" data-taille="le_figaro_1gram.db">357 Mo</td><td data-ecriture="le_figaro_1gram.db">20 août</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>le_monde_1gram.db</td><td class="num" data-taille="le_monde_1gram.db">54 Mo</td><td data-ecriture="le_monde_1gram.db">20 août</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>les_echos_1gram.db</td><td class="num" data-taille="les_echos_1gram.db">162 Mo</td><td data-ecriture="les_echos_1gram.db">20 août</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
+        <tr><td>mediapart_1gram.db</td><td class="num" data-taille="mediapart_1gram.db">270 Mo</td><td data-ecriture="mediapart_1gram.db">20 août</td><td><span class="pastille p-neutre">Terminé</span></td></tr>
       </tbody>
     </table>
   </div>
+  <p class="renvoi">36 bases 1-gramme par média au total (16 Go) dans <span style="font-family: var(--mono)">data/corpus/</span> ; les quatre principales sont listées ici.</p>
 
   <h2>Sites &amp; services en ligne</h2>
   <div class="grille">
@@ -549,11 +757,11 @@ la_depeche   etat=2 (succès en 1.6s)</div>
         <div class="carte-titre">Serveur gallica</div>
         <span class="pastille p-cours">Accessible</span>
       </div>
-      <p class="desc">157.136.252.194 (alias ssh <span style="font-family: var(--mono)">gallica</span>). Sessions tmux actives : <span style="font-family: var(--mono)">scrapping</span> (pipeline v2) et <span style="font-family: var(--mono)">api</span>, relancées le 11 juillet (19 h 00 et 22 h 35). La session <span style="font-family: var(--mono)">statut</span> (collecte de l'état pour ce dashboard) n'a pas été relancée depuis le reboot du 7 juillet. Disque /data à 39 % (3,1 To libres).</p>
+      <p class="desc">157.136.252.194 (alias ssh <span style="font-family: var(--mono)">gallica</span>). Cinq sessions tmux ouvertes : <span style="font-family: var(--mono)">scrapping</span> (pipeline v2), <span style="font-family: var(--mono)">api</span>, <span style="font-family: var(--mono)">unifie</span> (campagne en cours), <span style="font-family: var(--mono)">1gram_anciens</span> (série terminée) et <span style="font-family: var(--mono)">build</span> (au repos).</p>
     </div>
   </div>
 
-  <footer>Dashboard régénéré à la demande depuis l'état du serveur gallica (relevé par ssh, lecture seule : sessions tmux, process, tailles et dernières écritures des bases, disque), puis publié sur GitHub Pages via un push sur main. La page se recharge d'elle-même toutes les 10 min. Heures en heure de Paris.</footer>
+  <footer>Dashboard régénéré à la demande depuis l'état du serveur gallica (relevé par ssh, lecture seule : sessions tmux, process, tailles et dernières écritures des bases, disque), La page se recharge d'elle-même toutes les 10 min. Heures en heure de Paris.</footer>
 </div>
 
 <script>

@@ -66,9 +66,14 @@ is there a structure across the journals or do some activity spikes appear out o
 \section{Data collection}
 \label{sec:data}
 
-partie à écrire par Elias !
+Our corpus gathers the articles published by $J = 36$ French media outlets: national and regional dailies, weeklies and online news sites, including the main national dailies --- \emph{Le Monde}, \emph{Le Figaro}, \emph{Les Échos}. It currently contains more than 16 million articles. The archive depth varies across outlets: the oldest one, that of \emph{Le Monde}, goes back to 1944, and all 36 outlets are covered from 2008 onwards. The corpus is updated daily.
 
-définir "unified corpus" et "per-media corpus"
+Each article is segmented into words (\emph{tokens}), and the counts are aggregated at the publication-day level over a vocabulary common to all media. For each media $j$, each word $w$ in the vocabulary and each day $t$, we thus record the number of occurrences $X_t^{w,j}$ and the total number of tokens $N_t^j$ published by this outlet on this day.
+
+These counts define the two corpora used in the sequel. The \emph{per-media corpus} is the collection of the individual series $(X_t^{w,j}, N_t^j)$: it tracks the activity of a given journal. The \emph{unified corpus} aggregates the 36 outlets into a single journal, by summing occurrences and exposures day by day:
+\[
+  X_t^w = \sum_{j=1}^{J} X_t^{w,j}, \qquad N_t = \sum_{j=1}^{J} N_t^j.
+\]
 
 \section{Detecting anomalous activity}
 \label{sec:detection}

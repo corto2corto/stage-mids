@@ -16,11 +16,14 @@
 # — le csv arrondit a 2 decimales — departagees differemment).
 #
 # Sorties ecrites dans le meme dossier que l'entree :
-# - pics_<media>_nms.csv     : pics gardes (memes colonnes + n_absorbes)
-# - pics_<media>_nms_ecarts.txt : mot <tab> dates gardees par une seule methode
-# Usage (sur gallica) : python -m rupture.nms [media]
+# - pics_<media><pics>_nms.csv     : pics gardes (memes colonnes + n_absorbes)
+# - pics_<media><pics>_nms_ecarts.txt : mot <tab> dates gardees par une seule methode
+# Usage (sur gallica) : python -m rupture.nms [media] [--pics _s3]
+# --pics : suffixe des fichiers de pics_masse.py lances a un autre seuil
+# (ex. _s3 pour lire pics_<media>_s3.csv) ; la hauteur de la contre-verif
+# find_peaks en est deduite (_s3 -> 3.0), HAUTEUR sinon.
+import argparse
 import os
-import sys
 import time
 
 import numpy as np
@@ -50,21 +53,26 @@ def nms(pos, surprise, portee=PORTEE):
 
 
 if __name__ == "__main__":
-    media = sys.argv[1] if len(sys.argv) > 1 else "lemonde"
+    p = argparse.ArgumentParser()
+    p.add_argument("media", nargs="?", default="lemonde")
+    p.add_argument("--pics", default="")
+    a = p.parse_args()
+    media = a.media
+    hauteur = float(a.pics[2:]) if a.pics else HAUTEUR
     DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 
     dates_grille = np.load(f"{DOSSIER}/vocab_series_{media}.npz")["dates"]
     position = {int(d): i for i, d in enumerate(dates_grille)}
-    pics = pd.read_csv(f"{DOSSIER}/pics_{media}.csv")
+    pics = pd.read_csv(f"{DOSSIER}/pics_{media}{a.pics}.csv")
     pics["pos"] = pics["date"].map(position)
     mots = pics["mot"].unique()
-    print(f"{media} : {len(pics)} pics, {len(mots)} mots, portee={PORTEE} j de parution",
-          flush=True)
+    print(f"{media} : {len(pics)} pics, {len(mots)} mots, portee={PORTEE} j de parution, "
+          f"hauteur={hauteur:g}", flush=True)
     debut = time.time()
     n_gardes = n_ecarts = 0
 
-    with open(f"{DOSSIER}/pics_{media}_nms.csv", "w") as fp, \
-         open(f"{DOSSIER}/pics_{media}_nms_ecarts.txt", "w") as fe:
+    with open(f"{DOSSIER}/pics_{media}{a.pics}_nms.csv", "w") as fp, \
+         open(f"{DOSSIER}/pics_{media}{a.pics}_nms_ecarts.txt", "w") as fe:
         fp.write(",".join(list(pics.columns[:-1]) + ["n_absorbes"]) + "\n")
         for j, (mot, p) in enumerate(pics.groupby("mot", sort=False)):
             pos = p["pos"].to_numpy()
@@ -74,7 +82,7 @@ if __name__ == "__main__":
             # contre-verif : find_peaks sur le signal surprise complet
             signal = np.zeros(len(dates_grille) + 2)
             signal[pos + 1] = surprise
-            verif, _ = find_peaks(signal, height=HAUTEUR, distance=PORTEE)
+            verif, _ = find_peaks(signal, height=hauteur, distance=PORTEE)
             verif -= 1
             a, b = set(pos[gardes]), set(verif)
             if a != b:

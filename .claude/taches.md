@@ -28,33 +28,6 @@ Le filtre vient de scripts/top_ngram.py : la liste MOTS_OUTILS (ligne ~24) sert 
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
-## bases-ngram-13-medias — Construire les bases n-grammes des 13 autres médias
-
-- Ajoutée : 2026-07-05
-- Branche : n-grammes
-
-**Contexte** : les 3 bases d'archives (Le Monde, Le Figaro, Les Échos) sont construites ; les 13 autres médias scrapés (CSV dans `data/csv/` sur gallica : Atlantico, Challenges, L'Opinion, La Dépêche, Capital, JDD, Le Nouvel Obs, Le Télégramme, Nice-Matin, Paris Match, Sud Ouest, Télérama, Valeurs actuelles) n'ont pas encore de base n-grammes. Repris de la Feuille de route (branche 2).
-
-**Piste envisagée** : un script générique `scripts/ngram_media.py` calqué sur `scripts/ngram_lesechos.py`, adapté au schéma commun `titre / contenu / date` des CSV, testé sur un petit média avant d'enchaîner les autres.
-
-**Prompt** :
-
-```
-Les 3 bases n-grammes d'archives (Le Monde, Le Figaro, Les Échos) sont construites ; il reste à construire celles des 13 autres médias à partir des CSV de data/csv/ sur gallica : Atlantico, Challenges, L'Opinion, La Dépêche, Capital, JDD, Le Nouvel Obs, Le Télégramme, Nice-Matin, Paris Match, Sud Ouest, Télérama, Valeurs actuelles.
-
-Points établis :
-- Ces CSV partagent un schéma commun titre / contenu / date, différent des 3 gros CSV d'archives.
-- Modèle à imiter : scripts/ngram_lesechos.py (lecture par chunks pandas, tokenisation par phrases, date YYYYMMDD, tables staging puis finales, filtre n > 10, totaux journaliers en base) — mêmes choix de tokenisation, même schéma de base <media>_ngram.db.
-- Écrire UN script générique scripts/ngram_media.py qui prend le média en argument (plutôt que 13 copies), en adaptant seulement la lecture du CSV au schéma commun.
-
-Dans l'ordre :
-1. Vérifier le schéma réel de 2-3 CSV de data/csv/ (noms de colonnes exacts, format de date) avant d'écrire du code.
-2. Écrire le script générique et me le faire relire.
-3. Tester sur UN petit média, vérifier la base produite (schéma, index, requêtes indexées seulement), puis enchaîner les 12 autres en série dans une session tmux dédiée.
-
-Me demander avant de lancer quoi que ce soit sur le serveur.
-```
-
 ## maj-quotidienne-ngram-top — Passer les bases ngram et top en MAJ quotidienne
 
 - Ajoutée : 2026-07-05
@@ -77,30 +50,6 @@ Architecture discutée et retenue le 05/07/2026 (rester sur SQLite) :
 - Si rebuild périodique : construire dans un NOUVEAU fichier puis renommer par-dessus, pour que l'API ne serve jamais une base à moitié construite.
 
 Avant de coder, valider avec Corto le déroulé d'une journée type (ordre des opérations, rattrapage si le scraping d'un jour arrive en retard). Vérification finale : MAJ d'un jour de test en quelques minutes, requêtes API inchangées pendant l'écriture, tops des périodes ouvertes corrects.
-Me demander avant de lancer quoi que ce soit sur le serveur.
-```
-
-## equipe-agents-nouveaux-medias — Enrichir la base de médias avec une équipe d'agents (priorité basic)
-
-- Ajoutée : 2026-07-06
-- Branche : scraping (scrapping_v2)
-
-**Contexte** : le moteur « basic » (simple requête HTTP, sans navigateur — le moins coûteux et le plus rapide) est acté sur la branche scrapping_v2 et couvre déjà une quinzaine de médias. On veut continuer à enrichir le registre MEDIAS avec de nouveaux médias, en priorisant ceux qui passent en basic. Le processus d'ajout (échantillon d'URLs → HTML → repérage des métadonnées → mapping complet → branchement) est bien rodé mais manuel : on veut le confier à une équipe d'agents qui collaborent.
-
-**Piste envisagée** : orchestrer 4 rôles d'agents par média candidat — mapping (récupère un échantillon d'URLs), scrapper (teste si le HTML en basic est satisfaisant), explorateur (localise les métadonnées dans le HTML), manager (synthétise, tranche ajoutable/écarté, lance le mapping complet et prépare l'entrée medias.py — validation de Corto obligatoire avant tout branchement au pipeline).
-
-**Prompt** :
-
-```
-Objectif : enrichir le registre MEDIAS avec de nouveaux médias français, en priorisant ceux qui passent en moteur « basic » (simple requête HTTP, le moins coûteux et le plus rapide). Tout se passe sur la branche scrapping_v2 (scraping/medias.py, scraping/basic.py) — ne pas toucher main, et lire la branche via git show plutôt qu'en switchant le dépôt principal.
-
-Organiser une équipe d'agents (outil Agent), un média candidat à la fois :
-1. Agent mapping : trouve la source d'URLs du média (sitemap, archives, pagination — s'inspirer du module mapping/ : generique.py + catalogue.py pour les cas standard, scripts par média pour les cas spéciaux) et en tire un échantillon d'une dizaine d'URLs d'articles variées, gratuits ET payants.
-2. Agent scrapper : récupère le HTML de l'échantillon en basic — sur gallica uniquement, jamais de curl/fetch sur le Mac — via `python -m exploration.recuperer basic <url>...` (ou `deux` pour comparer basic vs Firefox+bypass), et juge le contenu : payants complets, gratuits seuls exploitables, ou tronqués.
-3. Agent explorateur : fouille les HTML pour localiser titre/auteur/date/corps (stratégie json_ld en priorité, sinon balises) via `python -m exploration.explorer_html <fichier.html> ["texte à situer"]` — cf exploration/detail_metadonnees.md pour les pièges déjà rencontrés.
-4. Agent manager : croise les trois rapports et tranche : ajoutable en basic complet, ajoutable en gratuits seuls (filtre via la colonne free), ou écarté — règle absolue : jamais d'articles tronqués en base. Si ajoutable : faire écrire le mapping complet (fiche dans mapping/catalogue.py — 5 méthodes disponibles — + motif de contrôle dans mapping/verifier.py) et préparer l'entrée medias.py pour le branchement au pipeline — SANS brancher : présenter le dossier complet à Corto et attendre sa validation explicite.
-
-Commencer par proposer à Corto une liste de médias candidats (hors MEDIAS actuels de scrapping_v2 et hors écartés : lexpress, lepoint) et la faire valider avant de lancer les agents.
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
@@ -392,70 +341,6 @@ Vérifier à la fin sur une centaine de lignes que l'auteur est cohérent avec c
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
-## nms-suffixe-seuil — Découpler nms.py du seuil de surprise par défaut
-
-- Ajoutée : 2026-08-17
-- Branche : main
-
-**Contexte** : `rupture/pics_masse.py` accepte un 4e argument (surprise minimale, défaut 4 = p < 1e-4) et écrit alors dans `pics_<media>_s<x>.csv` pour ne pas écraser les sorties livrées. `rupture/campagne.py` sait relire ces fichiers via `--pics _s3`, mais `rupture/nms.py` non : il lit `pics_<media>.csv` en dur (ligne 58) et sa constante `HAUTEUR = 4.0` (ligne 31) est écrite en dur avec le commentaire « = -log10(SEUIL de pics.py) ». Résultat : si on relance une campagne à un autre seuil, le NMS traite silencieusement l'ancien fichier au seuil 4 au lieu du nouveau. Rien n'est cassé aujourd'hui (tout tourne au défaut), c'est une désynchronisation qui n'apparaîtra qu'au moment où on fera varier le seuil.
-
-**Piste envisagée** : donner à `nms.py` le même argument de suffixe que `campagne.py` (`--pics _s3`), l'appliquer au fichier lu et aux deux fichiers écrits, et déduire `HAUTEUR` du suffixe plutôt que de la coder en dur — c'est exactement `surprise_min`, la valeur passée à `pics_masse.py`.
-
-**Prompt** :
-
-```
-Dans la chaîne de détection de pics, rupture/nms.py est couplé en dur au seuil de surprise par défaut, alors que les deux autres maillons sont paramétrables.
-
-Constat :
-- rupture/pics_masse.py prend un 4e argument « surprise » (défaut 4, soit p < 1e-4) et, s'il diffère de 4, suffixe ses sorties en pics_<media>_s<x>.csv.
-- rupture/campagne.py sait relire ces fichiers via --pics _s3.
-- rupture/nms.py, lui, lit pics_<media>.csv en dur (ligne 58), écrit pics_<media>_nms.csv et pics_<media>_nms_ecarts.txt sans suffixe, et sa constante HAUTEUR = 4.0 (ligne 31) est codée en dur alors qu'elle vaut -log10(seuil).
-
-Conséquence : relancer une campagne à un autre seuil fait travailler le NMS sur l'ancien fichier au seuil 4, sans erreur ni avertissement.
-
-À faire :
-1. Ajouter à nms.py un argument optionnel de suffixe, sur le même modèle que --pics de campagne.py (garder la compatibilité : sans argument, comportement actuel inchangé).
-2. Appliquer le suffixe au fichier lu ET aux deux fichiers écrits.
-3. Déduire HAUTEUR du suffixe au lieu de la coder en dur (c'est la valeur « surprise » passée à pics_masse.py) ; garder 4.0 par défaut.
-4. Vérifier que la contre-vérification find_peaks utilise bien la hauteur déduite, pas 4.0.
-
-Rester minimal : pas de refonte de nms.py, juste le paramétrage. Vérifier à la fin que sans argument le script produit exactement la même chose qu'avant.
-
-Me demander avant de lancer quoi que ce soit sur le serveur.
-```
-
-## couverture-telegramme-sudouest — Trous de couverture : Le Télégramme s'arrête en 2011, Sud Ouest en 2018
-
-- Ajoutée : 2026-08-18
-- Branche : main
-
-**Contexte** : repéré en construisant les bases 1gram (18/08/2026). `le_telegramme.csv` pèse 1 Go et contient 797 070 articles, mais **tous datés entre le 24/06/2008 et le 31/05/2011** — plus rien après. `sud_ouest.csv` pèse 1,67 Go, 804 657 articles, qui s'arrêtent net au **01/02/2018**. Ce n'est pas un défaut de la construction : les logs montrent 0 ligne écartée pour ces deux médias, les bases reflètent fidèlement les CSV. Le trou est donc côté récolte (URLs jamais listées, jamais capturées, ou dates mal extraites en amont).
-
-**Piste envisagée** : distinguer les trois causes possibles avant de toucher à quoi que ce soit — URLs absentes de `urls.db`, URLs présentes mais jamais capturées, ou dates mal extraites à la capture. Les deux médias sont en moteur `firefox` + `json_ld` dans `scraping/medias.py`, donc une extraction de date cassée sur le gabarit récent est un candidat sérieux.
-
-**Prompt** :
-
-```
-En construisant les bases 1gram (18/08/2026), deux médias montrent un trou de couverture massif :
-- le_telegramme.csv : 1 Go, 797 070 articles, TOUS datés entre le 24/06/2008 et le 31/05/2011. Rien après.
-- sud_ouest.csv : 1,67 Go, 804 657 articles, qui s'arrêtent net au 01/02/2018.
-
-Ce n'est PAS un défaut de la construction 1gram : les logs (data/logs/1gram_le_telegramme.log et 1gram_sud_ouest.log sur gallica) indiquent 0 ligne écartée. Les CSV eux-mêmes ne contiennent rien de plus récent.
-
-Trois causes possibles, à départager AVANT toute correction :
-1. Les URLs récentes ne sont pas dans urls.db (problème de listage : sitemap ou moteur de découverte).
-2. Elles y sont mais n'ont jamais été capturées (regarder la répartition des états).
-3. Elles ont été capturées mais la date est mal extraite, donc l'article part avec une date ancienne ou vide.
-
-Dans l'ordre :
-1. Interroger urls.db sur ces deux médias : nombre d'URLs par état, et si possible une idée de leur ancienneté (les URL portent souvent la date). Requêtes indexées seulement, jamais de scan complet.
-2. Regarder la config des deux médias dans scraping/medias.py (ligne ~46 et ~49) : tous deux en moteur « firefox » avec stratégie « json_ld ». Vérifier sur une URL récente réelle que la date json-ld est bien présente et bien lue par scraping/extraction.py.
-3. Conclure sur la cause, puis proposer la correction avant de l'appliquer.
-
-Ne pas reconstruire les bases 1gram : si la récolte reprend, on ajoutera les nouveaux articles plus tard.
-Me demander avant de lancer quoi que ce soit sur le serveur.
-```
-
 ## dates-repli-1970 — Articles datés du 1er janvier 1970 dans midilibre et paris_match
 
 - Ajoutée : 2026-08-18
@@ -484,7 +369,78 @@ Au passage, vérifier si d'autres bases 1gram ont le même souci (une requête p
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## separer-scripts-grams-depots — Séparer les scripts de construction des n-grammes selon les dépôts
+
+- Ajoutée : 2026-08-22
+- Branche : main
+
+**Contexte** : depuis le 22/08/2026, les rôles des deux serveurs sont tranchés — gram (ENS, `/opt/bazoulay/stage-mids/`) devient la machine de calcul et de service grâce à ses SSD, gallica redevient stockage et scrapping, et plus rien n'est exposé là-bas. Les scripts de construction, eux, sont restés éparpillés : `scripts/ngram_2gram.py` tourne sur gram depuis un **clone de stage-mids** (`~/stage-mids/stage-mids`, piloté par `data/construire_2gram.sh`), `scripts/ngram_1gram.py` est toujours en version gallica (chemins `/data/elias` en dur + pandas, inutilisable sur gram), et une version ENS du 1gram a été écrite dans `ngram-press/scripts/ngram_1gram.py` sans être commitée. Deux scripts jumeaux dans deux dépôts différents, et gram qui a besoin des deux clones.
+
+**Piste envisagée** : regrouper `ngram_1gram.py` et `ngram_2gram.py` dans `ngram-press/scripts/`, à côté de `tokenisation.py` et `top_ngram.py` qui y sont déjà — `ngram-press` devient « tout ce qui tourne sur ENS », `stage-mids` garde le scrapping et l'analyse du mémoire. Le clone de stage-mids sur gram disparaît alors.
+
+**Prompt** :
+
+```
+Les scripts de construction des bases n-grammes sont éparpillés entre deux dépôts, alors que depuis le 22/08/2026 la répartition des rôles est tranchée : gram (ENS, /opt/bazoulay/stage-mids/) est la machine de calcul et de service grâce à ses SSD, gallica redevient stockage et scrapping, et plus rien n'est exposé là-bas.
+
+État actuel :
+- scripts/ngram_2gram.py (stage-mids) tourne sur gram depuis un clone du dépôt, ~/stage-mids/stage-mids, piloté par data/construire_2gram.sh qui exporte NGRAM_DIR et CSV_DIR ;
+- scripts/ngram_1gram.py (stage-mids) est resté en version gallica : chemins /data/elias en dur et dépendance à pandas, inutilisable sur gram ;
+- une version ENS du 1gram a été écrite le 22/08 dans ngram-press/scripts/ngram_1gram.py (stdlib seule, chemins par NGRAM_DIR / CSV_DIR / NGRAM_CHUNK, défauts sur /opt/bazoulay/stage-mids/data), testée sur un mini corpus mais jamais commitée ni déployée.
+
+À faire :
+1. Valider avec moi le découpage exact avant de déplacer quoi que ce soit.
+2. Déplacer les deux jumeaux ngram_1gram.py et ngram_2gram.py dans ngram-press/scripts/, à côté de tokenisation.py et top_ngram.py.
+3. Y déplacer aussi construire_2gram.sh, qui vit aujourd'hui dans data/ sur gram, hors de tout dépôt.
+4. Sur gram, basculer les lancements sur le clone ngram-press, puis supprimer le clone de stage-mids une fois qu'il ne sert plus à rien.
+5. Retirer de stage-mids les scripts déplacés, ou les marquer comme historiques (ngram_media.py et l'ancien ngram_1gram.py sont dans le même cas).
+
+Deux contraintes à ne pas perdre en route :
+- scripts/tokenisation.py doit rester rigoureusement identique entre les deux dépôts, sinon les requêtes ne découperont plus les mots comme les bases ont été construites (c'est déjà écrit dans le README de ngram-press) ;
+- toutes les constructions se partagent vocabulaire.db et doivent rester SÉQUENTIELLES, jamais deux en parallèle.
+
+Vérifier à la fin qu'une construction lancée depuis ngram-press donne exactement les mêmes comptes qu'avant : reconstruire un petit média dans un dossier isolé et comparer ses totaux journaliers à sa base existante.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
+
+## bases-ngram-13-medias — Construire les bases n-grammes des 13 autres médias
+
+- Ajoutée : 2026-07-05 · Faite : 2026-08-22
+- Branche : n-grammes
+
+**Contexte** : les 3 bases d'archives (Le Monde, Le Figaro, Les Échos) sont construites ; les 13 autres médias scrapés (CSV dans `data/csv/` sur gallica : Atlantico, Challenges, L'Opinion, La Dépêche, Capital, JDD, Le Nouvel Obs, Le Télégramme, Nice-Matin, Paris Match, Sud Ouest, Télérama, Valeurs actuelles) n'ont pas encore de base n-grammes. Repris de la Feuille de route (branche 2).
+
+**Résultat** : traitée par la campagne de construction 1-gramme, plus large que prévu — script générique `scripts/ngram_media.py` (remplaçant les `ngram_lefigaro/lemonde/lesechos/mediapart`), puis `scripts/ngram_1gram.py` et `scripts/ngram_2gram.py` sur vocabulaire partagé (`data/corpus/vocabulaire.db`). 36 bases `*_1gram.db` construites les 18-20 août 2026 sur gallica (16 Go au total), soit tous les médias scrapés et non plus seulement les 13 CSV identifiés en juillet.
+
+## equipe-agents-nouveaux-medias — Enrichir la base de médias avec une équipe d'agents (priorité basic)
+
+- Ajoutée : 2026-07-06 · Faite : 2026-08-22
+- Branche : scraping (scrapping_v2)
+
+**Contexte** : le moteur « basic » (simple requête HTTP, sans navigateur — le moins coûteux et le plus rapide) est acté sur la branche scrapping_v2 et couvre déjà une quinzaine de médias. On veut continuer à enrichir le registre MEDIAS avec de nouveaux médias, en priorisant ceux qui passent en basic. Le processus d'ajout (échantillon d'URLs → HTML → repérage des métadonnées → mapping complet → branchement) est bien rodé mais manuel : on veut le confier à une équipe d'agents qui collaborent.
+
+**Résultat** : marquée faite le 22/08/2026. Le registre `MEDIAS` compte aujourd'hui 31 médias suivis en production (contre une quinzaine à l'ouverture de la tâche), les nouveaux branchés en moteur basic — gratuits seuls là où le bypass est inefficace ; `lexpress` et `lepoint` écartés.
+
+## couverture-telegramme-sudouest — Trous de couverture : Le Télégramme s'arrête en 2011, Sud Ouest en 2018
+
+- Ajoutée : 2026-08-18 · Faite : 2026-08-22
+- Branche : main
+
+**Contexte** : repéré en construisant les bases 1gram (18/08/2026). `le_telegramme.csv` pèse 1 Go et contient 797 070 articles, mais **tous datés entre le 24/06/2008 et le 31/05/2011** — plus rien après. `sud_ouest.csv` pèse 1,67 Go, 804 657 articles, qui s'arrêtent net au **01/02/2018**. Ce n'est pas un défaut de la construction : les logs montrent 0 ligne écartée pour ces deux médias, les bases reflètent fidèlement les CSV. Le trou est donc côté récolte (URLs jamais listées, jamais capturées, ou dates mal extraites en amont).
+
+**Résultat** : marquée faite le 22/08/2026 — le diagnostic a abouti côté récolte : les URLs manquantes des deux médias sont listées et en cours de capture. Au 22 août, `le_telegramme` (3,74 M d'URLs restantes) et `sud_ouest` (0,41 M) sont, avec `la_depeche`, les seuls médias dont la file n'est pas vide ; les 28 autres sont à zéro reste.
+
+## nms-suffixe-seuil — Découpler nms.py du seuil de surprise par défaut
+
+- Ajoutée : 2026-08-17 · Faite : 2026-08-22
+- Branche : main
+
+**Contexte** : `rupture/nms.py` lisait `pics_<media>.csv` en dur et sa contre-vérification `find_peaks` utilisait `HAUTEUR = 4.0` codée en dur, alors que `pics_masse.py` (suffixe `_s<x>`) et `campagne.py` (`--pics _s3`) étaient déjà paramétrables — relancer une campagne à un autre seuil aurait fait travailler le NMS sur l'ancien fichier, sans erreur.
+
+**Résultat** : argument `--pics` ajouté à `nms.py` (argparse, calqué sur `campagne.py`) — le suffixe s'applique au fichier lu ET aux deux fichiers écrits (`pics_<media><pics>_nms.csv`, `_nms_ecarts.txt`), et la hauteur de `find_peaks` en est déduite (`_s3` → 3.0, `HAUTEUR = 4.0` sinon). Vérifié sur jeu de test synthétique : sans argument, sorties octet pour octet identiques à l'ancienne version ; avec `--pics _s3`, lecture/écriture suffixées et hauteur 3 effective.
 
 ## inspection-urls-non-articles — Inspection par média des URLs non-articles + état dédié en base
 

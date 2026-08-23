@@ -1,6 +1,7 @@
 ---
 name: dashboard
 description: Met à jour le dashboard de suivi du stage MIDS (fichier HTML local site/static/dashboard.html) via scripts/maj_dashboard.py (injection des chiffres) + une passe éditoriale, puis l'ouvre en local. Utiliser quand Corto veut voir / rafraîchir le dashboard.
+model: claude-opus-5
 ---
 
 # Skill /dashboard

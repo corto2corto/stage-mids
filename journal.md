@@ -1693,6 +1693,86 @@ archétypes du corpus unifié
 ([`campagne_pca/rapport_qmd/corpus_unifie.qmd`](campagne_pca/rapport_qmd/corpus_unifie.qmd),
 co-sauts lus dans `pics_unifie3j.csv`, arbitrage final à la main).
 
+## PCA du corpus unifié (19-20/08/2026)
+
+Jusqu'ici chaque média était traité séparément. `rupture/masse_unifie.py`
+construit la matrice jours x mots des **36 médias réunis**, en sommant les
+occurrences et les totaux jour par jour. La sortie a le format exact de
+`vocab_series_<media>.npz`, si bien que toute la chaîne (agréger -> pics_masse
+-> nms -> fenetres_masse -> pca) tourne dessus telle quelle avec
+`media=unifie`. Le vocabulaire est le top-10 000 du Monde repris à l'identique :
+la PCA unifiée est donc comparable colonne par colonne à celle du Monde. Deux
+sorties annexes : `couverture_unifie.csv` (ce que chaque mot du top du Monde
+devient sur l'union) et `N_par_media_unifie.csv` (les entrées et sorties de
+journaux au fil du temps).
+
+Le rapport
+[`campagne_pca/rapport_qmd/corpus_unifie.qmd`](campagne_pca/rapport_qmd/corpus_unifie.qmd)
+présente la PCA correspondante sur 2008-2026, en blocs de 3 jours, fenêtre
+±15 blocs, aux seuils de surprise 4 et 6. Les fenêtres archétypes y sont
+étiquetées par co-sauts. Réserve : les corpus ne sont pas encore complets (Le
+Télégramme s'arrête en 2011, Sud-Ouest en 2018, Le Figaro en mars 2024, Les
+Échos en octobre 2024, Le Monde — le plus lourd — fin 2025).
+
+## Un second serveur pour le calcul lourd (21/08/2026)
+
+Tout vivait jusqu'ici sur gallica, qui scrappe en continu et n'a plus la place
+pour des bases bigrammes. Benoît a ouvert un accès sur le serveur Gallicagram
+de l'**ENS** (`shiny.ens-paris-saclay.fr`, alias ssh `gram`) : 5,9 To sur
+`/opt`, disque mesuré à 1,3 Go/s en séquentiel. Notre zone est
+`/opt/bazoulay/stage-mids/`, le reste du home étant la production de Benoît.
+Objectif double : héberger l'API ngram et sortir le calcul lourd du serveur de
+scrapping.
+
+Deux contraintes ont façonné le code. Rien n'est installé sur l'ENS hors la
+bibliothèque standard : les scripts qui doivent y tourner sont écrits en
+**stdlib seule** (module `csv` au lieu de pandas) avec les chemins
+surchargeables par variables d'environnement (`NGRAM_DIR`, `CSV_DIR`), de sorte
+que le même fichier serve sur les deux serveurs. Et le SSH direct
+gallica <-> ENS est bloqué par le réseau de l'école : tout transite par le Mac.
+
+L'API et son front vitrine vivent dans un **dépôt séparé**,
+[`ngram-press`](https://github.com/corto2corto/ngram-press), qui a son propre
+journal. Il embarque des copies à l'identique de `scripts/tokenisation.py` et
+de `rupture/{extraire,pics,serie}.py` : la tokenisation de l'API ne doit jamais
+dériver de celle qui a construit les bases.
+
+## Bigrammes : les bases 2gram sur l'ENS (21-22/08/2026)
+
+`scripts/ngram_2gram.py` construit les comptes de **bigrammes** par jour, sur
+la même mécanique que `ngram_1gram.py` — vocabulaire partagé dans
+`vocabulaire.db`, pas de filtre d'occurrences — les bigrammes ne franchissant
+pas les frontières de phrase.
+
+Chargement de l'ENS : les 36 CSV sources (46 Go) et les 36 bases 1gram (16 Go)
+transférés depuis gallica, puis les 2gram construits sur place par fournées
+**séquentielles** (`construire_2gram.sh`, du plus petit média au plus gros,
+`nice -n 10` sur une machine partagée) — séquentielles parce que le vocabulaire
+est commun à toutes les bases et n'admet pas d'écritures concurrentes. État au
+22/08 : 34 bases sur 36, 39 Go ; restent Sud-Ouest et Ouest-France.
+
+Un incident dans la nuit mérite d'être noté. L'accès passe par un VPN et un
+tunnel SSH partagé, qui meurt à chaque micro-coupure. Une boucle de reprise a
+épuisé ses tentatives et **est quand même sortie en code 0** : `la_croix.csv`
+est arrivé tronqué à 40 %, et la base 2gram a été construite dessus sans que
+rien ne le signale. Repéré en comparant les tailles des deux côtés, juste avant
+de supprimer les CSV locaux, et reconstruit depuis. Règle actée : vérifier le
+résultat réel d'un transfert, jamais son code de sortie.
+
+## Le vocabulaire par fenêtres glissantes (21/08/2026)
+
+Le vocabulaire de `masse.py` est le top des mots classés par **jours actifs sur
+toute l'archive**, ce qui écarte mécaniquement tout mot récent : « macron »
+compte 4 051 jours actifs, contre une coupe à 7 391. `exploration/scan_vocab_fenetre.py`
+teste l'alternative : des fenêtres d'un an glissant par pas de 6 mois, un top-K
+dans chaque fenêtre, et pour vocabulaire final l'**union** de ces tops — un mot
+y entre dès qu'il compte quelque part. Piste ouverte, à trancher avant de
+refaire les fits.
+
+Au passage, `rupture/nms.py` accepte une option `--pics` pour rejouer le NMS
+sur des pics produits à un autre seuil, la hauteur de la contre-vérification
+étant déduite du suffixe.
+
 A FAIRE : 
 - Section d'une page où il faudra décrire le corpus 
 - Choix du vocabulaire 

@@ -49,8 +49,13 @@ print(f"candidats : {len(candidats)} unites ({len(v)} graphies dont "
       f"{int((v['unite'] != v['mot']).sum())} absorbees), "
       f"borne basse du dernier : {int(borne.iloc[len(candidats) - 1])} jours", flush=True)
 
-# 2. ids des graphies candidates (la table token est petite)
-conn = sqlite3.connect(f"file:{DOSSIER}/corpus/{media}_ngram.db?mode=ro", uri=True)
+# 2. ids des graphies candidates (la table token est petite) ; la base est
+# cherchee sous <media>_ngram.db (archives) puis <media>_1gram.db (pipeline
+# quotidien), memes schemas
+db = f"{DOSSIER}/corpus/{media}_ngram.db"
+if not os.path.exists(db):
+    db = f"{DOSSIER}/corpus/{media}_1gram.db"
+conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
 tok = pd.read_sql_query("SELECT id, word FROM token", conn)
 tok = tok[tok["word"].isin(set(v["mot"]))]
 col_de_unite = {u: i for i, u in enumerate(candidats)}
