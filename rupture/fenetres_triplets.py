@@ -56,13 +56,15 @@ p.add_argument("--interp-max", type=float, default=0.5, dest="interp_max",
                help="part max. de blocs interpoles par segment")
 p.add_argument("--vide-frac", type=float, default=0.1, dest="vide_frac",
                help="bloc quasi vide si N < vide_frac x mediane journaliere x pas")
+p.add_argument("--suffixe", default="",
+               help="ajoute au tag de sortie (ex. _t3 pour une variante de tolerance)")
 a = p.parse_args()
 assert a.pas % 2 == 1, "pas impair attendu (bloc centrable sur la date commune)"
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 L = 2 * a.demi + 1
 PORTEE = L * a.pas                       # largeur d'une fenetre en jours cal.
 tag = (f"{a.pas}j{a.demi}" if a.pas > 1 else f"j{a.demi}") \
-    + ("_par" if a.grille == "parution" else "")
+    + ("_par" if a.grille == "parution" else "") + a.suffixe
 debut_t = time.time()
 
 
