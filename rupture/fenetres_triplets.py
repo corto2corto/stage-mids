@@ -14,6 +14,9 @@
 # recouvrantes pour un mot) ; une reference sans suiveurs ne supprime
 # qu'elle-meme (un pic voisin un peu plus faible peut reussir a son tour).
 # Le suiveur retenu par media est le plus fort dans la tolerance.
+# La date commune (--centre) est celle du pic de reference (defaut), ou la
+# MEDIANE des trois dates de pic — regle symetrique qui ne privilegie aucun
+# media dans le centrage des fenetres.
 #
 # Grille (--grille) :
 # - calendaire (defaut) : blocs de `pas` jours CALENDAIRES ancres sur la date
@@ -56,6 +59,8 @@ p.add_argument("--interp-max", type=float, default=0.5, dest="interp_max",
                help="part max. de blocs interpoles par segment")
 p.add_argument("--vide-frac", type=float, default=0.1, dest="vide_frac",
                help="bloc quasi vide si N < vide_frac x mediane journaliere x pas")
+p.add_argument("--centre", choices=["ref", "mediane"], default="ref",
+               help="date commune : pic de reference (defaut) ou mediane des 3 dates")
 p.add_argument("--suffixe", default="",
                help="ajoute au tag de sortie (ex. _t3 pour une variante de tolerance)")
 a = p.parse_args()
@@ -124,8 +129,9 @@ for mot, g in pics.groupby("mot", sort=False):
             continue
         t = jours[m][k]
         surprise = np.zeros(3, np.float32)
-        decalage = np.zeros(3, np.int16)
-        surprise[m] = s
+        jours_trio = np.zeros(3, np.int64)
+        dates_trio = np.zeros(3, np.int64)
+        surprise[m], jours_trio[m], dates_trio[m] = s, t, int(dates_g[m][k])
         ok = True
         for m2 in autres[m]:                        # suiveur le plus fort a <= tol
             lo = np.searchsorted(jours[m2], t - a.tol)
@@ -135,14 +141,20 @@ for mot, g in pics.groupby("mot", sort=False):
                 break
             j2 = lo + int(np.argmax(surs[m2][lo:hi]))
             surprise[m2] = surs[m2][j2]
-            decalage[m2] = jours[m2][j2] - t
+            jours_trio[m2], dates_trio[m2] = jours[m2][j2], int(dates_g[m2][j2])
         if not ok:
             vivant[m][k] = False                    # seul le pic rejete meurt
             continue
-        triplets.append((mot, int(dates_g[m][k]), m, t, surprise, decalage))
+        if a.centre == "mediane":                   # la mediane de 3 dates est
+            m_c = int(np.argsort(jours_trio)[1])    # l'une des trois
+        else:
+            m_c = m
+        t_c, date_c = int(jours_trio[m_c]), int(dates_trio[m_c])
+        decalage = (jours_trio - t_c).astype(np.int16)
+        triplets.append((mot, date_c, m, t_c, surprise, decalage))
         for m3 in range(3):                         # zone morte = une fenetre
-            lo = np.searchsorted(jours[m3], t - PORTEE + 1)
-            hi = np.searchsorted(jours[m3], t + PORTEE)
+            lo = np.searchsorted(jours[m3], t_c - PORTEE + 1)
+            hi = np.searchsorted(jours[m3], t_c + PORTEE)
             vivant[m3][lo:hi] = False
 if not triplets:
     raise SystemExit("aucun triplet apparie : verifier medias, pics et seuils")
