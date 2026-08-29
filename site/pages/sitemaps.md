@@ -11,18 +11,19 @@ passages.
 
 ```sql par_jour
 select
-    strftime(cast(horodatage::timestamp as date), '%d/%m') as jour,
+    cast(horodatage::timestamp as date) as jour,
     case when extract(hour from horodatage::timestamp) < 12
          then 'Matin (5h40)' else 'Après-midi (17h40)' end as passage,
     sum(ajoutees) as ajoutees
 from suivi.sitemaps_journal
-group by cast(horodatage::timestamp as date), passage
-order by cast(horodatage::timestamp as date)
+group by jour, passage
+order by jour
 ```
 
 <BarChart
     data={par_jour}
     x=jour
+    xFmt='dd/mm'
     y=ajoutees
     series=passage
     type=stacked
