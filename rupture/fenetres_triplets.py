@@ -36,9 +36,17 @@
 #   surprise (n, 3), decalage (n, 3, jours calendaires pic - date commune),
 #   n_interp (n, 3), medias, pas, demi, tol, grille
 # Les effectifs a reference >= 4/5/6 sont affiches pour choisir le seuil.
+# Mode --solo (campagne « pics sans appariement ») : tout pic >= --ref devient
+# une fenetre, sans exiger de pic dans les deux autres medias ; ceux-ci sont
+# quand meme extraits autour de la date du pic, et leur pic echo (>= --suiveur
+# a <= --tol jours) est enregistre quand il existe (surprise 0 sinon). Le NMS
+# inter-medias est conserve : un evenement repris par plusieurs journaux ne
+# donne qu'une fenetre.
+#
 # Usage (sur gallica) :
 #   python -m rupture.fenetres_triplets --pas 1 --demi 20
 #   python -m rupture.fenetres_triplets --pas 3 --demi 15
+#   python -m rupture.fenetres_triplets --pas 1 --demi 20 --solo --ref 5
 import argparse
 import os
 import time
@@ -61,15 +69,21 @@ p.add_argument("--vide-frac", type=float, default=0.1, dest="vide_frac",
                help="bloc quasi vide si N < vide_frac x mediane journaliere x pas")
 p.add_argument("--centre", choices=["ref", "mediane"], default="ref",
                help="date commune : pic de reference (defaut) ou mediane des 3 dates")
+p.add_argument("--solo", action="store_true",
+               help="pas d'appariement requis : tout pic >= --ref devient une fenetre, "
+                    "meme si les deux autres medias n'ont pas de pic (surprise 0 et "
+                    "decalage 0 pour un media muet) ; le NMS inter-medias est conserve")
 p.add_argument("--suffixe", default="",
                help="ajoute au tag de sortie (ex. _t3 pour une variante de tolerance)")
 a = p.parse_args()
 assert a.pas % 2 == 1, "pas impair attendu (bloc centrable sur la date commune)"
+assert not (a.solo and a.centre == "mediane"), "centre mediane sans objet en solo"
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 L = 2 * a.demi + 1
 PORTEE = L * a.pas                       # largeur d'une fenetre en jours cal.
 tag = (f"{a.pas}j{a.demi}" if a.pas > 1 else f"j{a.demi}") \
-    + ("_par" if a.grille == "parution" else "") + a.suffixe
+    + ("_par" if a.grille == "parution" else "") \
+    + ("_solo" if a.solo else "") + a.suffixe
 debut_t = time.time()
 
 
@@ -137,6 +151,9 @@ for mot, g in pics.groupby("mot", sort=False):
             lo = np.searchsorted(jours[m2], t - a.tol)
             hi = np.searchsorted(jours[m2], t + a.tol + 1)
             if lo == hi:
+                if a.solo:                          # media muet : surprise 0,
+                    jours_trio[m2] = t              # decalage 0 par convention
+                    continue
                 ok = False
                 break
             j2 = lo + int(np.argmax(surs[m2][lo:hi]))

@@ -189,18 +189,18 @@
 <div class="wrap">
   <header class="top">
     <h1>Suivi stage MIDS</h1>
-    <span class="maj">Mise à jour : <strong id="maj-heure">22 août 2026, 15 h 10</strong> · état serveur relevé en direct par Claude (ssh, lecture seule)</span>
+    <span class="maj">Mise à jour : <strong id="maj-heure">29 août 2026, 14 h 00</strong> · état serveur relevé en direct par Claude (ssh, lecture seule)</span>
   </header>
   <p class="sous-titre">Mémoire — impact des rachats de journaux français sur le contenu éditorial. Serveur gallica (157.136.252.194).</p>
 
   <h2>En ce moment</h2>
   <div class="carte">
     <ul class="encemoment">
-      <li><strong>Scraping en production, actif</strong> — la v2 (une boucle par média) tourne dans la session tmux <span style="font-family: var(--mono)">scrapping</span>, relancée automatiquement il y a 2 h. <span style="font-family: var(--mono)">urls.db</span> écrit en continu (14 h 30). Corpus : <strong><span data-articles>16 342 122</span> articles collectés</strong>.</li>
-      <li><strong>File d'attente réduite à <span data-file>5,3 M</span> d'URLs</strong> — il ne reste que trois médias à rattraper : <span style="font-family: var(--mono)">le_telegramme</span> (3,7 M), <span style="font-family: var(--mono)">la_depeche</span> (1,1 M) et <span style="font-family: var(--mono)">sud_ouest</span> (0,4 M). Les 28 autres médias sont à zéro reste.</li>
+      <li><strong>Scraping en production, actif</strong> — la v2 (une boucle par média) tourne dans la session tmux <span style="font-family: var(--mono)">scrapping</span>, relancée automatiquement il y a 1 h 30. <span style="font-family: var(--mono)">urls.db</span> écrit en continu (14 h 01). Corpus : <strong><span data-articles>17 131 692</span> articles collectés</strong>.</li>
+      <li><strong>File d'attente réduite à <span data-file>4,8 M</span> d'URLs</strong> — il ne reste que trois médias à rattraper : <span style="font-family: var(--mono)">le_telegramme</span> (3,7 M), <span style="font-family: var(--mono)">la_depeche</span> (1,1 M) et <span style="font-family: var(--mono)">sud_ouest</span> (0,4 M). Les 28 autres médias sont à zéro reste.</li>
       <li><strong>Bases 1-gramme par média terminées</strong> — 36 bases construites les 18-20 août (16 Go au total) sur un vocabulaire partagé (<span style="font-family: var(--mono)">vocabulaire.db</span>). Dernière série le 20 août : <span style="font-family: var(--mono)">le_figaro_1gram.db</span>, 25,6 M de lignes unigram sur 5 700 jours (2007 → 2026).</li>
-      <li><strong>Campagne sur le corpus unifié en cours</strong> — session tmux <span style="font-family: var(--mono)">unifie</span> : balayage détection de pics → NMS → fenêtres → PCA, sur le corpus unifié et sur Le Monde en comparaison. Rédaction en cours du rapport <span style="font-family: var(--mono)">corpus_unifie.qmd</span>.</li>
-      <li><strong>Collecte quotidienne des sitemaps « news »</strong> — cron 2×/jour (07 h 40 et 19 h 40) : dernier cycle terminé ce matin à 08 h 31, <strong>1 605 URLs insérées</strong>, non-articles écartés au versement.</li>
+      <li><strong>Campagne PCA jointe par triplets livrée</strong> — trois cycles terminés le 23 août (rapport <span style="font-family: var(--mono)">campagne_pca/trio/</span>) : les formes de saut sont communes aux trois titres, ce qui les sépare est temporel. Deux chantiers ajoutés dans la foulée : chevauchement d'agenda entre paires de journaux (l'écho est minoritaire partout, 6-24 %) et contrôle positif avec Mediapart.</li>
+      <li><strong>Collecte quotidienne des sitemaps « news »</strong> — cron 2×/jour (07 h 40 et 19 h 40) : dernier cycle terminé ce matin à 08 h 29, <strong>1 540 URLs insérées</strong>, non-articles écartés au versement.</li>
     </ul>
   </div>
 
@@ -211,7 +211,7 @@
       <li>
         <span class="etape-nom">Scraping — collecte du corpus</span>
         <span class="pastille p-cours">En cours</span>
-        <span class="etape-note">Pipeline v2 en production (31 médias suivis, une boucle par média), <strong><span data-articles>16 342 122</span> articles collectés</strong>. Le rattrapage des anciens sitemaps est presque absorbé : <span data-file>5,3 M</span> d'URLs en file, concentrées sur trois médias (le_telegramme, la_depeche, sud_ouest). <strong>→ Ensuite :</strong> laisser tourner la collecte jusqu'à épuisement de la file.</span>
+        <span class="etape-note">Pipeline v2 en production (31 médias suivis, une boucle par média), <strong><span data-articles>17 131 692</span> articles collectés</strong>. Le rattrapage des anciens sitemaps est presque absorbé : <span data-file>4,8 M</span> d'URLs en file, concentrées sur trois médias (le_telegramme, la_depeche, sud_ouest). <strong>→ Ensuite :</strong> laisser tourner la collecte jusqu'à épuisement de la file.</span>
       </li>
       <li>
         <span class="etape-nom">Bases n-grammes</span>
@@ -226,7 +226,7 @@
       <li>
         <span class="etape-nom">Analyse — détection de ruptures</span>
         <span class="pastille p-cours">En cours</span>
-        <span class="etape-note">Chaîne détection de pics → NMS → fenêtres → PCA en place (<span style="font-family: var(--mono)">rupture/</span>). Campagne 48 h livrée le 1<sup>er</sup> août (formes d'événement vs texture, hiérarchies de médias inverses) ; campagne sur le corpus unifié en cours. <strong>→ Ensuite :</strong> finir le rapport <span style="font-family: var(--mono)">corpus_unifie.qmd</span> et arrêter les réglages de fenêtre.</span>
+        <span class="etape-note">Chaîne détection de pics → NMS → fenêtres → PCA en place (<span style="font-family: var(--mono)">rupture/</span>). Campagne 48 h livrée le 1<sup>er</sup> août, puis PCA jointe par triplets le 23 août (Monde / Figaro / Ouest-France) : formes de saut communes aux trois titres, différences purement temporelles, confirmées par le chevauchement d'agenda et le contrôle positif Mediapart. <strong>→ Ensuite :</strong> rédiger les sections du mémoire (corpus, choix du vocabulaire, fit et détection des pics, PCA) et refaire les fits sur les 32 journaux dans le corpus unifié.</span>
       </li>
     </ol>
   </div>
@@ -634,6 +634,180 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
     </div>
   </div>
 
+  <div class="carte" id="tache-sync-schema-sudouest-1gram-2gram" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Vérifier que sud_ouest_1gram.db et son 2gram ont le schéma et l'état à jour</div>
+        <div class="carte-sous">ajoutée le 27 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-sync-schema-sudouest-1gram-2gram" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Aucune mémoire ne confirme que <span style="font-family: var(--mono)">sud_ouest_1gram.db</span> a le même schéma que les autres bases n-grammes, ni qu'elle a été resynchronisée après le rattrapage du trou de couverture (arrêt 01/02/2018) traité mi-août. Piste : comparer le schéma à <span style="font-family: var(--mono)">lemonde_ngram.db</span> et la date la plus récente à celle du CSV source, resynchroniser en incrémental si besoin.</p>
+    <div class="panneau-prompt" id="prompt-sync-schema-sudouest-1gram-2gram" hidden>
+      <pre>Vérifier que sud_ouest_1gram.db (et sud_ouest_2gram.db si elle existe) sur le serveur ont un schéma identique aux autres bases n-grammes (token/unigram/bigram/trigram/total_*, date INTEGER YYYYMMDD, WITHOUT ROWID — voir lemonde_ngram.db comme référence), et que leurs données sont à jour.
+
+Contexte : Sud Ouest fait partie des 36 bases *_1gram.db construites les 18-20/08/2026 par le script générique scripts/ngram_1gram.py / ngram_2gram.py. Le CSV sud_ouest.csv avait un trou de couverture (arrêt net au 01/02/2018) diagnostiqué et corrigé mi-août (tâche couverture-telegramme-sudouest, faite le 22/08) — les URLs manquantes ont été rattrapées côté récolte, mais rien ne garantit que la base 1gram/2gram a été resynchronisée après coup.
+
+À faire, dans l&#x27;ordre :
+1. Comparer le schéma exact de sud_ouest_1gram.db (et 2gram si elle existe) à celui de lemonde_ngram.db (sqlite3 en lecture seule, .schema — jamais de scan complet).
+2. Vérifier la date la plus récente dans total_unigram (et total_bigram) de la base Sud Ouest, et la comparer à la date du dernier article dans data/csv/sud_ouest.csv.
+3. S&#x27;il y a un écart, resynchroniser en MAJ incrémentale (pas de reconstruction complète) selon la logique déjà en place pour les autres médias.
+4. Vérifier au passage si d&#x27;autres médias rattrapés récemment (le_telegramme, la_depeche) ont le même besoin de resynchronisation.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-sync-schema-sudouest-1gram-2gram">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-benchmark-vocab-unifie-vs-corpus" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Benchmarker vocabulaire unifié vs vocabulaire par corpus</div>
+        <div class="carte-sous">ajoutée le 27 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-benchmark-vocab-unifie-vs-corpus" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Le vocabulaire unifié (<span style="font-family: var(--mono)">vocabulaire.db</span> partagé) simplifie l'agrégation multi-médias mais impose des builds séquentiels et tout le vocabulaire en RAM — sans qu'on ait jamais mesuré ce compromis. Piste : benchmark construction + requêtes des deux variantes en dossier isolé, et courbe de croissance du vocabulaire unifié à chaque média ajouté.</p>
+    <div class="panneau-prompt" id="prompt-benchmark-vocab-unifie-vs-corpus" hidden>
+      <pre>Benchmarker la différence entre le vocabulaire unifié actuel et un vocabulaire par corpus pour les bases n-grammes.
+
+État actuel (voir l'en-tête de scripts/ngram_1gram.py) : data/corpus/vocabulaire.db porte l'unique table token(id, word) partagée par toutes les bases &lt;media&gt;_1gram.db / _2gram.db — un mot a le même id partout, chaque base garde une copie locale de token restreinte à ses mots. Conséquences : agrégation multi-médias = simple SUM(n) GROUP BY w1 sur les ids ; mais constructions obligatoirement SÉQUENTIELLES (écriture concurrente du vocabulaire interdite) et vocabulaire complet monté en RAM (dict ids) à chaque build, même pour un petit média.
+
+À mesurer, dans un dossier isolé, sans toucher aux bases ni au vocabulaire existants :
+1. Construction : reconstruire un petit et un moyen média dans les deux variantes (vocab partagé vs vocab propre à la base) et comparer temps de build, RAM du dict ids, taille des bases produites. Estimer aussi ce que débloquerait la parallélisation des builds si chaque base avait son vocabulaire.
+2. Requêtes : sur les deux variantes, chronométrer une agrégation multi-médias type corpus unifié (somme des comptes d'un mot sur plusieurs bases) — avec ids partagés (jointure directe sur w1) vs ids par corpus (passage par le mot, jointure sur token.word de chaque base). EXPLAIN QUERY PLAN + chrono, requêtes indexées seulement.
+3. Croissance du vocabulaire unifié : tracer la taille du vocabulaire partagé à chaque média ajouté, dans l'ordre des builds. Sans rejouer les builds : chaque base &lt;media&gt;_1gram.db garde une copie locale de token (ses propres mots), donc le nombre de mots NOUVEAUX apportés par chaque média se reconstitue par différence, dans l'ordre de construction (les logs de build « +N mots au vocabulaire » servent de contre-vérification). Regarder si la courbe sature ou continue de gonfler — et donc combien pèsera le dict ids en RAM quand on ajoutera les prochains médias.
+4. Conclure par un petit tableau comparatif : ce que coûte le vocab unifié à la construction, ce qu'il fait gagner aux requêtes, et si le compromis actuel reste le bon (notamment face au chantier MAJ quotidienne où les builds séquentiels peuvent devenir un goulot).
+
+Les bases vivent sur les serveurs (gallica pour le stock, gram pour le calcul) : me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-benchmark-vocab-unifie-vs-corpus">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-pics-unifies-calendrier-commun" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Pics du corpus unifié comme calendrier commun des fenêtres par média</div>
+        <div class="carte-sous">ajoutée le 27 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-pics-unifies-calendrier-commun" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">L'appariement par triplets (tolérance, centrage référence/médiane) peut être court-circuité : détecter les pics une seule fois sur le corpus unifié, puis extraire la fenêtre de chaque média autour de ces dates communes et lancer l'AFM dessus — aucun média privilégié. À trancher : union 36 médias ou restreinte aux titres comparés, grille 3j ou journalière.</p>
+    <div class="panneau-prompt" id="prompt-pics-unifies-calendrier-commun" hidden>
+      <pre>Remplacer l&#x27;appariement par triplets par un calendrier commun : détecter les pics UNE seule fois sur le corpus unifié, puis extraire pour chaque média sa fenêtre autour de ces dates communes (même mot, même date), et lancer l&#x27;AFM dessus. Plus de tolérance d&#x27;appariement ni de choix de centrage (référence vs médiane, cf fenetres_triplets.py) : la date vient de l&#x27;union, aucun média n&#x27;est privilégié.
+
+Existant à réutiliser :
+- rupture/masse_unifie.py a construit vocab_series_unifie.npz sur gallica (36 médias sommés, vocabulaire top-10000 du Monde par graphie exacte) ; toute la chaîne agreger -&gt; pics_masse -&gt; nms -&gt; fenetres_masse tourne dessus avec media=unifie.
+- La détection unifiée a déjà tourné en blocs de 3 jours : campagne_pca/data/pics_unifie/pics_unifie3j.csv et pics_unifie3j_nms.csv (seuils 4 et 6 dans campagne_pca/rapport_qmd/corpus_unifie.qmd).
+- L&#x27;AFM multi-médias est dans rupture/pca_trio.py (fenêtres des médias empilées côte à côte) ; l&#x27;appariement actuel est rupture/fenetres_triplets.py — c&#x27;est lui qu&#x27;on court-circuite.
+
+À faire, dans l&#x27;ordre :
+1. Trancher avec Corto le périmètre de la série unifiée pour la détection : l&#x27;union 36 médias existante (dominée par les gros titres), ou une union restreinte aux titres comparés (trio généraliste Monde/Figaro/Échos, puis trio Mediapart) — ce second cas demande de relancer masse_unifie.py sur un sous-ensemble, donc sur gallica.
+2. Trancher aussi la grille : réutiliser les pics 3j existants, ou détecter en journalier (le tempo ne se lit qu&#x27;au grain journalier, cf rapport_trio).
+3. Écrire l&#x27;extraction des fenêtres par média autour de chaque pic unifié (même mot, même date, ±demi), en réutilisant la logique de fenetres_triplets/fenetres_masse ; gérer la couverture inégale (Le Figaro s&#x27;arrête en 03/2024, Les Échos en 10/2024) en écartant les fenêtres sans données.
+4. Lancer l&#x27;AFM sur ces fenêtres et confronter au trio existant : retrouver les formes communes (corrélations entre segments du rapport trio) et comparer le nombre de fenêtres obtenues aux 3 358 triplets appariés — c&#x27;est la validation de la méthode.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-pics-unifies-calendrier-commun">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-figure4-composante2" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Refaire la figure 4 de Bouchaud sur la composante 2 (4 tranches)</div>
+        <div class="carte-sous">ajoutée le 27 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-figure4-composante2" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Le rapport corpus unifié reproduit la figure 4 de Bouchaud et al. (profils moyens par tranche de projection) sur la composante 1, en 5 tranches. Piste : refaire le chunk <span style="font-family: var(--mono)">fig-tranches</span> avec <span style="font-family: var(--mono)">proj[:, 1]</span> et 4 tranches (quantiles 0/10/50/90/100 %), interpréter les extrêmes, livrer en petit .qmd → PDF.</p>
+    <div class="panneau-prompt" id="prompt-figure4-composante2" hidden>
+      <pre>Refaire la figure « tranches » du rapport corpus unifié (reproduction de la figure 4 de l&#x27;article de Bouchaud et al., Riding Wavelets — 2404.16467v1.pdf à la racine du dépôt) mais sur la composante 2 de la PCA, avec 4 tranches au lieu de 5.
+
+Le modèle est le chunk fig-tranches de campagne_pca/rapport_qmd/corpus_unifie.qmd (~ligne 296) : les fenêtres du corpus unifié (blocs de 3 jours, ±15) sont projetées sur la composante 1, découpées en 5 tranches par les quantiles 10/35/65/90 % de la projection, et on trace le profil moyen des fenêtres de chaque tranche (seuils 4 et 6 superposés, effectifs en titre). Les chunks de chargement et la PCA sont dans ce même .qmd (données : campagne_pca/data/pics_unifie/, tout est dans le dépôt).
+
+À faire :
+1. Reprendre la même mécanique avec proj[:, 1] (composante 2) et 4 tranches — proposition : quantiles 0/10/50/90/100 %, pour garder les extrêmes à 10 % comme dans l&#x27;article ; demander à Corto si un autre découpage est préféré.
+2. Regarder les mots/dates des fenêtres extrêmes des deux bouts pour proposer une lecture de ce que sépare la composante 2 (comme la lecture anticipés/exogènes de la composante 1).
+3. Livrer en petit .qmd d&#x27;une page compilé en PDF (figure calculée dans le chunk, pas de png sur disque ; PDF dans campagne_pca/rapport_pdf/), sauf si Corto préfère l&#x27;ajouter à corpus_unifie.qmd.
+
+Tout tourne en local, rien à lancer sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-figure4-composante2">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-archetypes-composante4" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Liste de 12 archétypes pour la composante 4 du corpus unifié</div>
+        <div class="carte-sous">ajoutée le 27 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-archetypes-composante4" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Le rapport corpus unifié montre 3 archétypes par composante (chunk <span style="font-family: var(--mono)">fig-archetypes</span>) ; il en faut 12 pour la seule composante 4, pour cerner ce qu'elle capture. Piste : top 12 des fenêtres éligibles par <span style="font-family: var(--mono)">proj[:, 3]</span>, contextes via les co-sauts, planche 4×3 en petit .qmd → PDF.</p>
+    <div class="panneau-prompt" id="prompt-archetypes-composante4" hidden>
+      <pre>Faire une liste de 12 archétypes pour la composante 4 de la PCA du corpus unifié (campagne_pca/rapport_qmd/corpus_unifie.qmd).
+
+Le modèle est le chunk fig-archetypes de ce .qmd (~ligne 214) : au seuil 6, fenêtres éligibles restreintes aux mots de campagne_pca/data/pics_unifie/vocab600.txt, tri par projection décroissante sur la composante (ici proj[:, 3]), et pour chaque archétype le tracé de la fenêtre z-scorée avec en titre le mot, la date, les occurrences au pic et un contexte entre parenthèses. Les chunks de chargement et la PCA sont dans le même .qmd (données dans campagne_pca/data/pics_unifie/, tout est dans le dépôt).
+
+À faire :
+1. Extraire les 12 fenêtres éligibles les plus alignées sur la composante 4 (au lieu de 3).
+2. Identifier le contexte de chaque archétype comme dans le rapport : regarder les mots les plus surprenants de pics_unifie3j.csv à la même date (co-sauts du même bloc), et poser l&#x27;étiquette à la main — signaler ceux qui restent ambigus plutôt que d&#x27;inventer.
+3. Livrer en planche 4×3 (même gabarit que fig-archetypes) dans un petit .qmd d&#x27;une page compilé en PDF (figure calculée dans le chunk, pas de png sur disque ; PDF dans campagne_pca/rapport_pdf/), sauf si Corto préfère une simple liste en discussion ou un ajout à corpus_unifie.qmd.
+
+Tout tourne en local, rien à lancer sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-archetypes-composante4">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-graphes-bouchaud" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Graphes à préparer pour Bouchaud — échéance : semaine du 31 août</div>
+        <div class="carte-sous">ajoutée le 27 août · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-graphes-bouchaud" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Tâche-chapeau avec échéance : traiter les deux tâches notées le 27 août — figure 4 refaite sur la composante 2 (4 tranches) et planche des 12 archétypes de la composante 4 — et compiler les PDF avant le rendez-vous de la semaine du 31 août.</p>
+    <div class="panneau-prompt" id="prompt-graphes-bouchaud" hidden>
+      <pre>Préparer les graphes pour Bouchaud — échéance : semaine du 31 août 2026.
+
+Ce sont les deux tâches notées le 27/08 dans taches.md, à traiter avec leurs prompts respectifs :
+1. figure4-composante2 — refaire la figure « tranches » (figure 4 de l&#x27;article Riding Wavelets) sur la composante 2, avec 4 tranches.
+2. archetypes-composante4 — planche 4x3 des 12 archétypes de la composante 4.
+
+Les deux partent de campagne_pca/rapport_qmd/corpus_unifie.qmd (chunks fig-tranches et fig-archetypes) et des données de campagne_pca/data/pics_unifie/ ; livrables en .qmd -&gt; PDF dans campagne_pca/rapport_pdf/. Demander à Corto s&#x27;il veut d&#x27;autres graphes en plus de ces deux-là pour le rendez-vous.
+
+Tout tourne en local, rien à lancer sur le serveur. Une fois fait, marquer les trois tâches comme faites (/task).</pre>
+      <button class="btn-copier" data-copie="prompt-graphes-bouchaud">Copier</button>
+    </div>
+  </div>
+
+  <div class="carte" id="tache-sync-api-agora-gallicagram" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Synchroniser l'API Agora avec l'API de Gallicagram</div>
+        <div class="carte-sous">ajoutée le 29 août · ngram-press</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-sync-api-agora-gallicagram" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">L'API Agora (app_agora.py) est inspirée de Gallicagram mais son interface (routes, paramètres, format de sortie) n'a jamais été alignée sur la vraie API publique : établir la spec Gallicagram, lister les écarts, puis adapter app_agora.py, le swagger et le front.</p>
+    <div class="panneau-prompt" id="prompt-sync-api-agora-gallicagram" hidden>
+      <pre>Objectif : synchroniser l'interface de l'API Agora (dépôt ngram-press, api/app_agora.py) avec celle de l'API publique de Gallicagram (guni, sur shiny.ens-paris-saclay.fr — le même serveur que gram), pour que les deux soient interchangeables côté client.
+
+État actuel d'Agora : trois routes — / (état), /corpus (liste des corpus), /query (paramètres corpus, mot [1 à 2 tokens, plusieurs mots séparés par des virgules], from, to, resolution annee/mois/jour ; sortie CSV gram,annee,mois[,jour],n,total). Le swagger est dans web/public/agora_swagger.yml et le front consomme /corpus et /query via web/src/lib/api.ts.
+
+À faire, dans l'ordre :
+1. Établir la spec exacte de l'API Gallicagram : routes disponibles (query, contain, associated, joker…), noms et formats des paramètres, format de sortie. Sources : la doc ou l'article Gallicagram, ou des appels de test à l'API depuis le serveur — jamais de curl/WebFetch sur le Mac.
+2. Comparer avec Agora et me présenter la liste des écarts (routes manquantes, noms de paramètres différents, format de sortie) AVANT de coder — je tranche ce qu'on aligne et ce qu'on garde tel quel.
+3. Adapter api/app_agora.py, et mettre à jour agora_swagger.yml et web/src/lib/api.ts si des noms changent.
+4. Vérifier par des requêtes de test que les mêmes appels donnent le même format de réponse sur les deux API.
+
+Me demander avant de lancer ou de redéployer quoi que ce soit sur gram.</pre>
+      <button class="btn-copier" data-copie="prompt-sync-api-agora-gallicagram">Copier</button>
+    </div>
+  </div>
+
   <h2>Runs sur le serveur</h2>
   <div class="grille">
     <div class="carte">
@@ -647,13 +821,13 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
       <dl class="infos">
         <dt>Commande</dt><dd>python -u -m scraping.pipeline (via lancer.sh)</dd>
         <dt>Médias</dt><dd>31 suivis · file non vide sur 3 d'entre eux</dd>
-        <dt>Articles</dt><dd><span data-articles>16 342 122</span> · <span data-file>5,3 M</span> en file</dd>
+        <dt>Articles</dt><dd><span data-articles>17 131 692</span> · <span data-file>4,8 M</span> en file</dd>
       </dl>
       <div class="journal">ouest_france    etat=2 (succès en 1.2s)
 la_depeche      etat=2 (succès en 1.1s)
 le_telegramme   etat=2 (succès en 4.5s)
 sud_ouest       etat=2 (succès en 4.5s)</div>
-      <p class="desc">Une boucle par média (sessions de 4 h 30, relance auto ; la boucle courante tourne depuis 2 h). urls.db écrit en continu (14 h 30). Le pane ne montre que des succès, sur les trois médias qu'il reste à rattraper.</p>
+      <p class="desc">Une boucle par média (sessions de 4 h 30, relance auto ; la boucle courante tourne depuis 1 h 30). urls.db écrit en continu (14 h 01). Le pane ne montre que des succès, sur les trois médias qu'il reste à rattraper.</p>
     </div>
 
     <div class="carte">
@@ -667,7 +841,7 @@ sud_ouest       etat=2 (succès en 4.5s)</div>
       <dl class="infos">
         <dt>Commande</dt><dd>scripts/cron_sitemaps.sh (flock)</dd>
         <dt>Cycle</dt><dd>sitemap_news → verser_nouveaux (~18 min)</dd>
-        <dt>Dernier</dt><dd>08 h 31 — 1 605 URLs versées</dd>
+        <dt>Dernier</dt><dd>08 h 29 — 1 540 URLs versées</dd>
       </dl>
       <p class="desc">Lit les sitemaps news des médias et n'insère que les URLs manquantes (INSERT OR IGNORE sur l'index unique), en écartant désormais les non-articles (<span style="font-family: var(--mono)">est_non_article</span>). Le corpus se met à jour tout seul chaque jour.</p>
     </div>
@@ -708,7 +882,7 @@ sud_ouest       etat=2 (succès en 4.5s)</div>
   <div class="disque">
     <span class="disque-txt">Disque /data</span>
     <div class="disque-barre" role="img" aria-label="Disque /data rempli à 41 %"><div class="disque-rempli" id="disque-rempli" style="width:41%"></div></div>
-    <span class="disque-txt" id="disque-detail"><strong>2 To</strong> / 5 To (41 %) — 3 To libres</span>
+    <span class="disque-txt" id="disque-detail"><strong>2,1 To</strong> / 5 To (41 %) — 3 To libres</span>
   </div>
 
   <h2>Bases de données</h2>
@@ -718,7 +892,7 @@ sud_ouest       etat=2 (succès en 4.5s)</div>
         <tr><th>Base</th><th class="num">Taille</th><th>Dernière écriture</th><th>État</th></tr>
       </thead>
       <tbody>
-        <tr><td>urls.db (scraping)</td><td class="num" data-taille="urls.db">13 Go</td><td data-ecriture="urls.db">aujourd'hui 15 h 09</td><td><span class="pastille p-cours">Écrit en continu</span></td></tr>
+        <tr><td>urls.db (scraping)</td><td class="num" data-taille="urls.db">13 Go</td><td data-ecriture="urls.db">aujourd'hui 13 h 57</td><td><span class="pastille p-cours">Écrit en continu</span></td></tr>
         <tr><td>lemonde_ngram.db</td><td class="num" data-taille="lemonde_ngram.db">59 Go</td><td data-ecriture="lemonde_ngram.db">3 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
         <tr><td>lefigaro_ngram.db</td><td class="num" data-taille="lefigaro_ngram.db">10 Go</td><td data-ecriture="lefigaro_ngram.db">2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>
         <tr><td>lesechos_ngram.db</td><td class="num" data-taille="lesechos_ngram.db">8,2 Go</td><td data-ecriture="lesechos_ngram.db">2 juillet</td><td><span class="pastille p-neutre">Stable</span></td></tr>

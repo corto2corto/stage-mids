@@ -404,6 +404,181 @@ Vérifier à la fin qu'une construction lancée depuis ngram-press donne exactem
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## sync-schema-sudouest-1gram-2gram — Vérifier que sud_ouest_1gram.db et son 2gram ont le schéma et l'état à jour des autres bases
+
+- Ajoutée : 2026-08-27
+- Branche : main
+
+**Contexte** : question posée le 27/08 sur le schéma de `sud_ouest_1gram.db` — aucune mémoire ne confirme que Sud Ouest est aligné avec les bases `lemonde`/`lefigaro`/`lesechos_ngram.db` (schéma `token`/`unigram`/`bigram`/`trigram`/`total_*`, date INTEGER YYYYMMDD, WITHOUT ROWID). Sud Ouest fait partie des 36 bases `*_1gram.db` construites les 18-20/08/2026 par le script générique `scripts/ngram_1gram.py`/`ngram_2gram.py` (tâche `bases-ngram-13-medias`, faite), et a eu un trou de couverture (arrêt 01/02/2018) corrigé par la tâche `couverture-telegramme-sudouest` — à vérifier que la base 1gram/2gram a bien été resynchronisée après le rattrapage des URLs manquantes.
+
+**Piste envisagée** : comparer le schéma de `sud_ouest_1gram.db` (et `sud_ouest_2gram.db` si elle existe) à celui de `lemonde_ngram.db` via `.schema` en lecture seule, puis vérifier la date la plus récente couverte par rapport aux derniers articles capturés dans `sud_ouest.csv` — resynchroniser (MAJ incrémentale, pas de reconstruction) si un écart est trouvé.
+
+**Prompt** :
+
+```
+Vérifier que sud_ouest_1gram.db (et sud_ouest_2gram.db si elle existe) sur le serveur ont un schéma identique aux autres bases n-grammes (token/unigram/bigram/trigram/total_*, date INTEGER YYYYMMDD, WITHOUT ROWID — voir lemonde_ngram.db comme référence), et que leurs données sont à jour.
+
+Contexte : Sud Ouest fait partie des 36 bases *_1gram.db construites les 18-20/08/2026 par le script générique scripts/ngram_1gram.py / ngram_2gram.py. Le CSV sud_ouest.csv avait un trou de couverture (arrêt net au 01/02/2018) diagnostiqué et corrigé mi-août (tâche couverture-telegramme-sudouest, faite le 22/08) — les URLs manquantes ont été rattrapées côté récolte, mais rien ne garantit que la base 1gram/2gram a été resynchronisée après coup.
+
+À faire, dans l'ordre :
+1. Comparer le schéma exact de sud_ouest_1gram.db (et 2gram si elle existe) à celui de lemonde_ngram.db (sqlite3 en lecture seule, .schema — jamais de scan complet).
+2. Vérifier la date la plus récente dans total_unigram (et total_bigram) de la base Sud Ouest, et la comparer à la date du dernier article dans data/csv/sud_ouest.csv.
+3. S'il y a un écart, resynchroniser en MAJ incrémentale (pas de reconstruction complète) selon la logique déjà en place pour les autres médias.
+4. Vérifier au passage si d'autres médias rattrapés récemment (le_telegramme, la_depeche) ont le même besoin de resynchronisation.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
+## benchmark-vocab-unifie-vs-corpus — Benchmarker vocabulaire unifié vs vocabulaire par corpus
+
+- Ajoutée : 2026-08-27
+- Branche : main
+
+**Contexte** : les bases 1gram/2gram sont construites avec un vocabulaire **unifié** (`data/corpus/vocabulaire.db`, table `token` partagée : un mot = un id identique dans toutes les bases, cf. en-tête de `scripts/ngram_1gram.py`). Avantages actés : l'agrégation multi-médias se réduit à un `SUM(n) GROUP BY w1` sur les ids. Coûts : les constructions doivent rester **séquentielles** (jamais deux builds en parallèle sur le vocabulaire partagé), et chaque build monte tout le vocabulaire partagé en RAM même pour un petit média. L'alternative — un vocabulaire **par corpus** (chaque base a ses propres ids) — n'a jamais été mesurée : on ne sait pas ce qu'on paye ni ce qu'on gagnerait réellement.
+
+**Piste envisagée** : un benchmark chiffré des deux approches sur les deux versants — construction (temps, RAM du dict `ids`, possibilité de paralléliser les builds avec un vocab par corpus) et requêtes (coût d'une agrégation multi-médias avec ids partagés vs jointures par le mot quand les ids diffèrent). Mesurer sur un petit et un moyen média, sans toucher aux bases existantes (dossier isolé). En complément : tracer la **courbe de croissance du vocabulaire unifié** média après média (les logs de build affichent déjà « +N mots au vocabulaire » par chunk, et chaque base garde sa copie locale de `token` — de quoi reconstituer l'historique sans rejouer les builds), pour voir si elle sature ou continue de gonfler à chaque ajout.
+
+**Prompt** :
+
+```
+Benchmarker la différence entre le vocabulaire unifié actuel et un vocabulaire par corpus pour les bases n-grammes.
+
+État actuel (voir l'en-tête de scripts/ngram_1gram.py) : data/corpus/vocabulaire.db porte l'unique table token(id, word) partagée par toutes les bases <media>_1gram.db / _2gram.db — un mot a le même id partout, chaque base garde une copie locale de token restreinte à ses mots. Conséquences : agrégation multi-médias = simple SUM(n) GROUP BY w1 sur les ids ; mais constructions obligatoirement SÉQUENTIELLES (écriture concurrente du vocabulaire interdite) et vocabulaire complet monté en RAM (dict ids) à chaque build, même pour un petit média.
+
+À mesurer, dans un dossier isolé, sans toucher aux bases ni au vocabulaire existants :
+1. Construction : reconstruire un petit et un moyen média dans les deux variantes (vocab partagé vs vocab propre à la base) et comparer temps de build, RAM du dict ids, taille des bases produites. Estimer aussi ce que débloquerait la parallélisation des builds si chaque base avait son vocabulaire.
+2. Requêtes : sur les deux variantes, chronométrer une agrégation multi-médias type corpus unifié (somme des comptes d'un mot sur plusieurs bases) — avec ids partagés (jointure directe sur w1) vs ids par corpus (passage par le mot, jointure sur token.word de chaque base). EXPLAIN QUERY PLAN + chrono, requêtes indexées seulement.
+3. Croissance du vocabulaire unifié : tracer la taille du vocabulaire partagé à chaque média ajouté, dans l'ordre des builds. Sans rejouer les builds : chaque base <media>_1gram.db garde une copie locale de token (ses propres mots), donc le nombre de mots NOUVEAUX apportés par chaque média se reconstitue par différence, dans l'ordre de construction (les logs de build « +N mots au vocabulaire » servent de contre-vérification). Regarder si la courbe sature ou continue de gonfler — et donc combien pèsera le dict ids en RAM quand on ajoutera les prochains médias.
+4. Conclure par un petit tableau comparatif : ce que coûte le vocab unifié à la construction, ce qu'il fait gagner aux requêtes, et si le compromis actuel reste le bon (notamment face au chantier MAJ quotidienne où les builds séquentiels peuvent devenir un goulot).
+
+Les bases vivent sur les serveurs (gallica pour le stock, gram pour le calcul) : me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
+## pics-unifies-calendrier-commun — Pics du corpus unifié comme calendrier commun des fenêtres par média
+
+- Ajoutée : 2026-08-27
+- Branche : main
+
+**Contexte** : la campagne jointe par triplets (livrée 23/08, `campagne_pca/trio/rapport_trio.qmd`) apparie les pics détectés séparément dans chaque média (`rupture/fenetres_triplets.py` : tolérance de rapprochement, choix du centre référence ou médiane) — avec le piège documenté du centrage sur le pic le plus fort et un média de référence potentiellement privilégié. Or le corpus unifié (`rupture/masse_unifie.py`, 19-20/08) donne une série unique où détecter les pics une seule fois : la date commune vient de l'union, plus besoin d'appariement. La détection unifiée a déjà tourné en blocs de 3 jours (`campagne_pca/data/pics_unifie/pics_unifie3j.csv` + `_nms`, rapport `campagne_pca/rapport_qmd/corpus_unifie.qmd`).
+
+**Piste envisagée** : utiliser les pics du corpus unifié comme calendrier commun — pour chaque pic (mot, date), extraire la fenêtre de chaque média autour de cette même date et lancer l'AFM comme `rupture/pca_trio.py`, sans appariement. À trancher : périmètre de la série unifiée servant à la détection (union 36 médias existante vs union restreinte aux titres comparés) et grille (3j existant vs journalier).
+
+**Prompt** :
+
+```
+Remplacer l'appariement par triplets par un calendrier commun : détecter les pics UNE seule fois sur le corpus unifié, puis extraire pour chaque média sa fenêtre autour de ces dates communes (même mot, même date), et lancer l'AFM dessus. Plus de tolérance d'appariement ni de choix de centrage (référence vs médiane, cf fenetres_triplets.py) : la date vient de l'union, aucun média n'est privilégié.
+
+Existant à réutiliser :
+- rupture/masse_unifie.py a construit vocab_series_unifie.npz sur gallica (36 médias sommés, vocabulaire top-10000 du Monde par graphie exacte) ; toute la chaîne agreger -> pics_masse -> nms -> fenetres_masse tourne dessus avec media=unifie.
+- La détection unifiée a déjà tourné en blocs de 3 jours : campagne_pca/data/pics_unifie/pics_unifie3j.csv et pics_unifie3j_nms.csv (seuils 4 et 6 dans campagne_pca/rapport_qmd/corpus_unifie.qmd).
+- L'AFM multi-médias est dans rupture/pca_trio.py (fenêtres des médias empilées côte à côte) ; l'appariement actuel est rupture/fenetres_triplets.py — c'est lui qu'on court-circuite.
+
+À faire, dans l'ordre :
+1. Trancher avec Corto le périmètre de la série unifiée pour la détection : l'union 36 médias existante (dominée par les gros titres), ou une union restreinte aux titres comparés (trio généraliste Monde/Figaro/Échos, puis trio Mediapart) — ce second cas demande de relancer masse_unifie.py sur un sous-ensemble, donc sur gallica.
+2. Trancher aussi la grille : réutiliser les pics 3j existants, ou détecter en journalier (le tempo ne se lit qu'au grain journalier, cf rapport_trio).
+3. Écrire l'extraction des fenêtres par média autour de chaque pic unifié (même mot, même date, ±demi), en réutilisant la logique de fenetres_triplets/fenetres_masse ; gérer la couverture inégale (Le Figaro s'arrête en 03/2024, Les Échos en 10/2024) en écartant les fenêtres sans données.
+4. Lancer l'AFM sur ces fenêtres et confronter au trio existant : retrouver les formes communes (corrélations entre segments du rapport trio) et comparer le nombre de fenêtres obtenues aux 3 358 triplets appariés — c'est la validation de la méthode.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
+## figure4-composante2 — Refaire la figure 4 de Bouchaud sur la composante 2 (4 tranches)
+
+- Ajoutée : 2026-08-27
+- Branche : main
+
+**Contexte** : le rapport du corpus unifié (`campagne_pca/rapport_qmd/corpus_unifie.qmd`, chunk `fig-tranches`) reproduit la figure 4 de l'article de Bouchaud et al. (*Riding Wavelets*, `2404.16467v1.pdf`) : les fenêtres sont projetées sur la composante 1, découpées en 5 tranches par les quantiles 10/35/65/90 % de la projection, et on trace le profil moyen de chaque tranche — c'est ce qui a permis la lecture sauts anticipés / endogènes / exogènes. Corto veut la même figure sur la **composante 2**, avec **4 tranches** au lieu de 5.
+
+**Piste envisagée** : reprendre la mécanique du chunk `fig-tranches` avec `proj[:, 1]` et 4 tranches (proposition : quantiles 0/10/50/90/100 % pour garder les extrêmes à 10 % comme dans l'article), regarder les fenêtres extrêmes pour interpréter ce que sépare la composante 2, livrer en petit .qmd d'une page → PDF.
+
+**Prompt** :
+
+```
+Refaire la figure « tranches » du rapport corpus unifié (reproduction de la figure 4 de l'article de Bouchaud et al., Riding Wavelets — 2404.16467v1.pdf à la racine du dépôt) mais sur la composante 2 de la PCA, avec 4 tranches au lieu de 5.
+
+Le modèle est le chunk fig-tranches de campagne_pca/rapport_qmd/corpus_unifie.qmd (~ligne 296) : les fenêtres du corpus unifié (blocs de 3 jours, ±15) sont projetées sur la composante 1, découpées en 5 tranches par les quantiles 10/35/65/90 % de la projection, et on trace le profil moyen des fenêtres de chaque tranche (seuils 4 et 6 superposés, effectifs en titre). Les chunks de chargement et la PCA sont dans ce même .qmd (données : campagne_pca/data/pics_unifie/, tout est dans le dépôt).
+
+À faire :
+1. Reprendre la même mécanique avec proj[:, 1] (composante 2) et 4 tranches — proposition : quantiles 0/10/50/90/100 %, pour garder les extrêmes à 10 % comme dans l'article ; demander à Corto si un autre découpage est préféré.
+2. Regarder les mots/dates des fenêtres extrêmes des deux bouts pour proposer une lecture de ce que sépare la composante 2 (comme la lecture anticipés/exogènes de la composante 1).
+3. Livrer en petit .qmd d'une page compilé en PDF (figure calculée dans le chunk, pas de png sur disque ; PDF dans campagne_pca/rapport_pdf/), sauf si Corto préfère l'ajouter à corpus_unifie.qmd.
+
+Tout tourne en local, rien à lancer sur le serveur.
+```
+
+## archetypes-composante4 — Liste de 12 archétypes pour la composante 4 du corpus unifié
+
+- Ajoutée : 2026-08-27
+- Branche : main
+
+**Contexte** : le rapport du corpus unifié (`campagne_pca/rapport_qmd/corpus_unifie.qmd`, chunk `fig-archetypes`) montre les 3 fenêtres réelles les plus alignées sur chacune des 4 premières composantes (seuil 6, mots restreints à `vocab600.txt`, contextes posés à la main via les co-sauts du même bloc). Corto veut une liste de **12 archétypes** pour la seule **composante 4**, pour mieux cerner ce qu'elle capture.
+
+**Piste envisagée** : reprendre la mécanique du chunk `fig-archetypes` — tri des fenêtres éligibles par `proj[:, 3]` décroissant, top 12 — avec pour chaque archétype mot, date, occurrences au pic et contexte identifié via les co-sauts (`pics_unifie3j.csv` à la même date). Livrer en planche 4×3 dans un petit .qmd → PDF.
+
+**Prompt** :
+
+```
+Faire une liste de 12 archétypes pour la composante 4 de la PCA du corpus unifié (campagne_pca/rapport_qmd/corpus_unifie.qmd).
+
+Le modèle est le chunk fig-archetypes de ce .qmd (~ligne 214) : au seuil 6, fenêtres éligibles restreintes aux mots de campagne_pca/data/pics_unifie/vocab600.txt, tri par projection décroissante sur la composante (ici proj[:, 3]), et pour chaque archétype le tracé de la fenêtre z-scorée avec en titre le mot, la date, les occurrences au pic et un contexte entre parenthèses. Les chunks de chargement et la PCA sont dans le même .qmd (données dans campagne_pca/data/pics_unifie/, tout est dans le dépôt).
+
+À faire :
+1. Extraire les 12 fenêtres éligibles les plus alignées sur la composante 4 (au lieu de 3).
+2. Identifier le contexte de chaque archétype comme dans le rapport : regarder les mots les plus surprenants de pics_unifie3j.csv à la même date (co-sauts du même bloc), et poser l'étiquette à la main — signaler ceux qui restent ambigus plutôt que d'inventer.
+3. Livrer en planche 4×3 (même gabarit que fig-archetypes) dans un petit .qmd d'une page compilé en PDF (figure calculée dans le chunk, pas de png sur disque ; PDF dans campagne_pca/rapport_pdf/), sauf si Corto préfère une simple liste en discussion ou un ajout à corpus_unifie.qmd.
+
+Tout tourne en local, rien à lancer sur le serveur.
+```
+
+## graphes-bouchaud — Graphes à préparer pour Bouchaud (échéance : semaine du 31 août)
+
+- Ajoutée : 2026-08-27
+- Branche : main
+- **Échéance : semaine du 31 août 2026**
+
+**Contexte** : Corto doit présenter des graphes à Bouchaud la semaine prochaine. Les deux tâches notées le même jour en font partie : [figure4-composante2] (figure 4 de l'article refaite sur la composante 2, 4 tranches) et [archetypes-composante4] (planche des 12 archétypes de la composante 4). Tout part du rapport `campagne_pca/rapport_qmd/corpus_unifie.qmd` et des données du dépôt.
+
+**Piste envisagée** : traiter les deux tâches ci-dessus et compiler les PDF (dans `campagne_pca/rapport_pdf/`) avant le rendez-vous.
+
+**Prompt** :
+
+```
+Préparer les graphes pour Bouchaud — échéance : semaine du 31 août 2026.
+
+Ce sont les deux tâches notées le 27/08 dans taches.md, à traiter avec leurs prompts respectifs :
+1. figure4-composante2 — refaire la figure « tranches » (figure 4 de l'article Riding Wavelets) sur la composante 2, avec 4 tranches.
+2. archetypes-composante4 — planche 4x3 des 12 archétypes de la composante 4.
+
+Les deux partent de campagne_pca/rapport_qmd/corpus_unifie.qmd (chunks fig-tranches et fig-archetypes) et des données de campagne_pca/data/pics_unifie/ ; livrables en .qmd -> PDF dans campagne_pca/rapport_pdf/. Demander à Corto s'il veut d'autres graphes en plus de ces deux-là pour le rendez-vous.
+
+Tout tourne en local, rien à lancer sur le serveur. Une fois fait, marquer les trois tâches comme faites (/task).
+```
+
+## sync-api-agora-gallicagram — Synchroniser l'API Agora avec l'API de Gallicagram
+
+- Ajoutée : 2026-08-29
+- Branche : main (dépôt ngram-press)
+
+**Contexte** : l'API Agora (`ngram-press/api/app_agora.py`, servie sur gram) est écrite « à la manière de Gallicagram » mais son interface n'a jamais été alignée sur la vraie API publique de Gallicagram (guni, hébergée sur le même serveur shiny de l'ENS). Agora expose aujourd'hui trois routes : `/` (état), `/corpus` (liste des corpus) et `/query` (paramètres `corpus`, `mot` — 1 à 2 tokens, plusieurs mots séparés par des virgules —, `from`, `to`, `resolution` annee/mois/jour ; sortie CSV `gram,annee,mois[,jour],n,total`). Rien ne garantit que les noms de paramètres, les routes et le format de sortie correspondent à ceux de Gallicagram — donc les clients écrits pour l'une ne marchent pas forcément sur l'autre.
+
+**Piste envisagée** : établir la spec exacte de l'API Gallicagram (routes, paramètres, format de sortie), lister les écarts avec Agora, puis adapter `app_agora.py` — en mettant à jour le swagger (`web/public/agora_swagger.yml`) et le front (`web/src/lib/api.ts`) si des noms changent.
+
+**Prompt** :
+
+```
+Objectif : synchroniser l'interface de l'API Agora (dépôt ngram-press, api/app_agora.py) avec celle de l'API publique de Gallicagram (guni, sur shiny.ens-paris-saclay.fr — le même serveur que gram), pour que les deux soient interchangeables côté client.
+
+État actuel d'Agora : trois routes — / (état), /corpus (liste des corpus), /query (paramètres corpus, mot [1 à 2 tokens, plusieurs mots séparés par des virgules], from, to, resolution annee/mois/jour ; sortie CSV gram,annee,mois[,jour],n,total). Le swagger est dans web/public/agora_swagger.yml et le front consomme /corpus et /query via web/src/lib/api.ts.
+
+À faire, dans l'ordre :
+1. Établir la spec exacte de l'API Gallicagram : routes disponibles (query, contain, associated, joker…), noms et formats des paramètres, format de sortie. Sources : la doc ou l'article Gallicagram, ou des appels de test à l'API depuis le serveur — jamais de curl/WebFetch sur le Mac.
+2. Comparer avec Agora et me présenter la liste des écarts (routes manquantes, noms de paramètres différents, format de sortie) AVANT de coder — je tranche ce qu'on aligne et ce qu'on garde tel quel.
+3. Adapter api/app_agora.py, et mettre à jour agora_swagger.yml et web/src/lib/api.ts si des noms changent.
+4. Vérifier par des requêtes de test que les mêmes appels donnent le même format de réponse sur les deux API.
+
+Me demander avant de lancer ou de redéployer quoi que ce soit sur gram.
+```
+
 ## Faites
 
 ## bases-ngram-13-medias — Construire les bases n-grammes des 13 autres médias
