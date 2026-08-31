@@ -808,6 +808,30 @@ Me demander avant de lancer ou de redéployer quoi que ce soit sur gram.</pre>
     </div>
   </div>
 
+  <div class="carte" id="tache-elisions-series-nulles" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Élisions dans les requêtes : « pouvoir achat » renvoie une série nulle trompeuse</div>
+        <div class="carte-sous">ajoutée le 30 août · ngram-press/main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-elisions-series-nulles" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Les bases sont bonnes (« pouvoir d&#x27;achat » = 2 tokens, l&#x27;apostrophe fait partie des mots), mais la formulation sans élision renvoie une série nulle sans indice — un LLM via le MCP conclut à tort que l&#x27;expression est absente. Piste : documenter les élisions dans <span style="font-family: var(--mono)">query_frequency</span> (api/mcp_agora.py) et ajouter un champ <span style="font-family: var(--mono)">suggestion</span> quand un gram ressort tout à zéro.</p>
+    <div class="panneau-prompt" id="prompt-elisions-series-nulles" hidden>
+      <pre>Problème constaté sur le MCP Agora en production : la requête mot=pouvoir achat renvoie une série entièrement nulle, alors que mot=pouvoir d&#x27;achat renvoie des milliers d&#x27;occurrences. Cause : l&#x27;apostrophe fait partie des tokens (regex _MOT, scripts/tokenisation.py:36), « d&#x27;achat » est UN token — les bases sont donc correctes, c&#x27;est la formulation sans élision qui ne matche rien, silencieusement. Un LLM qui interroge le MCP conclut à tort que l&#x27;expression est absente du corpus.
+
+À faire, sans toucher aux bases ni à la tokenisation :
+1. Dans api/mcp_agora.py, compléter la description de query_frequency : les élisions font partie des mots (écrire « pouvoir d&#x27;achat », pas « pouvoir achat »).
+2. Toujours dans query_frequency : quand toutes les lignes d&#x27;un gram sont à n=0, ajouter à la réponse un champ suggestion expliquant les causes probables (élision manquante — proposer les variantes d&#x27;/l&#x27;/qu&#x27; du dernier mot —, faute d&#x27;orthographe, ou mot réellement absent).
+3. Répercuter une phrase sur les élisions dans la section « Tokenisation » de web/public/agora_swagger.yml.
+4. Vérifier en local (base factice ou tunnel) : mot=pouvoir achat doit renvoyer la série nulle AVEC la suggestion, mot=pouvoir d&#x27;achat les vraies valeurs.
+5. Pour déployer : git pull sur gram puis relance du MCP (tmux agora_mcp, venv_agora, python -m api.mcp_agora).
+
+Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-elisions-series-nulles">Copier</button>
+    </div>
+  </div>
+
   <h2>Runs sur le serveur</h2>
   <div class="grille">
     <div class="carte">

@@ -1,6 +1,6 @@
 ---
-title: "Analyse factorielle multiple des sauts — Le Monde, Le Figaro, Ouest-France"
-subtitle: "Fenêtres des trois médias concaténées autour d'une date commune — configurations journalière (±20 j) et blocs de 3 j (±15)"
+title: "PCA multiple (Monde, Figaro, Ouest-France)"
+subtitle: "PCA sur des fenêtres concaténées autour d'une date commune"
 lang: fr
 format:
   typst:
@@ -28,7 +28,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path("../..").resolve()))
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+from plottable import Table, ColumnDefinition
 
 import campagne_pca.scripts.figures_lib as lib
 from rupture.pca import pca
@@ -38,6 +40,7 @@ COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860", "ouestfrance": "#c8102e
             "mediapart": "#fc392b"}
 NOMS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro", "ouestfrance": "Ouest-France",
         "mediapart": "Mediapart"}
+esp = lambda x: f"{int(x):,}".replace(",", " ")
 
 
 def charger(tag):
@@ -60,193 +63,15 @@ def pca_seuil(c, seuil):
     return comp * signes[:, None], var, proj * signes, m
 
 
-CFG = {t: charger(t) for t in ("j20", "3j15")}
+# centrage sur la MEDIANE des trois dates de pic (fichiers _med)
+CFG = {"j20": charger("j20_med"), "3j15": charger("3j15_med")}
 RES = {(t, s): pca_seuil(CFG[t], s) for t in CFG for s in (4, 6)}
 
 
 def k50(var):
     return (int(np.searchsorted(np.cumsum(var), 0.5)) + 1) / len(var)
-```
 
-```{=typst}
-#set par(justify: true)
-#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
-#show figure: set block(above: 1.2em, below: 1.4em)
-#show heading.where(level: 2): set text(size: 13pt)
-```
 
-Ce document présente les résultats de l'**analyse factorielle multiple** (AFM) des
-sauts, où une fenêtre n'est plus prise dans un seul journal mais dans **trois à la
-fois** — *Le Monde*, *Le Figaro* et *Ouest-France* —, autour d'une même date. Les
-trois segments sont normés séparément puis concaténés en un seul vecteur (@fig-schema),
-de sorte qu'aucun média ne pèse plus que les autres dans l'analyse. Les composantes
-décrivent alors la réaction conjointe des trois titres, et se lisent en deux temps :
-redécoupées par média, puis moyennées. La période étudiée est 2004-2024, dans deux
-configurations, journalière (±20 jours) et en blocs de 3 jours (±15 blocs).
-
-La construction des triplets est la suivante. Les pics sont détectés par média
-comme d'habitude (loi BNB en double fit, seuil de surprise 3). Pour chaque mot,
-les pics des trois médias sont mis en commun et parcourus par surprise
-décroissante : le plus fort devient la **référence** (surprise ≥ 4) et fixe la
-**date commune**, à condition que chacun des deux autres médias ait un pic — le
-**suiveur**, surprise ≥ 3 — à moins de **7 jours calendaires**. Un triplet retenu
-supprime les pics voisins à moins d'une largeur de fenêtre dans les trois médias
-(même logique gloutonne que le NMS, appliquée inter-médias) : les fenêtres d'un
-mot ne se recouvrent jamais. Les fenêtres sont extraites sur une **grille
-calendaire ancrée sur la date commune** — le bloc central est centré dessus, les
-trois segments sont donc strictement synchrones ; les blocs quasi vides
-(N < 10 % de la médiane journalière du média) sont interpolés linéairement, et
-une fenêtre est écartée si un bloc central manque ou si un segment dépasse 50 %
-de blocs interpolés. Chaque segment est enfin z-scoré sur lui-même, pour
-qu'aucun média n'écrase les autres dans l'analyse.
-
-```{python}
-#| label: fig-schema
-#| fig-align: center
-#| fig-cap: "Construction d'un vecteur de triplet, sur l'exemple du mot « cathédrale » autour du 16 avril 2019. En haut, la fenêtre de ±20 jours dans chacun des trois médias, en occurrences brutes ; en bas, les trois segments z-scorés puis mis bout à bout — le vecteur de 123 valeurs sur lequel porte l'analyse."
-ex = CFG["j20"]
-i_ex = int(np.where((ex["d"]["mot"] == "cathédrale")
-                    & (ex["d"]["date"] == 20190416))[0][0])
-L_ex = 2 * ex["demi"] + 1
-js_ex = np.arange(-ex["demi"], ex["demi"] + 1)
-
-fig = plt.figure(figsize=(9.6, 4.2))
-gs = fig.add_gridspec(2, 3, height_ratios=[1, 0.85], hspace=0.75, wspace=0.25)
-
-for k, md in enumerate(ex["medias"]):                 # fenetres brutes
-    ax = fig.add_subplot(gs[0, k])
-    ax.plot(js_ex, ex["d"]["fenetres"][i_ex, k], lw=1.3, color=COULEURS[md])
-    ax.axvline(0, lw=.6, color=lib.GRILLE)
-    ax.set_title(NOMS[md], fontsize=9.5, color=lib.ENCRE2)
-    ax.set_xticks([-20, 0, 20])
-    ax.set_xlabel("jours", fontsize=8)
-    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
-    ax.set_axisbelow(True)
-    if k == 0:
-        ax.set_ylabel("occurrences", fontsize=8.5)
-
-ax = fig.add_subplot(gs[1, :])                        # vecteur concatene
-for k, md in enumerate(ex["medias"]):
-    x = np.arange(k * L_ex, (k + 1) * L_ex)
-    ax.plot(x, ex["Z3"][i_ex, k], lw=1.3, color=COULEURS[md])
-    ax.axvline(k * L_ex + ex["demi"], lw=.6, color=lib.GRILLE)
-    ax.text(k * L_ex + ex["demi"], 1.02, NOMS[md], transform=ax.get_xaxis_transform(),
-            ha="center", va="bottom", fontsize=8.5, color=COULEURS[md])
-for b in (L_ex, 2 * L_ex):                            # frontieres de segment
-    ax.axvline(b - 0.5, lw=.9, color=lib.ENCRE2, ls=":")
-ax.axhline(0, lw=.6, color=lib.GRILLE)
-ax.set_xlim(-1, 3 * L_ex)
-ax.set_xlabel("les 123 coordonnées du vecteur (3 segments de 41 jours)", fontsize=8.5)
-ax.set_ylabel("z-score", fontsize=8.5)
-ax.set_xticks([])
-ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
-ax.set_axisbelow(True)
-plt.show()
-```
-
-## Corpus et appariement
-
-La période commune aux trois séries va de décembre 2004 à mars 2024, et le
-vocabulaire commun aux trois tops-10 000 compte **7 035 mots**. L'exigence du
-triple pic est très sélective : moins de 1 % des pics d'entrée survivent à
-l'appariement.
-
-```{python}
-#| fig-align: center
-import pandas as pd
-from plottable import Table, ColumnDefinition
-
-n_j20, n_3j = CFG["j20"]["n"], CFG["3j15"]["n"]
-esp = lambda x: f"{int(x):,}".replace(",", " ")
-bilan = pd.DataFrame(
-    {"mesure": ["Pics utilisables — Le Monde", "Pics utilisables — Le Figaro",
-                "Pics utilisables — Ouest-France", "Triplets appariés",
-                "Gardés par les filtres", "dont référence ≥ 5",
-                "dont référence ≥ 6", "Mots distincts", "Concentration (seuil 6)"],
-     "j": ["120 250", "112 180", "167 981", "3 672", esp(n_j20),
-           esp((CFG['j20']['s_ref'] >= 5).sum()),
-           esp((CFG['j20']['s_ref'] >= 6).sum()),
-           esp(len(np.unique(CFG['j20']['d']['mot']))),
-           f"{k50(RES[('j20', 6)][1]):.2f}".replace(".", ",")],
-     "b": ["46 425", "52 249", "79 129", "2 080", esp(n_3j),
-           esp((CFG['3j15']['s_ref'] >= 5).sum()),
-           esp((CFG['3j15']['s_ref'] >= 6).sum()),
-           esp(len(np.unique(CFG['3j15']['d']['mot']))),
-           f"{k50(RES[('3j15', 6)][1]):.2f}".replace(".", ",")]}).set_index("mesure")
-
-fig, ax = plt.subplots(figsize=(5.6, 3.1))
-ax.axis("off")
-tab = Table(
-    bilan, ax=ax,
-    column_definitions=[
-        ColumnDefinition("mesure", title="", width=2.1,
-                         textprops={"ha": "left", "fontsize": 9.5}),
-        ColumnDefinition("j", title="Journalier ±20 j", width=1.2,
-                         textprops={"ha": "right", "fontsize": 9.5}),
-        ColumnDefinition("b", title="Blocs de 3 j ±15", width=1.2,
-                         textprops={"ha": "right", "fontsize": 9.5}),
-    ],
-    row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
-    textprops={"fontsize": 9.5},
-)
-plt.show()
-```
-
-Trois observations sur l'appariement. D'abord, *Ouest-France* fournit la
-référence de **46 %** des triplets journaliers (1 542, contre 963 au *Figaro* et
-853 au *Monde*). Ce n'est pas une question d'antériorité mais de **débit** : son
-corpus quotidien est le plus gros des trois (219 000 tokens médians par jour,
-contre 86 000 au *Monde*), donc à événement égal la surprise statistique y est
-plus élevée. Ensuite, les décalages des suiveurs montrent qui est en avance :
-médiane à 0 partout — la synchronisation au jour près domine —, mais *Le Figaro*
-est le plus précoce (35 % d'avance stricte contre 28 % de retard en journalier ;
-médiane à −1 jour en blocs de 3 j), tandis que *Le Monde* et *Ouest-France*
-penchent vers le retard. Le cas du *Monde* s'explique au moins en partie par sa
-datation d'édition au lendemain. Enfin, les filtres écartent peu de fenêtres
-(314 en journalier, 150 en 3 j), essentiellement les années creuses
-d'*Ouest-France* (2005-2008), où les blocs quasi vides sont nombreux.
-
-```{python}
-#| fig-align: center
-#| fig-cap: "Décalage du pic de chaque média par rapport à la date commune, quand il n'est pas la référence (configuration journalière, 2 505 / 2 395 / 1 816 suiveurs)."
-c = CFG["j20"]
-ref, dec = c["d"]["ref"], c["d"]["decalage"]
-fig, axes = plt.subplots(1, 3, figsize=(9.6, 2.4), sharey=True)
-for i, (ax, md) in enumerate(zip(axes, c["medias"])):
-    suiveur = dec[ref != i, i]
-    val, eff = np.unique(suiveur, return_counts=True)
-    ax.bar(val, eff / len(suiveur) * 100, color=COULEURS[md], width=0.8)
-    ax.set_title(NOMS[md], fontsize=9.5, color=lib.ENCRE2)
-    ax.set_xticks([-7, 0, 7])
-    ax.set_xlabel("jours après la date commune")
-    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
-    ax.set_axisbelow(True)
-axes[0].set_ylabel("part des suiveurs (%)")
-fig.tight_layout()
-plt.show()
-```
-
-La **synchronie** entre journaux se mesure directement sur les fenêtres : pour
-chaque triplet, on corrèle les segments z-scorés deux à deux. Les médianes
-dessinent une hiérarchie stable aux deux grilles : *Le Monde*-*Le Figaro* sont
-les plus proches (0,62 en journalier, 0,82 en 3 j), *Le
-Figaro*-*Ouest-France* suivent (0,58 et 0,78), *Le Monde*-*Ouest-France* ferment
-la marche (0,53 et 0,74). Les deux nationaux se ressemblent plus entre eux
-qu'aucun ne ressemble au régional — et tout le monde se ressemble beaucoup plus
-au grain de 3 jours, signe que l'essentiel du désaccord tient dans un décalage
-de un à deux jours.
-
-## Configuration journalière (±20 jours)
-
-La PCA tourne sur les 2 211 vecteurs de 123 valeurs (3 × 41) à référence ≥ 6 ;
-au seuil 4, les composantes sont les mêmes à l'ordre près et la variance varie
-de moins d'un point. La concentration (0,13) est nettement meilleure que celle
-des PCA par média au même grain : la redondance des trois segments structure
-davantage les fenêtres.
-
-```{python}
-#| fig-align: center
-#| fig-cap: "Les six premières composantes de l'AFM journalière (référence ≥ 6), redécoupées en trois segments — un par média."
 def planche(tag, seuil, mode):
     c = CFG[tag]
     comp, var, _, _ = RES[(tag, seuil)]
@@ -275,198 +100,235 @@ def planche(tag, seuil, mode):
         ax.set_xlabel(f"{unite} autour de la date commune")
     fig.tight_layout()
     plt.show()
+```
 
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 1): set text(size: 14.5pt)
+#show heading.where(level: 2): set text(size: 12.5pt)
+```
+
+Ce document présente les résultats de l'**analyse factorielle multiple** (AFM) des
+sauts, où une fenêtre n'est plus prise dans un seul journal mais dans **trois à la
+fois** — *Le Monde*, *Le Figaro* et *Ouest-France* —, autour d'une même date. Les
+trois fenêtres sont récupérées séparément puis concaténées en un seul vecteur,
+et chaque segment est z-scoré sur lui-même pour qu'aucun média
+n'écrase les autres dans l'analyse. La période étudiée va de décembre 2004 à
+mars 2024, le vocabulaire choisi est les 10 000 mots les plus fréquents du
+*Monde*, dans deux configurations : journalière et en blocs de
+3 jours.
+
+# I. Un pic exigé dans chaque journal — l'analyse des triplets
+
+Dans cette première partie, on fait le choix le plus strict : une fenêtre n'est
+retenue que si **chaque journal a un pic associé**. La construction de ces
+triplets est la suivante. Les pics sont détectés par média comme d'habitude (loi BNB en double fit, seuil de surprise 3). Pour chaque mot, un pic est retenu si les deux autres médias possèdent un même pic à moins de **7 jours calendaires**.
+La **date commune** qui centre les trois fenêtres
+est la **médiane des trois dates de pic**.
+
+## Corpus et appariement
+
+Environ 10 % des pics sont présents dans les trois journaux avec une surprise de 4 (configuration choisie), et plus on augmente la surprise, plus les événements ont tendance à être couverts par plusieurs journaux.
+L'application de l'algorithme NMS et la construction de triplets permettent de retenir finalement 3 672 triplets en journalier et 2 080 en blocs de 3 jours.
+
+On a tracé pour chaque journal l'histogramme des décalages, c'est-à-dire le
+nombre de jours qui sépare son pic de la date commune. Les trois distributions
+sont centrées sur 0 : la médiane est nulle partout et le pic tombe exactement
+sur la date commune dans 60 à 66 % des cas selon le titre. Les trois journaux
+couvrent donc les mêmes événements en même temps, au jour près.
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Décalage des pics autour de la date commune (journalier, 3 339 triplets)."
+c = CFG["j20"]
+dec = c["d"]["decalage"]
+fig, axes = plt.subplots(1, 3, figsize=(9.6, 2.4), sharey=True)
+for i, (ax, md) in enumerate(zip(axes, c["medias"])):
+    val, eff = np.unique(dec[:, i], return_counts=True)
+    ax.bar(val, eff / c["n"] * 100, color=COULEURS[md], width=0.8)
+    ax.set_title(NOMS[md], fontsize=9.5, color=lib.ENCRE2)
+    ax.set_xticks([-7, 0, 7])
+    ax.set_xlabel("jours après la date commune")
+    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+    ax.set_axisbelow(True)
+axes[0].set_ylabel("part des triplets (%)")
+fig.tight_layout()
+plt.show()
+```
+
+## Configuration journalière (±20 jours)
+
+La PCA tourne sur les 2 197 vecteurs de 123 valeurs (3 × 41) dont le pic le plus
+fort atteint une surprise de 6 ; au seuil 4, les composantes sont les mêmes à
+l'ordre près et la variance varie de moins d'un point. La concentration (0,14)
+est nettement meilleure que celle des PCA par média au même grain : la
+redondance des trois segments structure davantage les fenêtres.
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes journalières (pic principal ≥ 6), un segment par média."
 planche("j20", 6, "medias")
 ```
 
 Les quatre premières composantes sont des **formes communes** : la corrélation
-moyenne entre leurs trois segments vaut 0,97, 0,94, 0,98 et 0,88. On y retrouve
-le catalogue des campagnes par média — montée progressive puis chute après le
-pic (PC1), creux la veille puis niveau durablement plus haut (PC2), pic confiné
-au jour du saut (PC3), creux encadrants avec pic central (PC4) — mais répété à
-l'identique par les trois journaux, ce qui confirme que ces formes sont des
-propriétés de l'événement, pas d'un titre.
+moyenne entre leurs trois segments vaut 0,98, 0,98, 0,98 et 0,95 — les trois
+courbes se superposent presque parfaitement. On y retrouve le catalogue des
+campagnes par média — pic au jour du saut, contrecoup le lendemain puis palier
+durablement plus haut (PC1), montée progressive sur deux semaines puis chute
+nette (PC2), pic confiné au seul jour du saut (PC3), creux au jour du saut suivi
+de rebonds à une et deux semaines (PC4) — mais répété à l'identique par les
+trois journaux, ce qui confirme que ces formes sont des propriétés de
+l'événement, pas d'un titre.
 
 La **composante 5 est d'une autre nature** : la corrélation entre ses segments
-tombe à −0,11. Au jour J, le segment d'*Ouest-France* plonge quand ceux du
-*Monde* et du *Figaro* montent — un axe de divergence entre presse nationale et
-presse régionale, invisible par construction dans une PCA par média, qui pèse
-3,8 % de la variance. Le cycle 2 examine ce que recouvre réellement cet axe.
+tombe à −0,16. Au jour du saut, le segment d'*Ouest-France* plonge quand celui du
+*Monde* monte, après une bosse la veille — un axe de **désynchronisation**,
+invisible par construction dans une PCA par média, qui pèse 3,6 % de la variance.
+Ce n'est pas un axe de dominance déguisé : sa projection ne corrèle qu'à 0,20
+avec l'identité du journal au pic le plus fort, et pas du tout au déséquilibre
+de surprise entre titres (0,01) — mais à **+0,45 avec l'ampleur du décalage
+d'*Ouest-France*** et à −0,29 avec celui du *Monde*. Elle sépare donc les
+événements où le régional est à contretemps des nationaux de ceux où c'est *Le
+Monde* qui l'est, et elle survit au choix du centre (cosinus 0,92 avec son
+homologue au centrage pic dominant). La divergence que l'AFM met au jour est
+temporelle, pas formelle.
 
 ```{python}
 #| fig-align: center
-#| fig-cap: "Les mêmes six composantes, moyennées sur les trois segments (forme commune)."
+#| fig-cap: "Les mêmes composantes, moyennées sur les trois segments (forme commune)."
 planche("j20", 6, "communes")
 ```
 
 Les mots qui projettent le plus haut sur ces axes sont les grands événements
-nationaux : les soirs d'élection pour la composante 3 (« législatives » en juin
-2012 et 2017, « municipale » en mars 2008), l'automne 2010 des retraites pour la
-composante 1 (« retraites », « réforme »), le confinement de mars 2020 pour la
-composante 2 (« personnels », « partiel »).
+nationaux : le confinement de mars 2020 pour la composante 1 (« essentiels »,
+« personnels », « fermées »), les campagnes annoncées pour la composante 2
+(« législatives » en juin 2022 et 2017, l'automne 2010 des retraites), les soirs
+de résultats pour la composante 3 (« suffrages », « second », « obtient »).
 
 ## Configuration en blocs de 3 jours (±15 blocs)
 
 ```{python}
 #| fig-align: center
-#| fig-cap: "Les six premières composantes de l'AFM en blocs de 3 jours (référence ≥ 6), un segment par média."
+#| fig-cap: "Les six premières composantes en blocs de 3 jours (pic principal ≥ 6), un segment par média."
 planche("3j15", 6, "medias")
 ```
 
 Au grain de 3 jours, **la divergence disparaît** : les six premières composantes
 sont toutes des formes communes (corrélations entre segments de 0,81 à 0,99), et
-il faut descendre à la composante 10 (1,6 % de variance) pour trouver un axe de
+il faut descendre à la composante 9 (2,4 % de variance) pour trouver un axe de
 contraste entre médias. Le catalogue est celui des campagnes précédentes —
-changement de niveau avant/après (PC1), montée progressive puis chute brutale
-(PC2), régime haut qui se referme sur le pic (PC3), pic isolé du bloc central
-(PC4), creux encadrants (PC5), oscillation rapide (PC6) — porté ici par
-1 390 fenêtres à référence ≥ 6, avec une concentration de 0,11.
+changement de niveau bas avant / haut après (PC1), montée progressive puis
+retombée durable (PC2), creux profond au bloc du saut suivi d'un régime haut
+(PC3), oscillation courte autour du saut (PC4), creux encadrants (PC5),
+oscillation rapide (PC6) — porté ici par 1 390 fenêtres, avec une concentration
+de 0,11.
 
 ```{python}
 #| fig-align: center
-#| fig-cap: "Les mêmes six composantes, moyennées sur les trois segments (forme commune)."
+#| fig-cap: "Les mêmes composantes, moyennées sur les trois segments (forme commune)."
 planche("3j15", 6, "communes")
 ```
 
-La comparaison des deux grilles résume le résultat central de ce premier cycle :
-les trois journaux réagissent aux mêmes événements avec **les mêmes formes**, et
-leurs désaccords tiennent presque entièrement dans **un décalage de un à deux
-jours** — visible au grain journalier (composante 5, corrélations médianes
-autour de 0,55), gommé dès qu'on agrège par blocs de 3 jours (corrélations
-autour de 0,78, plus aucune composante de contraste dans les dix premières).
+La comparaison des deux grilles résume le résultat central : les trois journaux
+réagissent aux mêmes événements avec **les mêmes formes**, et leurs désaccords
+tiennent presque entièrement dans **un décalage de un à deux jours** — visible au
+grain journalier (composante 5, corrélations médianes autour de 0,58), gommé dès
+qu'on agrège par blocs de 3 jours (corrélations autour de 0,79, aucune composante
+de contraste dans les huit premières).
 
-Paramètres de ce premier cycle : tolérance d'appariement 7 jours calendaires,
-référence ≥ 4 à la construction (analyses présentées à ≥ 6 : 2 211 et
-1 390 fenêtres, effectifs suffisants sans descendre le seuil), suiveurs ≥ 3,
-grille calendaire ancrée, interpolation plafonnée à 50 % par segment.
+Paramètres retenus : date commune à la médiane des trois pics, tolérance
+d'appariement 7 jours calendaires, pic le plus fort ≥ 4 à la construction
+(analyses présentées à ≥ 6 : 2 197 et 1 390 fenêtres, effectifs suffisants sans
+descendre le seuil), pics d'accompagnement ≥ 3, grille calendaire ancrée,
+interpolation plafonnée à 50 % par segment.
 
-## Cycle 2 — robustesse : tolérance et grille
+## Robustesse — tolérance et seuil d'accompagnement
 
-Deux vérifications s'imposaient : la sensibilité à la **tolérance**
-d'appariement (rejouée à 3 et 14 jours) et le contrôle en **grille de
-parution** (l'option historique, où chaque média est lu sur ses propres jours
-de parution), pour s'assurer que le passage au calendaire ancré ne fabrique pas
-les résultats. Les composantes de chaque variante sont appariées à celles du
-cycle 1 par le cosinus des vecteurs de 123 valeurs.
+Deux réglages de l'appariement méritaient une vérification : la **tolérance**
+(le nombre de jours en deçà duquel deux pics du même mot sont considérés comme
+le même événement — 7 jours ici), rejouée à 3 et 14 jours, et le **seuil des
+pics d'accompagnement**, porté de 3 à 4. Les trois variantes sont reconstruites
+avec le même centrage à la médiane, puis comparées à l'analyse principale sur le
+**sous-espace** des six premières composantes : pour chaque composante d'une
+variante, on mesure la part de sa norme qui se reprojette sur les six
+composantes de référence.
 
 ```{python}
 #| fig-align: center
+#| fig-cap: "Robustesse aux réglages d'appariement (variantes au centrage médiane, pic principal ≥ 6)."
 def variante(tag, seuil=6):
     c = charger(tag)
     m = c["s_ref"] >= seuil
-    Z = c["Z3"][m].reshape(int(m.sum()), -1)
-    comp, var, proj = pca(Z)
+    comp, var, proj = pca(c["Z3"][m].reshape(int(m.sum()), -1))
     signes = np.sign((proj ** 3).sum(0)); signes[signes == 0] = 1
-    of = (c["d"]["ref"][m] == 2).astype(float)
-    r_ref = [abs(float(np.corrcoef(proj[:, k] * signes[k], of)[0, 1]))
-             for k in range(8)]
-    return comp * signes[:, None], var, r_ref, int(m.sum())
+    return comp * signes[:, None], var, int(m.sum())
 
-lignes = []
-base6, _, r_base, n_base = variante("j20")
-for tag, nom in (("j20", "tolérance 7 j (réf.)"), ("j20_t3", "tolérance 3 j"),
-                 ("j20_t14", "tolérance 14 j"), ("j20_par", "grille parution")):
-    comp, var, r_ref, n = variante(tag)
-    cos = np.abs(comp[:8] @ base6[:8].T)
-    cmin = min(cos[k].max() for k in range(6))
+base6, vbase, nbase = variante("j20_med")
+lignes = [["réglages retenus (repère)", esp(nbase),
+           f"{k50(vbase):.2f}".replace(".", ","), "—"]]
+for tag, nom in (("j20_t3_med", "tolérance 3 j"),
+                 ("j20_t14_med", "tolérance 14 j"),
+                 ("j20_sv4_med", "accompagnement ≥ 4")):
+    comp, var, n = variante(tag)
+    rec = min(float(np.linalg.norm(comp[k] @ base6[:6].T)) for k in range(6))
     lignes.append([nom, esp(n), f"{k50(var):.2f}".replace(".", ","),
-                   "—" if tag == "j20" else f"{cmin:.2f}".replace(".", ","),
-                   f"{max(r_ref):.2f}".replace(".", ",")])
-rob = pd.DataFrame(lignes, columns=["variante", "n", "K50", "cos", "rref"]
+                   f"{rec:.2f}".replace(".", ",")])
+rob = pd.DataFrame(lignes, columns=["variante", "n", "K50", "rec"]
                    ).set_index("variante")
-fig, ax = plt.subplots(figsize=(7.2, 1.9))
+fig, ax = plt.subplots(figsize=(6.6, 2.1))
 ax.axis("off")
 Table(rob, ax=ax,
       column_definitions=[
-          ColumnDefinition("variante", title="", width=1.6,
+          ColumnDefinition("variante", title="", width=1.8,
                            textprops={"ha": "left", "fontsize": 9.5}),
-          ColumnDefinition("n", title="Fenêtres ≥ 6", width=1.0,
+          ColumnDefinition("n", title="Fenêtres ≥ 6", width=1.1,
                            textprops={"ha": "right", "fontsize": 9.5}),
-          ColumnDefinition("K50", title="K50", width=0.7,
+          ColumnDefinition("K50", title="K50", width=0.8,
                            textprops={"ha": "right", "fontsize": 9.5}),
-          ColumnDefinition("cos", title="Cos. min PC1-6", width=1.1,
-                           textprops={"ha": "right", "fontsize": 9.5}),
-          ColumnDefinition("rref", title="Axe réf. max", width=1.0,
+          ColumnDefinition("rec", title="Recouvrement min", width=1.3,
                            textprops={"ha": "right", "fontsize": 9.5})],
       row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
       textprops={"fontsize": 9.5})
 plt.show()
 ```
 
-Le verdict est net sur les trois fronts. **Tolérance** : les triplets sont
-emboîtés (98 % de ceux construits à 3 jours se retrouvent à 7 jours, 97 % de
-ceux à 7 jours se retrouvent à 14) et les six premières composantes se
-correspondent une à une (cosinus 0,87 à 0,98 pour 3 jours, 0,71 à 0,98 pour
-14) ; les effectifs bougent de ±15 %, la concentration de ±0,01. **Grille** :
-en parution, les correspondances sont parfaites (cosinus 1,00 sur les sept
-premières composantes, en journalier comme en 3 j) — le calendaire ancré ne
-fabrique rien, il ne fait que synchroniser proprement les segments.
+Ni l'un ni l'autre ne change les résultats. Sur la **tolérance**, les triplets
+sont emboîtés — 99 % des événements construits à 3 jours se retrouvent à 7 jours,
+97 % de ceux à 7 jours se retrouvent à 14 — et le sous-espace des six premières
+composantes est intact : chaque composante d'une variante s'y reprojette à 0,96
+ou plus. Les effectifs varient de −13 à +15 %, la concentration de ±0,01. Sur le
+**seuil d'accompagnement**, doubler l'exigence ne divise les effectifs que par
+2,4 (1 419 triplets, dont 1 211 exploitables), conserve le même sous-espace
+(recouvrement ≥ 0,95) et améliore même légèrement la concentration (0,11) : le
+seuil permissif n'introduit aucun biais de composition, et il est a fortiori
+inutile de descendre sous 3.
 
-**Ce que recouvre la composante 5.** La colonne « axe référence » mesure, pour
-chaque variante, la corrélation maximale entre une projection et l'identité du
-média de référence : elle vaut 0,57 à 0,61 dans toutes les variantes, toujours
-portée par la composante correspondant à la PC5 du cycle 1, quand aucune autre
-composante ne dépasse 0,28. Ses archétypes le confirment : ses 100 plus fortes
-projections positives sont toutes des triplets à référence nationale, ses 100
-plus fortes négatives sont à 97 % des triplets à référence *Ouest-France* — et
-les mots sont ordinaires (« cadeau », « sondage », « séries »), pas de grands
-événements. Cette composante n'est donc pas une opposition éditoriale : c'est
-un axe qui dit **quel média porte le pic le plus fort**, en partie mécanique
-puisque la date commune est précisément celle du pic le plus fort. Robuste, mais à ne pas
-surinterpréter — d'où le cycle 3 : recentrer les fenêtres sur la **médiane des
-trois dates de pic**, une règle qui ne privilégie aucun média, pour voir si un
-axe de divergence substantiel subsiste une fois l'asymétrie de construction
-retirée.
-
-## Cycle 3 — centre symétrique et suiveurs stricts
-
-Trois variantes construites en conséquence : les deux configurations recentrées
-sur la **médiane des trois dates de pic** (3 339 et 1 931 triplets gardés —
-mêmes appariements qu'au cycle 1, seul le centrage change), et la configuration
-journalière avec **suiveurs ≥ 4** au lieu de 3 (1 427 triplets, dont 1 216 à
-référence ≥ 6 : l'exigence double ne divise les effectifs que par 2,3, et il
-reste largement de quoi faire tourner la PCA — inutile, a fortiori, de
-descendre le seuil sous 3).
-
-**Le centre symétrique tranche la question du cycle 2.** Avec la médiane, la
-corrélation maximale entre une projection et l'identité du média de référence
-tombe de 0,61 à **0,20** en journalier (0,21 en 3 j) : l'axe « qui porte le pic
-le plus fort » était bien un artefact du centrage. Les formes communes, elles,
-traversent le recentrage sans broncher — les quatre premières composantes se
-retrouvent à cosinus 0,85-0,99, les premières et deuxièmes échangeant seulement
-leur rang.
-
-Mais la **direction de divergence survit** : une composante à segments
-anti-corrélés (similarité −0,16) persiste au cinquième rang (3,6 % de
-variance, cosinus 0,92 avec la PC5 du cycle 1), et le recentrage permet enfin
-de la lire. Sa projection n'est corrélée ni au déséquilibre de surprise entre
-titres (0,02), ni à l'identité de la référence : elle l'est à l'**ampleur du
-décalage temporel** — +0,45 avec le décalage absolu d'*Ouest-France*, −0,29
-avec celui du *Monde*. C'est un axe de **désynchronisation** : il sépare les
-événements où *Ouest-France* est à contretemps des nationaux de ceux où c'est
-*Le Monde* qui l'est. La divergence entre médias que l'AFM met au jour
-est donc temporelle, pas formelle — en cohérence avec tout le reste de l'étude.
-
-Le contrôle **suiveurs ≥ 4** ne change rien : composantes appariées une à une
-(cosinus 0,85 à 0,98), concentration légèrement meilleure (0,10), même axe au
-cinquième rang. Le seuil suiveur à 3 du cycle 1 n'introduisait donc aucun biais
-de composition.
+Une nuance de lecture : c'est bien le **sous-espace** qui est stable, pas l'ordre
+des composantes. Plusieurs d'entre elles sont quasi ex æquo en variance (7,4 % et
+6,7 % pour les deux premières), si bien qu'un changement de réglage les fait
+tourner l'une dans l'autre — à tolérance 3 jours, les deux premières s'échangent
+(la première composante de la variante correspond à 0,84 à la deuxième de
+référence) ; à accompagnement ≥ 4, ce sont les cinquième et sixième qui se
+mélangent. Ce sont des rotations à l'intérieur de paires dégénérées, pas des
+formes différentes.
 
 ## Chevauchement d'agenda — ce que le triple accord écartait
 
-Les trois cycles conditionnent sur l'accord : en n'étudiant que les triplets,
+Tout ce qui précède conditionne sur l'accord : en n'étudiant que les triplets,
 on ne garde que les événements où les trois journaux réagissent — moins de 1 %
 des pics. Ce chantier retourne la question et mesure les 99 % restants. Pour
 chaque paire ordonnée (A, B) parmi les quatre journaux (le trio plus
 *Mediapart*), on prend les **événements** de A — ses pics NMS à surprise ≥ 4,
 sur le vocabulaire commun à la paire et leur période commune — et on compte la
 part qui trouve un **écho** dans B : un pic du même mot (seuil 3) à moins de
-7 jours. C'est exactement le critère du suiveur des triplets, appliqué paire
+7 jours. C'est exactement le critère d'accompagnement des triplets, appliqué paire
 par paire, sans exiger le troisième journal.
 
 ```{python}
 #| fig-align: center
-#| fig-cap: "Part des événements de chaque journal (pics NMS, surprise ≥ 4) trouvant un écho chez les trois autres, par année (2009-2023, période où les quatre corpus sont pleins)."
+#| fig-cap: "Taux d'écho des événements de chaque journal chez les trois autres, par année (2009-2023)."
 app = pd.read_csv(D / "appariement_paires.csv")
 QUATRE = ["lemonde", "lefigaro", "ouestfrance", "mediapart"]
 
@@ -494,7 +356,7 @@ plt.show()
 
 ```{python}
 #| fig-align: center
-#| fig-cap: "Taux d'écho selon la force de l'événement (tranches de surprise du pic de A), toutes années confondues."
+#| fig-cap: "Taux d'écho selon la surprise de l'événement, toutes années confondues."
 tr = app.groupby(["media_a", "media_b", "tranche"]).sum(numeric_only=True).reset_index()
 tr["taux"] = tr["echo"] / tr["n"] * 100
 NOMS_TR = ["4-5", "5-6", "6-8", "8+"]
@@ -526,7 +388,7 @@ on tombe à 12-17 % ; avec *Mediapart*, à 6-10 %. Autrement dit, **78 à 95 % d
 ce qui fait pic dans un journal ne fait pas pic chez le voisin la même
 semaine**. Les formes de saut étaient identiques ; le choix des sujets, lui,
 est presque entièrement spécifique. La hiérarchie retrouve exactement celle de
-la synchronie du cycle 1 (*Monde*-*Figaro* devant, *Mediapart* loin derrière) —
+la synchronie mesurée plus haut (*Monde*-*Figaro* devant, *Mediapart* loin derrière) —
 deux mesures indépendantes qui racontent la même géographie des titres.
 
 **La force de l'événement change tout — sauf pour Mediapart.** Chez les
@@ -546,25 +408,324 @@ couvrir le même fait avec des vocabulaires différents, donc ces taux sont des
 planchers du chevauchement réel. Mais le biais est le même pour toutes les
 paires : le classement, les gradients et les évolutions restent interprétables.
 
-## Contrôle positif — Mediapart dans le trio
+```{=typst}
+#pagebreak()
+```
+
+# II. Sans obligation d'un pic dans chaque journal
+
+La partie précédente conditionnait sur le triple accord ; cette campagne lève la
+condition. **Tout pic de surprise ≥ 5**, dans n'importe lequel des trois
+journaux, devient une fenêtre : les deux autres médias sont extraits autour de
+la même date, qu'ils aient un pic ou non, et le vecteur analysé reste la
+concaténation des trois segments z-scorés, exactement comme dans la partie
+précédente. Le reste de la chaîne est inchangé — NMS inter-médias conservé (un
+événement repris par plusieurs titres ne compte qu'une fois), grille
+calendaire ancrée, interpolation — et l'écho des deux autres médias est
+enregistré quand il existe (pic du même mot, surprise ≥ 3, à moins de
+7 jours). Pour neutraliser les années creuses d'*Ouest-France* (2005-2008), le
+corpus est de plus **restreint aux dates à partir de 2009** : les filtres de
+construction avaient déjà écarté les fenêtres les plus interpolées, la
+restriction n'ôte que 763 fenêtres en journalier (684 en 3 j), ramène
+l'interpolation du segment *Ouest-France* à 1,6 % des blocs, et ne change
+aucune composante (cosinus ≥ 0,99 avec la version non restreinte). Le corpus
+change d'échelle : **29 308 fenêtres** en journalier et 14 512 en blocs de
+3 jours, neuf fois plus que la campagne appariée.
+
+```{python}
+#| fig-align: center
+def charger_solo(tag, depuis=20090101):
+    d = np.load(D / f"fenetres_trio_{tag}.npz")
+    m = d["date"] >= depuis
+    dd = {k: d[k][m] for k in ("fenetres", "mot", "date", "ref", "surprise",
+                               "decalage", "n_interp")}
+    n = int(m.sum())
+    F = dd["fenetres"].astype(np.float64)
+    mu, sd = F.mean(2, keepdims=True), F.std(2, keepdims=True)
+    Z3 = (F - mu) / np.where(sd == 0, 1, sd)
+    return dict(d=dd, n=n, Z3=Z3, demi=int(d["demi"]), pas=int(d["pas"]),
+                medias=[str(x) for x in d["medias"]],
+                s_ref=dd["surprise"][np.arange(n), dd["ref"]])
+
+
+for t in ("j20_solo", "3j15_solo"):
+    if t not in CFG:
+        CFG[t] = charger_solo(t)
+for cle in (("j20_solo", 5), ("3j15_solo", 5)):
+    if cle not in RES:
+        RES[cle] = pca_seuil(CFG[cle[0]], cle[1])
+
+n_echo = {t: (CFG[t]["d"]["surprise"] > 0).sum(axis=1)
+          for t in ("j20_solo", "3j15_solo")}
+
+
+def colonnes_bilan(t, ecartees, avant):
+    c = CFG[t]
+    pct = lambda k: f"{(n_echo[t] == k).mean() * 100:.0f} %"
+    of = (c["d"]["ref"] == 2).mean() * 100
+    return [esp(c["n"]), ecartees, avant, esp((c["s_ref"] >= 6).sum()),
+            f"{esp((n_echo[t] == 1).sum())} ({pct(1)})",
+            f"{esp((n_echo[t] == 2).sum())} ({pct(2)})",
+            f"{esp((n_echo[t] == 3).sum())} ({pct(3)})",
+            f"{of:.0f} %", esp(len(np.unique(c["d"]["mot"]))),
+            f"{k50(RES[(t, 5)][1]):.2f}".replace(".", ",")]
+
+
+bilan = pd.DataFrame(
+    {"mesure": ["Fenêtres retenues", "Écartées par les filtres",
+                "Écartées (avant 2009)", "dont référence ≥ 6",
+                "Aucun média en écho", "Un média en écho",
+                "Deux médias en écho", "Référence Ouest-France",
+                "Mots distincts", "Concentration (seuil 5)"],
+     "j": colonnes_bilan("j20_solo", "9 775", "763"),
+     "b": colonnes_bilan("3j15_solo", "4 425", "684")}).set_index("mesure")
+
+fig, ax = plt.subplots(figsize=(5.9, 3.4))
+ax.axis("off")
+Table(bilan, ax=ax,
+      column_definitions=[
+          ColumnDefinition("mesure", title="", width=1.9,
+                           textprops={"ha": "left", "fontsize": 9.5}),
+          ColumnDefinition("j", title="Journalier ±20 j", width=1.3,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("b", title="Blocs de 3 j ±15", width=1.3,
+                           textprops={"ha": "right", "fontsize": 9.5})],
+      row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
+      textprops={"fontsize": 9.5})
+plt.show()
+```
+
+Première lecture de ce bilan : **73 % des fenêtres sont des événements
+orphelins** — un pic de surprise ≥ 5 dans un journal, et pas le moindre pic
+≥ 3 à ±7 jours chez les deux autres. Le chiffre prolonge le chantier du
+chevauchement d'agenda (78 à 95 % d'événements sans écho selon la paire) et le
+confirme sur les gros pics.
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes sans appariement (journalier, surprise ≥ 5, 29 308 fenêtres), un segment par média."
+planche("j20_solo", 5, "medias")
+```
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les mêmes composantes, moyennées sur les trois segments (forme commune)."
+planche("j20_solo", 5, "communes")
+```
+
+**La PCA change de nature.** Les formes communes qui dominaient la campagne
+appariée ne tiennent plus les premiers rangs ; ils sont pris par des axes de
+**contraste entre médias**, bien visibles en comparant les deux planches — sur
+la première, les courbes se séparent ; sur la seconde, la moyenne des trois
+segments écrase les premières composantes au lieu d'en révéler la forme. La
+composante 1 (7,4 %) oppose les segments nationaux à celui d'*Ouest-France*
+(corrélation moyenne entre segments −0,32) : c'est l'axe de désynchronisation
+des triplets (cosinus 0,80 avec leur composante 5), devenu premier, et sa
+projection dit essentiellement qui porte le pic (corrélation 0,83 avec
+« référence = *Ouest-France* », 0,75 avec « référence = *Le Monde* »). La
+composante 2 (5,4 %) isole de la même façon *Le Figaro* (corrélation 0,79 avec
+son identité de référence), et la composante 3 (3,6 %) suit le nombre de médias
+en écho (0,51). Les formes communes des triplets ne reculent qu'aux rangs 3 à 6
+— pic et palier, montée puis chute, creux et rebonds (cosinus 0,62 à 0,74) —, à
+2,1-3,6 % de variance chacune, et la concentration se dégrade d'autant : K50 à
+0,28 contre 0,14 pour les triplets.
+
+Cette bascule est en partie **mécanique**, et il faut la lire comme telle : le
+média de référence a un pic par construction, tandis qu'un segment sans écho
+n'est que du bruit z-scoré. Sur un corpus aux trois quarts orphelin, la
+première chose que voit la PCA est donc la présence ou l'absence de réaction —
+pas la forme de la réaction. Le découpage par nombre d'échos le montre
+directement :
+
+```{python}
+#| fig-align: center
+def pca_masque(c, masque):
+    Z = c["Z3"][masque].reshape(int(masque.sum()), -1)
+    comp, var, proj = pca(Z)
+    signes = np.sign((proj ** 3).sum(0))
+    signes[signes == 0] = 1
+    return comp * signes[:, None], var
+
+
+def corr_seg_moy(v, L):
+    seg = v.reshape(3, L)
+    return np.mean([np.corrcoef(seg[a], seg[b])[0, 1]
+                    for a, b in ((0, 1), (0, 2), (1, 2))])
+
+
+def lignes_sous_ensembles(t, ttrio):
+    c = CFG[t]
+    L = 2 * c["demi"] + 1
+    base = RES[(ttrio, 6)][0]
+    out = []
+    for nom, k in (("aucun écho", 1), ("un écho", 2), ("deux échos", 3)):
+        m = n_echo[t] == k
+        comp, var = pca_masque(c, m)
+        cos = np.abs(base[:4] @ comp[:8].T)
+        cmin = min(cos[q].max() for q in range(4))
+        out.append([nom, esp(m.sum()), f"{k50(var):.2f}".replace(".", ","),
+                    f"{corr_seg_moy(comp[0], L):+.2f}".replace(".", ",")
+                    .replace("-", "−"),
+                    f"{cmin:.2f}".replace(".", ",")])
+    return out
+
+
+sous = pd.DataFrame(lignes_sous_ensembles("j20_solo", "j20"),
+                    columns=["s", "n", "K50", "r1", "cos"]).set_index("s")
+fig, ax = plt.subplots(figsize=(7.8, 1.7))
+ax.axis("off")
+Table(sous, ax=ax,
+      column_definitions=[
+          ColumnDefinition("s", title="", width=1.0,
+                           textprops={"ha": "left", "fontsize": 9.5}),
+          ColumnDefinition("n", title="Fenêtres", width=0.7,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("K50", title="K50", width=0.55,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("r1", title="Corr. segments PC1", width=1.5,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("cos", title="Cos. min formes triplets", width=1.8,
+                           textprops={"ha": "right", "fontsize": 9.5})],
+      row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
+      textprops={"fontsize": 9.5})
+plt.show()
+```
+
+Le gradient est net (configuration journalière ; la dernière colonne apparie
+les quatre formes communes des triplets aux huit premières composantes du
+sous-ensemble). Les 2 512 fenêtres à **deux échos** — les triplets, retrouvés
+ici à l'intérieur de la campagne élargie — reproduisent la campagne appariée :
+cosinus 0,89, K50 à 0,13, première composante à segments corrélés (+0,98). À
+l'autre bout, les 21 435 fenêtres **orphelines** donnent une PCA dominée par la
+divergence (PC1 et PC2 à segments anti-corrélés) où les formes communes ne se
+retrouvent que dégradées (cosinus 0,39), noyées dans le bruit des segments
+muets. Entre les deux, le sous-ensemble à un écho est intermédiaire (0,54).
+
+## Montée en surprise
+
+Reste à vérifier que ce constat n'est pas un artefact des « petits » pics :
+puisque le taux d'écho croît avec la force de l'événement, monter le seuil de
+surprise devrait enrichir le corpus en événements partagés — et peut-être
+faire remonter les formes communes. On rejoue donc la même PCA aux seuils 5 à
+10.
+
+```{python}
+#| fig-align: center
+def lignes_seuils(t, ttrio, seuils):
+    c = CFG[t]
+    L = 2 * c["demi"] + 1
+    base = RES[(ttrio, 6)][0]
+    out = []
+    for s in seuils:
+        m = c["s_ref"] >= s
+        comp, var = pca_masque(c, m)
+        cos = np.abs(base[:4] @ comp[:8].T)
+        cmin = min(cos[q].max() for q in range(4))
+        orph = (n_echo[t][m] == 1).mean() * 100
+        out.append([f"surprise ≥ {s}", esp(m.sum()), f"{orph:.0f} %",
+                    f"{k50(var):.2f}".replace(".", ","),
+                    f"{corr_seg_moy(comp[0], L):+.2f}".replace(".", ",")
+                    .replace("-", "−"),
+                    f"{cmin:.2f}".replace(".", ",")])
+    return out
+
+
+seuils = pd.DataFrame(lignes_seuils("j20_solo", "j20", (5, 6, 7, 8, 10)),
+                      columns=["s", "n", "orph", "K50", "r1", "cos"]
+                      ).set_index("s")
+fig, ax = plt.subplots(figsize=(8.6, 2.2))
+ax.axis("off")
+Table(seuils, ax=ax,
+      column_definitions=[
+          ColumnDefinition("s", title="", width=1.0,
+                           textprops={"ha": "left", "fontsize": 9.5}),
+          ColumnDefinition("n", title="Fenêtres", width=0.7,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("orph", title="Orphelins", width=0.8,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("K50", title="K50", width=0.55,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("r1", title="Corr. segments PC1", width=1.5,
+                           textprops={"ha": "right", "fontsize": 9.5}),
+          ColumnDefinition("cos", title="Cos. min formes triplets", width=1.8,
+                           textprops={"ha": "right", "fontsize": 9.5})],
+      row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
+      textprops={"fontsize": 9.5})
+plt.show()
+```
+
+La réponse est non, et c'est un résultat (tableau ci-dessus, configuration
+journalière). De surprise ≥ 5 à ≥ 10, l'effectif est divisé par six mais la
+composition bouge à peine : la part d'orphelins ne descend que de 73 % à
+64 % — même les très gros pics restent majoritairement sans écho, en droite
+ligne du plateau observé chez *Mediapart* et du plafond à 40 % des
+généralistes dans le chantier d'agenda. La structure de la PCA, elle, ne
+bascule jamais : la première composante reste l'axe « qui porte le pic »
+(segments anti-corrélés à −0,31, corrélation à l'identité de la référence
+*Ouest-France* stable de 0,83 à 0,80), les formes communes restent reléguées et
+leur qualité ne remonte pas (cosinus minimal entre 0,50 et 0,62, sans
+tendance). Seule la concentration s'améliore un peu (K50 de 0,28 à 0,23) :
+les gros pics sont plus propres, pas plus partagés. Le grain de 3 jours dit
+la même chose (orphelins de 71 % à 60 %, K50 de 0,25 à 0,19, l'axe de
+contraste toujours premier et de plus en plus corrélé au nombre d'échos, de
+−0,42 à −0,64).
+
+## Configuration en blocs de 3 jours (±15 blocs)
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes sans appariement (blocs de 3 jours, surprise ≥ 5, 14 512 fenêtres), un segment par média."
+planche("3j15_solo", 5, "medias")
+```
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les mêmes composantes, moyennées sur les trois segments (forme commune)."
+planche("3j15_solo", 5, "communes")
+```
+
+Au grain de 3 jours, même organisation : la composante 1 (8,0 %) est l'axe de
+contraste avec *Ouest-France* (segments anti-corrélés, corrélation 0,77 avec
+son identité de référence, −0,42 avec le nombre d'échos), et les formes
+communes occupent les rangs 3, 5 et 6 (cosinus 0,69, 0,71 et 0,80 avec les
+trois premières formes des triplets). Le sous-ensemble à deux échos retrouve
+une première composante à segments corrélés (+0,99) et la concentration de la
+campagne appariée (K50 à 0,11).
+
+**Ce qu'ajoute la campagne élargie.** Multiplier les fenêtres par neuf ne fait
+émerger aucune forme d'événement nouvelle, et monter le seuil de surprise n'y
+change rien : le catalogue des triplets reste le seul, et il ne vit pleinement
+que dans les événements partagés. Ce que l'élargissement déplace, c'est la
+variance dominante — elle passe des formes à l'**agenda** : qui réagit, et
+combien de titres réagissent. L'AFM sans appariement mesure donc surtout la
+sélection des sujets, en cohérence avec le chantier du chevauchement d'agenda,
+et les trois quarts d'orphelins qu'elle révèle sont la matière première
+naturelle pour y chercher un effet de rachat. Paramètres de la campagne :
+référence ≥ 5, échos enregistrés au seuil 3 à ±7 jours, NMS inter-médias
+conservé, fenêtres restreintes à 2009-2024, grille calendaire ancrée,
+interpolation plafonnée à 50 % par segment.
+
+```{=typst}
+#pagebreak()
+```
+
+# III. Contrôle positif — Mediapart dans le trio
 
 Avant de conclure que « les médias ne diffèrent pas », il faut vérifier que la
 méthode *sait* détecter une différence quand elle existe. On rejoue donc toute
 la chaîne en remplaçant *Ouest-France* par ***Mediapart*** — un titre au profil
 éditorial délibérément différent : journal d'enquête, sans cycle quotidien
 généraliste, au corpus dix fois plus petit que celui du *Monde*. Mêmes
-paramètres qu'au cycle 1 (journalier ±20 j, tolérance 7 j, suiveurs ≥ 3), et la
-version recentrée sur la médiane pour lire les axes de divergence sans
-l'artefact du cycle 2. Si l'AFM ne voit rien non plus ici, c'est
+paramètres que pour le trio généraliste (journalier ±20 j, tolérance 7 j,
+accompagnement ≥ 3, centre à la médiane des trois dates). Si l'AFM ne voit rien
+non plus ici, c'est
 qu'elle est aveugle ; si elle voit, le résultat du trio généraliste est un vrai
 résultat.
 
 ```{python}
 #| fig-align: center
-#| fig-cap: "Corrélation médiane entre segments z-scorés, par paire de journaux, dans les deux trios (tous triplets, référence ≥ 4)."
-for t in ("j20_mdp", "j20_mdp_med"):
-    if t not in CFG:
-        CFG[t] = charger(t)
+#| fig-cap: "Corrélation médiane entre segments, par paire de journaux, dans les deux trios."
+CFG["j20_mdp_med"] = charger("j20_mdp_med")
 RES[("j20_mdp_med", 6)] = pca_seuil(CFG["j20_mdp_med"], 6)
 
 def corr_paires(tag):
@@ -577,7 +738,7 @@ def corr_paires(tag):
     return out
 
 paires = [("trio Ouest-France", corr_paires("j20")),
-          ("trio Mediapart", corr_paires("j20_mdp"))]
+          ("trio Mediapart", corr_paires("j20_mdp_med"))]
 fig, axes = plt.subplots(1, 2, figsize=(8.2, 2.6), sharey=True)
 for ax, (nom, cp) in zip(axes, paires):
     noms = [f"{NOMS[a]}\n{NOMS[b]}" for a, b in cp]
@@ -600,53 +761,57 @@ plt.show()
 
 ```{python}
 #| fig-align: center
-#| fig-cap: "Les six premières composantes de l'AFM du trio Mediapart (centre médiane, référence ≥ 6, 996 fenêtres), un segment par média."
+#| fig-cap: "Les six premières composantes du trio Mediapart (996 fenêtres), un segment par média."
 planche("j20_mdp_med", 6, "medias")
 ```
 
 **La méthode voit la différence — massivement.** Tout ce qui était stable dans
 le trio généraliste bascule dès qu'un titre au profil réellement différent
 entre dans le trio, pendant que la paire témoin *Monde*-*Figaro*, elle, ne
-bouge pas d'un millimètre (0,62 dans les deux trios) :
+bouge pas d'un millimètre (0,63 dans les deux trios) :
 
-d'abord l'**appariement** — 1 685 triplets contre 3 358, moitié moins, alors
+d'abord l'**appariement** — 1 690 triplets contre 3 339, moitié moins, alors
 même que la période commune est plus longue et le vocabulaire commun plus grand
 (7 773 mots) : l'agenda isolé de *Mediapart*, déjà vu au chantier précédent, se
 paie au moment du triple accord. Ensuite la **synchronie** : les paires avec
-*Mediapart* tombent à 0,28, moitié moins que les paires avec *Ouest-France*
-(0,53-0,58). Puis le **tempo** : *Mediapart* est le plus en retard des quatre
-titres étudiés (+0,25 jour en moyenne, 43 % de retard strict contre 35 %
-d'avance) — il suit l'actualité commune à son propre rythme. Enfin, et c'est le
-plus parlant, la **structure de la PCA change** : l'axe de désynchronisation,
-relégué au cinquième rang (3,6 %) dans le trio généraliste, devient ici la
-**première composante** (6,9 %, corrélée à −0,57 au décalage absolu de
-*Mediapart*, segments anti-corrélés) — visible sur la planche : dès la première
-composante, la courbe rouge se détache des deux autres. Les formes communes
-habituelles ne disparaissent pas, elles reculent aux rangs 2 à 5, où on les
-retrouve quasi inchangées (cosinus 0,85 à 0,97 avec les formes communes du trio
-généraliste).
+*Mediapart* tombent à 0,27-0,28, moitié moins que les paires avec *Ouest-France*
+(0,53-0,58). Puis le **tempo** : le pic de *Mediapart* ne tombe sur la date
+commune que dans 43 % des cas, contre 63-64 % pour les deux nationaux — il suit
+l'actualité commune à son propre rythme, sans être pour autant systématiquement
+en retard. Enfin, et c'est le plus parlant, la **structure de la PCA change** :
+l'axe de désynchronisation, relégué au cinquième rang (3,6 %) dans le trio
+généraliste, devient ici la **première composante** (6,9 %, corrélée à −0,57 au
+décalage absolu de *Mediapart*, segments anti-corrélés à −0,06) — visible sur la
+planche : dès la première composante, la courbe rouge se détache des deux
+autres. Les formes communes habituelles ne disparaissent pas, elles reculent aux
+rangs 2 à 5, où on les retrouve quasi inchangées (cosinus 0,78 à 0,87 avec les
+formes communes du trio généraliste).
 
 Le contrôle est donc positif : l'AFM détecte sans ambiguïté un profil
 éditorial différent quand il existe. La quasi-absence de divergence entre *Le
 Monde*, *Le Figaro* et *Ouest-France* n'était pas une cécité de la méthode —
 c'est bien une propriété de ces trois titres.
 
-## Ce qu'il faut retenir
+# Ce qu'il faut retenir
 
-Trois cycles et deux chantiers, un tableau cohérent. **Les formes de saut sont
-des propriétés des événements, pas des journaux** : les quatre premières
-composantes du trio généraliste sont répétées presque à l'identique par les
-trois titres (corrélations entre segments de 0,88 à 0,99) et résistent à toutes
-les variantes essayées — tolérance de 3 à 14 jours, grille calendaire ou de
-parution, centrage sur la référence ou sur la médiane, suiveurs à 3 ou 4.
+Un tableau cohérent. **Les formes de saut sont des propriétés des événements,
+pas des journaux** : les quatre premières composantes du trio généraliste sont
+répétées presque à l'identique par les trois titres (corrélations entre segments
+de 0,95 à 0,98) et résistent à toutes les variantes essayées — tolérance de 3 à
+14 jours, centrage sur le pic dominant ou sur la médiane des trois dates,
+accompagnement à 3 ou 4.
 **C'est dans le choix des sujets et dans le tempo que les journaux diffèrent.**
 Le chevauchement d'agenda est minoritaire partout (21-24 % d'écho entre les
 deux titres les plus proches, 6-10 % avec *Mediapart*) et croît avec la force
 de l'événement — sauf pour *Mediapart*, dont les gros pics sont des
-exclusivités. Le tempo sépare les titres au grain journalier (le *Figaro* en
-avance, *Mediapart* nettement en retard) et s'efface dès les blocs de 3 jours.
+exclusivités. La campagne sans appariement le confirme à grande échelle : sur
+29 308 fenêtres, près des trois quarts sont des événements orphelins, et la
+variance dominante passe des formes à l'agenda — qui réagit, et combien de
+titres réagissent. Le tempo, lui, ne sépare pas les trois généralistes
+(médianes de décalage toutes à 0, pic sur la date commune dans 60 à 66 % des
+cas) ; seul *Mediapart* s'en détache, avec 43 %.
 Le contrôle positif ferme la boucle : introduire *Mediapart* dans le trio fait
-tout basculer (triplets divisés par deux, synchronie à 0,28, désynchronisation
+tout basculer (triplets divisés par deux, synchronie à 0,27, désynchronisation
 en première composante) pendant que la paire témoin *Monde*-*Figaro* reste
 identique — la méthode voit les différences éditoriales là où elles existent.
 Pour la suite du mémoire, c'est donc du côté de l'**agenda** (taux d'écho par

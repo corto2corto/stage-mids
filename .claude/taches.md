@@ -579,6 +579,31 @@ Objectif : synchroniser l'interface de l'API Agora (dépôt ngram-press, api/app
 Me demander avant de lancer ou de redéployer quoi que ce soit sur gram.
 ```
 
+## elisions-series-nulles — Élisions dans les requêtes : « pouvoir achat » renvoie une série nulle trompeuse
+
+- Ajoutée : 2026-08-30
+- Dépôt : ngram-press
+- Branche : main
+
+**Contexte** : l'apostrophe fait partie de la regex `_MOT` (scripts/tokenisation.py:36), donc « pouvoir d'achat » se tokenise en 2 tokens (`pouvoir`, `d'achat`) et les bases sont correctes : la requête `mot=pouvoir d'achat` marche (3 596 occ. en 2022 dans les_echos). Mais `mot=pouvoir achat` (sans l'élision, formulation naturelle d'un utilisateur ou d'un LLM) renvoie une série entièrement nulle sans aucun indice — via le MCP, le LLM conclut à tort que l'expression est absente du corpus. Constaté le 2026-08-30 en testant le MCP en production.
+
+**Piste envisagée** : ne pas toucher aux bases (elles sont bonnes). Côté MCP (api/mcp_agora.py, outil `query_frequency`) : documenter la syntaxe des élisions dans la description, et quand toutes les lignes d'un gram reviennent à zéro, ajouter un champ `suggestion` (essayer la variante avec élision : d', l', qu'…). Une ligne aussi dans la section Tokenisation du Swagger.
+
+**Prompt** :
+
+```
+Problème constaté sur le MCP Agora en production : la requête mot=pouvoir achat renvoie une série entièrement nulle, alors que mot=pouvoir d'achat renvoie des milliers d'occurrences. Cause : l'apostrophe fait partie des tokens (regex _MOT, scripts/tokenisation.py:36), « d'achat » est UN token — les bases sont donc correctes, c'est la formulation sans élision qui ne matche rien, silencieusement. Un LLM qui interroge le MCP conclut à tort que l'expression est absente du corpus.
+
+À faire, sans toucher aux bases ni à la tokenisation :
+1. Dans api/mcp_agora.py, compléter la description de query_frequency : les élisions font partie des mots (écrire « pouvoir d'achat », pas « pouvoir achat »).
+2. Toujours dans query_frequency : quand toutes les lignes d'un gram sont à n=0, ajouter à la réponse un champ suggestion expliquant les causes probables (élision manquante — proposer les variantes d'/l'/qu' du dernier mot —, faute d'orthographe, ou mot réellement absent).
+3. Répercuter une phrase sur les élisions dans la section « Tokenisation » de web/public/agora_swagger.yml.
+4. Vérifier en local (base factice ou tunnel) : mot=pouvoir achat doit renvoyer la série nulle AVEC la suggestion, mot=pouvoir d'achat les vraies valeurs.
+5. Pour déployer : git pull sur gram puis relance du MCP (tmux agora_mcp, venv_agora, python -m api.mcp_agora).
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
 
 ## bases-ngram-13-medias — Construire les bases n-grammes des 13 autres médias
