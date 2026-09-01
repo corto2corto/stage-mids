@@ -68,12 +68,7 @@ js = np.arange(-15, 16)
 #show heading.where(level: 2): set text(size: 13pt)
 ```
 
-Mêmes données et même chaîne que le rapport du corpus unifié en blocs de
-3 jours, mais à la résolution du jour : les fréquences des 10 000 mots du
-top du *Monde* sont agrégées sur les 36 médias, un pic est un jour
-anormalement haut au regard d'une loi BNB ajustée en double fit (seuil de
-surprise 4 ou 6), et un NMS par mot garantit que deux pics gardés n'ont
-jamais de fenêtres qui se recouvrent. La détection donne 190 158 pics,
+La détection donne 190 158 pics,
 dont 90 441 gardés par le NMS ; après exclusion de 850 pics trop près des
 bords de la grille, on obtient 89 591 fenêtres de ±15 jours au seuil 4 et
 32 939 au seuil 6. Chaque fenêtre est z-scorée sur elle-même, puis la PCA
@@ -114,10 +109,7 @@ sèche : creux la veille, maximum le lendemain — la forme des scrutins,
 où le vocabulaire de campagne s'arrête au vote et celui des résultats
 démarre le lendemain. La composante 4 porte des rebonds à ±7 jours, le
 rythme hebdomadaire de parution (rubriques revenant le même jour de la
-semaine). Les composantes du seuil 6 sont orientées vers la queue lourde
-de leurs projections, et celles du seuil 4 alignées sur elles ; le
-fichier `composantes_unifie1j.npz` contient ces quatre profils et leurs
-parts de variance aux deux seuils.
+semaine).
 
 ```{=typst}
 #pagebreak()
@@ -125,9 +117,7 @@ parts de variance aux deux seuils.
 
 ## Tranches de projection
 
-Découpage repris de la figure 4 de l'article *Identifying new classes of
-financial price jumps with wavelets* (Aubrun, Morel, Benzaquen, Bouchaud —
-PNAS 2025) : pour chaque composante, les fenêtres sont triées par leur
+Pour chaque composante, les fenêtres sont triées par leur
 projection et découpées en trois tranches par les quantiles 10 % et
 90 % — les deux tranches extrêmes isolent les fenêtres qui ressemblent le
 plus à la composante (d'un côté et de l'autre), la tranche centrale
