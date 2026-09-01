@@ -1,0 +1,116 @@
+---
+title: "Tranches de projection — composantes 1 et 2"
+subtitle: "Corpus unifié (36 médias), blocs de 3 jours, fenêtres ±15 blocs"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 11pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+import campagne_pca.scripts.figures_lib as lib
+from rupture.pca import normaliser, pca
+
+D = Path("../data/pics_unifie")
+fen = np.load(D / "fenetres_unifie3j.npz")
+
+BLEU_S4, BLEU_S6 = "#e0949a", lib.BLEU
+
+res = {}
+for s in (4, 6):
+    m = fen["surprise"] >= s
+    Z, garde = normaliser(fen["fenetres"][m].astype(np.float64), "z")
+    comp, var, proj = pca(Z)
+    signes = np.sign((proj ** 3).sum(axis=0))
+    res[s] = dict(proj=proj * signes, Z=Z)
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+```
+
+Cette figure reprend la recette de la figure 4 de l'article *Identifying new
+classes of financial price jumps with wavelets* (Aubrun, Morel, Benzaquen,
+Bouchaud — PNAS 2025) : les fenêtres sont triées par leur projection sur une
+composante, découpées en tranches par quantiles, et on trace le profil moyen
+de chaque tranche. Sur la composante 1, le découpage de l'article (quantiles
+10 %, 35 %, 65 % et 90 %) ; sur la composante 2, quatre tranches (quantiles
+10 %, 50 % et 90 %) qui gardent les extrêmes à 10 %.
+
+La composante 1 mesure de quel côté du pic vit l'activité : sauts anticipés
+d'un bout (fins de campagne des municipales), exogènes de l'autre
+(confinement). La composante 2 (13 % de la variance) mesure la montée vers
+le pic : à un bout, un pic sec sur fond plat ; à l'autre, une montée
+progressive sur environ deux semaines qui culmine au pic puis retombe. Les
+fenêtres les plus alignées sur ce second profil sont des événements à
+échéance connue : campagnes des municipales (« liste » mars 2020,
+« conseiller » mars 2014), rentrée (« reprise » septembre 2009).
+
+```{=typst}
+#v(1fr)
+```
+
+```{python}
+#| label: fig-tranches
+#| fig-cap: "Profils moyens des fenêtres par tranche de projection sur la composante 1 (haut, tranches délimitées par les quantiles 10 %, 35 %, 65 % et 90 %) et la composante 2 (bas, quantiles 10 %, 50 % et 90 %)."
+js = np.arange(-15, 16)
+TITRES1 = ["anticipés (10 %)", "tranche 2", "milieu", "tranche 4",
+           "exogènes (10 %)"]
+TITRES2 = ["pic isolé (10 %)", "tranche 2", "tranche 3", "crescendo (10 %)"]
+
+fig = plt.figure(figsize=(9.6, 5.2))
+gs = fig.add_gridspec(2, 20, hspace=0.5, wspace=1.2)
+axes1 = [fig.add_subplot(gs[0, 4 * i:4 * i + 4]) for i in range(5)]
+axes2 = [fig.add_subplot(gs[1, 5 * i:5 * i + 5]) for i in range(4)]
+
+for k, (axes, quantiles, titres) in enumerate(
+        ((axes1, [0, .10, .35, .65, .90, 1], TITRES1),
+         (axes2, [0, .10, .50, .90, 1], TITRES2))):
+    for s, coul, lw, ls in ((4, BLEU_S4, 1.2, "--"), (6, BLEU_S6, 1.6, "-")):
+        p = res[s]["proj"][:, k]
+        bords = np.quantile(p, quantiles)
+        for b, ax in enumerate(axes):
+            sel = (p >= bords[b]) & (p <= bords[b + 1])
+            ax.plot(js, res[s]["Z"][sel].mean(axis=0), lw=lw, ls=ls,
+                    color=coul,
+                    label=f"seuil {s}" if (k, b) == (0, 0) else None)
+            if s == 6:
+                ax.set_title(f"{titres[b]}\n{sel.sum()} fenêtres",
+                             fontsize=8.5, color=lib.ENCRE2)
+                ax.axhline(0, lw=.6, color=lib.GRILLE)
+                ax.axvline(0, lw=.6, color=lib.GRILLE)
+                ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+                ax.set_axisbelow(True)
+                ax.set_ylim(-1.2, 5.0)
+                ax.set_xticks([-15, 0, 15])
+                if b == 0:
+                    ax.set_ylabel(f"composante {k + 1}", fontsize=9)
+                else:
+                    ax.tick_params(labelleft=False)
+axes1[0].legend(frameon=False, fontsize=8, loc="upper left")
+axes2[1].set_xlabel("blocs de 3 jours autour du pic", x=1.0)
+plt.show()
+```
+
+```{=typst}
+#v(1fr)
+```

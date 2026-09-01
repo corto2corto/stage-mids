@@ -482,30 +482,6 @@ Existant à réutiliser :
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
-## figure4-composante2 — Refaire la figure 4 de Bouchaud sur la composante 2 (4 tranches)
-
-- Ajoutée : 2026-08-27
-- Branche : main
-
-**Contexte** : le rapport du corpus unifié (`campagne_pca/rapport_qmd/corpus_unifie.qmd`, chunk `fig-tranches`) reproduit la figure 4 de l'article de Bouchaud et al. (*Riding Wavelets*, `2404.16467v1.pdf`) : les fenêtres sont projetées sur la composante 1, découpées en 5 tranches par les quantiles 10/35/65/90 % de la projection, et on trace le profil moyen de chaque tranche — c'est ce qui a permis la lecture sauts anticipés / endogènes / exogènes. Corto veut la même figure sur la **composante 2**, avec **4 tranches** au lieu de 5.
-
-**Piste envisagée** : reprendre la mécanique du chunk `fig-tranches` avec `proj[:, 1]` et 4 tranches (proposition : quantiles 0/10/50/90/100 % pour garder les extrêmes à 10 % comme dans l'article), regarder les fenêtres extrêmes pour interpréter ce que sépare la composante 2, livrer en petit .qmd d'une page → PDF.
-
-**Prompt** :
-
-```
-Refaire la figure « tranches » du rapport corpus unifié (reproduction de la figure 4 de l'article de Bouchaud et al., Riding Wavelets — 2404.16467v1.pdf à la racine du dépôt) mais sur la composante 2 de la PCA, avec 4 tranches au lieu de 5.
-
-Le modèle est le chunk fig-tranches de campagne_pca/rapport_qmd/corpus_unifie.qmd (~ligne 296) : les fenêtres du corpus unifié (blocs de 3 jours, ±15) sont projetées sur la composante 1, découpées en 5 tranches par les quantiles 10/35/65/90 % de la projection, et on trace le profil moyen des fenêtres de chaque tranche (seuils 4 et 6 superposés, effectifs en titre). Les chunks de chargement et la PCA sont dans ce même .qmd (données : campagne_pca/data/pics_unifie/, tout est dans le dépôt).
-
-À faire :
-1. Reprendre la même mécanique avec proj[:, 1] (composante 2) et 4 tranches — proposition : quantiles 0/10/50/90/100 %, pour garder les extrêmes à 10 % comme dans l'article ; demander à Corto si un autre découpage est préféré.
-2. Regarder les mots/dates des fenêtres extrêmes des deux bouts pour proposer une lecture de ce que sépare la composante 2 (comme la lecture anticipés/exogènes de la composante 1).
-3. Livrer en petit .qmd d'une page compilé en PDF (figure calculée dans le chunk, pas de png sur disque ; PDF dans campagne_pca/rapport_pdf/), sauf si Corto préfère l'ajouter à corpus_unifie.qmd.
-
-Tout tourne en local, rien à lancer sur le serveur.
-```
-
 ## archetypes-composante4 — Liste de 12 archétypes pour la composante 4 du corpus unifié
 
 - Ajoutée : 2026-08-27
@@ -605,6 +581,15 @@ Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
 ## Faites
+
+## figure4-composante2 — Refaire la figure 4 de Bouchaud sur la composante 2 (4 tranches)
+
+- Ajoutée : 2026-08-27 · Faite : 2026-08-31
+- Branche : main
+
+**Contexte** : le rapport du corpus unifié (`campagne_pca/rapport_qmd/corpus_unifie.qmd`, chunk `fig-tranches`) reproduit la figure 4 de l'article de Bouchaud et al. sur la composante 1 (5 tranches) ; Corto voulait la même figure sur la composante 2, avec 4 tranches.
+
+**Résultat** : livrée le 31/08 dans `campagne_pca/rapport_qmd/tranches_composantes.qmd` → `rapport_pdf/tranches_composantes.pdf` (une page, une figure à deux rangées : composante 1 en 5 tranches, composante 2 en 4 tranches — quantiles 10/50/90 %). Lecture de la composante 2 (13 % de variance) : elle mesure la montée vers le pic — pic sec sur fond plat d'un bout, crescendo sur ~2 semaines de l'autre (événements à échéance connue : « liste » mars 2020, « conseiller » mars 2014, « reprise » septembre 2009).
 
 ## bases-ngram-13-medias — Construire les bases n-grammes des 13 autres médias
 

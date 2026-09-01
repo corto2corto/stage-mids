@@ -1,0 +1,245 @@
+---
+title: "PCA des sauts — corpus unifié en blocs de 1 jour"
+subtitle: "36 médias, fenêtres ±15 jours, seuils 4 et 6"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 11pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figures calculees ici depuis campagne_pca/data/pics_unifie/ : aucun png sur
+# le disque. Fenetres 1 jour extraites de vocab_series_unifie.npz (gallica)
+# autour des pics de pics_unifie_bnb_nms.csv gardes par le NMS.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+import campagne_pca.scripts.figures_lib as lib   # style matplotlib du projet
+from rupture.pca import normaliser, pca
+
+D = Path("../data/pics_unifie")
+fen = np.load(D / "fenetres_unifie.npz")
+
+BLEU_S4, BLEU_S6 = "#e0949a", lib.BLEU
+
+res = {}                                          # PCA aux deux seuils
+for s in (4, 6):
+    m = fen["surprise"] >= s
+    Z, garde = normaliser(fen["fenetres"][m].astype(np.float64), "z")
+    comp, var, proj = pca(Z)
+    # composantes orientees vers la queue lourde des projections
+    signes = np.sign((proj ** 3).sum(axis=0))
+    comp, proj = comp * signes[:, None], proj * signes
+    res[s] = dict(comp=comp, var=var, proj=proj, Z=Z, n=len(Z),
+                  mot=fen["mot"][m][garde], date=fen["date"][m][garde],
+                  X=fen["X_t"][m][garde])
+
+# le signe d'une composante est arbitraire et la regle queue-lourde peut
+# trancher differemment selon le seuil : le seuil 4 est aligne sur le seuil 6
+ali = np.sign(np.einsum("ij,ij->i", res[4]["comp"], res[6]["comp"]))
+ali[ali == 0] = 1
+res[4]["comp"] = res[4]["comp"] * ali[:, None]
+res[4]["proj"] = res[4]["proj"] * ali
+
+VOCAB600 = set(Path(D / "vocab600.txt").read_text().split("\n"))
+js = np.arange(-15, 16)
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 2): set text(size: 13pt)
+```
+
+Mêmes données et même chaîne que le rapport du corpus unifié en blocs de
+3 jours, mais à la résolution du jour : les fréquences des 10 000 mots du
+top du *Monde* sont agrégées sur les 36 médias, un pic est un jour
+anormalement haut au regard d'une loi BNB ajustée en double fit (seuil de
+surprise 4 ou 6), et un NMS par mot garantit que deux pics gardés n'ont
+jamais de fenêtres qui se recouvrent. La détection donne 190 158 pics,
+dont 90 441 gardés par le NMS ; après exclusion de 850 pics trop près des
+bords de la grille, on obtient 89 591 fenêtres de ±15 jours au seuil 4 et
+32 939 au seuil 6. Chaque fenêtre est z-scorée sur elle-même, puis la PCA
+est faite séparément aux deux seuils.
+
+## Les quatre premières composantes
+
+```{python}
+#| label: fig-composantes
+#| fig-cap: "Les quatre premières composantes aux deux seuils (parts de variance du seuil 6 en titre)."
+comp4, comp6 = res[4]["comp"], res[6]["comp"]
+fig, axes = plt.subplots(2, 2, figsize=(6.8, 3.9), sharex=True)
+for k, ax in enumerate(axes.flat):
+    ax.axhline(0, lw=.6, color=lib.GRILLE)
+    ax.axvline(0, lw=.6, color=lib.GRILLE)
+    ax.plot(js, comp4[k], lw=1.2, color=BLEU_S4, ls="--",
+            label="seuil 4" if k == 0 else None)
+    ax.plot(js, comp6[k], lw=1.6, color=BLEU_S6,
+            label="seuil 6" if k == 0 else None)
+    ax.set_title(f"composante {k + 1} ({res[6]['var'][k]:.0%})".replace("%", " %"),
+                 fontsize=8.5, color=lib.ENCRE2)
+    ax.set_xticks([-15, 0, 15])
+    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+    ax.set_axisbelow(True)
+axes[0, 0].legend(frameon=False, fontsize=8, loc="upper left")
+for ax in axes[1]:
+    ax.set_xlabel("jours autour du pic")
+fig.tight_layout()
+plt.show()
+```
+
+Les profils sont stables d'un seuil à l'autre. La composante 1 oppose
+l'activité après le pic à l'activité avant : à un bout les chocs exogènes
+(invasion de l'Ukraine, 7 octobre, confinement), à l'autre les événements
+anticipés. La composante 2 est une montée qui culmine la veille du pic
+puis s'éteint (Noël, fins de campagne). La composante 3 est une bascule
+sèche : creux la veille, maximum le lendemain — la forme des scrutins,
+où le vocabulaire de campagne s'arrête au vote et celui des résultats
+démarre le lendemain. La composante 4 porte des rebonds à ±7 jours, le
+rythme hebdomadaire de parution (rubriques revenant le même jour de la
+semaine). Les composantes du seuil 6 sont orientées vers la queue lourde
+de leurs projections, et celles du seuil 4 alignées sur elles ; le
+fichier `composantes_unifie1j.npz` contient ces quatre profils et leurs
+parts de variance aux deux seuils.
+
+```{=typst}
+#pagebreak()
+```
+
+## Tranches de projection
+
+Découpage repris de la figure 4 de l'article *Identifying new classes of
+financial price jumps with wavelets* (Aubrun, Morel, Benzaquen, Bouchaud —
+PNAS 2025) : pour chaque composante, les fenêtres sont triées par leur
+projection et découpées en trois tranches par les quantiles 10 % et
+90 % — les deux tranches extrêmes isolent les fenêtres qui ressemblent le
+plus à la composante (d'un côté et de l'autre), la tranche centrale
+rassemble les 80 % restants — puis on trace le profil moyen de chaque
+tranche.
+
+```{python}
+#| label: fig-tranches
+#| fig-cap: "Profils moyens des fenêtres par tranche de projection sur chacune des quatre premières composantes. Tranches délimitées par les quantiles 10 % et 90 % des projections."
+QUANTILES = [0, .10, .90, 1]
+TITRES = ["tranche basse (10 %)", "milieu (80 %)", "tranche haute (10 %)"]
+fig, axes = plt.subplots(4, 3, figsize=(7.6, 8.2), sharex=True, sharey="row")
+for k in range(4):
+    for s, coul, lw, ls in ((4, BLEU_S4, 1.2, "--"), (6, BLEU_S6, 1.6, "-")):
+        p = res[s]["proj"][:, k]
+        bords = np.quantile(p, QUANTILES)
+        for b, ax in enumerate(axes[k]):
+            sel = (p >= bords[b]) & (p <= bords[b + 1])
+            ax.plot(js, res[s]["Z"][sel].mean(axis=0), lw=lw, ls=ls, color=coul,
+                    label=f"seuil {s}" if (k, b) == (0, 0) else None)
+            if s == 6:
+                titre = f"{TITRES[b]} — {sel.sum()} fenêtres" if k == 0 \
+                    else f"{sel.sum()} fenêtres"
+                ax.set_title(titre, fontsize=8.5, color=lib.ENCRE2)
+                ax.axhline(0, lw=.6, color=lib.GRILLE)
+                ax.axvline(0, lw=.6, color=lib.GRILLE)
+                ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+                ax.set_axisbelow(True)
+                if b == 0:
+                    ax.set_ylabel(f"composante {k + 1}", fontsize=9)
+axes[0, 0].legend(frameon=False, fontsize=8, loc="upper left")
+for ax in axes[-1]:
+    ax.set_xticks([-15, 0, 15])
+axes[-1, 1].set_xlabel("jours autour du pic")
+fig.tight_layout()
+plt.show()
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Fenêtres archétypes
+
+Pour chaque composante, les quatre fenêtres réelles (seuil 6) dont la
+projection sur elle est la plus forte, parmi les mots du vocabulaire
+« parlant » (vocab600). L'étiquette entre parenthèses situe le contexte du
+saut, posé à la main d'après les autres mots qui piquent le même jour.
+
+```{python}
+#| label: fig-archetypes
+#| fig-cap: "Fenêtres archétypes (seuil 6) : les quatre sauts réels les plus alignés sur chacune des quatre premières composantes."
+d6 = res[6]
+eligibles = np.where(np.isin(d6["mot"], list(VOCAB600)))[0]
+CONTEXTES = {
+    ("russes", 20220228): "Ukraine",
+    ("moyen", 20260303): "Moyen-Orient",
+    ("mesures", 20200317): "confinement",
+    ("israël", 20231009): "7 octobre",
+    ("feu", 20220814): "incendies",
+    ("secrétaire", 20081125): "congrès PS de Reims",
+    ("père", 20131225): "Noël",
+    ("mandat", 20080324): "municipales",
+    ("développement", 20080303): "municipales",
+    ("candidats", 20260315): "municipales",
+    ("liste", 20200315): "municipales",
+    ("maire", 20200315): "municipales",
+    ("possibilité", 20200524): "déconfinement",
+    ("sud", 20200620): "météo",
+}
+fig, axes = plt.subplots(4, 4, figsize=(9.2, 6.8), sharex=True)
+for k in range(4):
+    meilleurs = eligibles[np.argsort(d6["proj"][eligibles, k])[-4:][::-1]]
+    for c, i in enumerate(meilleurs):
+        ax = axes[k, c]
+        ax.axhline(0, lw=.6, color=lib.GRILLE)
+        ax.axvline(0, lw=.6, color=lib.GRILLE)
+        ax.plot(js, d6["Z"][i], lw=1.4, color=BLEU_S6)
+        ax.scatter([0], [d6["Z"][i, 15]], s=16, color=lib.ROUGE, zorder=3)
+        quand = pd.to_datetime(str(d6["date"][i])).strftime("%d/%m/%Y")
+        ctx = CONTEXTES.get((str(d6["mot"][i]), int(d6["date"][i])))
+        nom = f"{d6['mot'][i]} ({ctx})" if ctx else str(d6["mot"][i])
+        ax.set_title(f"{nom} — {quand}\n{int(d6['X'][i])} occ. au pic",
+                     fontsize=8, color=lib.ENCRE2)
+        ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+        ax.set_axisbelow(True)
+        if c == 0:
+            ax.set_ylabel(f"comp. {k + 1}", fontsize=8.5)
+for ax in axes[-1]:
+    ax.set_xticks([-15, 0, 15])
+axes[-1, 1].set_xlabel("jours autour du pic", x=1.0)
+fig.tight_layout()
+plt.show()
+```
+
+## Fichiers du dossier
+
+`composantes_unifie1j.npz` — les quatre premières composantes (31 valeurs
+chacune, axe `blocs` de −15 à +15) et leurs parts de variance, aux deux
+seuils.
+
+`valeurs_propres_unifie1j.csv` — les 31 valeurs propres de la matrice de
+covariance des fenêtres z-scorées (convention S²/(n−1) après centrage des
+colonnes), une colonne par seuil ; n = 89 591 fenêtres au seuil 4,
+32 939 au seuil 6.
+
+`projections_unifie1j.csv` — une ligne par fenêtre (mot, date, surprise)
+avec ses coefficients sur les quatre premières composantes, aux deux
+seuils ; chaque seuil ayant sa propre PCA, les colonnes `c*_s6` sont
+vides quand la surprise est entre 4 et 6.
+
+`tops_mots_composantes_unifie1j.csv` — pour chaque seuil, chaque
+composante et chaque côté (projections les plus positives et les plus
+négatives), les quinze fenêtres les mieux alignées, avec un drapeau
+`vocab600` pour filtrer les mots parlants.
