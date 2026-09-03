@@ -1855,6 +1855,28 @@ variance identiques) ; au seuil 4, 19 103 fenêtres journalières sur 108 416 et
 désormais 20 occurrences au pic : sans plancher, des séries quasi nulles (« dsk »
 après 2012, « annan », 2 à 7 occurrences) prenaient la tête de la composante 4.
 
+## PCA multiple V2 — dates du corpus unifié (03/09/2026)
+
+Refonte du protocole de la PCA jointe : les dates ne viennent plus d'un
+appariement des pics des trois journaux mais des pics du corpus unifié (BNB +
+NMS, seuil 6). `rupture/fenetres_unifie_trio.py` extrait la même fenêtre dans
+*Le Monde*, *Le Figaro* et *Ouest-France* (base `ouest_france2`, déjà celle des
+triplets) autour de chaque date, sans exiger de pic propre ; seconde passe NMS à
+la largeur de fenêtre (le NMS unifié porte sur 31 j), fenêtres à segment plat
+écartées (11 et 2 cas), écho de chaque journal enregistré (pic propre s3 à
+≤ 7 j). 17 036 fenêtres journalières (±20 j) et 8 414 en blocs de 3 j (±15),
+contre 2 197 et 1 390 triplets. Rapport `campagne_pca/trio/rapport_trioV2.qmd`
++ pdf, données `campagne_pca/data/trio/fenetres_trioV2_*.npz`.
+
+Résultats : spectre plus étalé (K50 0,28 / 0,24 contre 0,14 / 0,11) car un
+cinquième des fenêtres n'a d'écho dans aucun des trois titres. PC1 = pic au jour
+du saut, commun, dont le score suit le nombre de journaux qui font écho (0,53) ;
+l'axe de désynchronisation d'*Ouest-France* passe de la 5e à la 2e place
+(corrélé −0,53 à l'écho d'OF) ; en 3 j, une composante « régional seul » (PC4).
+Restreinte aux fenêtres à trois échos, la V2 retrouve le sous-espace et la
+concentration des triplets (recouvrement ≥ 0,85 en journalier) : l'ancien
+protocole est un cas particulier du nouveau.
+
 A FAIRE : 
 - Section d'une page où il faudra décrire le corpus 
 - Choix du vocabulaire 

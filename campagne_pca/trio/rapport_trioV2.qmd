@@ -1,0 +1,276 @@
+---
+title: "PCA multiple V2 (Monde, Figaro, Ouest-France)"
+subtitle: "Fenêtres concaténées autour des pics du corpus unifié"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 11pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figures calculees ici depuis campagne_pca/data/trio/ : aucun png sur le
+# disque. Les fenetres sont produites sur gallica par
+# rupture/fenetres_unifie_trio.py ; la PCA est rejouee dans les chunks (SVD sur
+# n x 3L) avec la meme mecanique que rupture/pca_trio.py.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from plottable import Table, ColumnDefinition
+
+import campagne_pca.scripts.figures_lib as lib
+from rupture.pca import pca
+
+D = Path("../data/trio")
+COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860", "ouestfrance": "#c8102e"}
+NOMS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro", "ouestfrance": "Ouest-France"}
+SEUIL = 6
+esp = lambda x: f"{int(x):,}".replace(",", " ")
+vir = lambda x, k=2: f"{x:.{k}f}".replace(".", ",")
+
+
+def zscore(F):
+    F = F.astype(np.float64)
+    sd = F.std(2, keepdims=True)
+    return (F - F.mean(2, keepdims=True)) / np.where(sd == 0, 1, sd)
+
+
+def charger(tag):
+    d = np.load(D / f"fenetres_trioV2_{tag}.npz")
+    m = d["surprise"] >= SEUIL
+    return dict(Z3=zscore(d["fenetres"][m]), n=int(m.sum()), demi=int(d["demi"]),
+                pas=int(d["pas"]), medias=[str(x) for x in d["medias"]],
+                echo=(d["echo"][m] > 0), mot=d["mot"][m], date=d["date"][m])
+
+
+def pca_sel(Z3, sel=None):
+    Z = Z3 if sel is None else Z3[sel]
+    comp, var, proj = pca(Z.reshape(len(Z), -1))
+    L = Z3.shape[2]
+    # signe : forme commune positive au bloc central (queue lourde sinon)
+    centre = comp.reshape(len(comp), 3, L)[:, :, L // 2].mean(1)
+    signes = np.sign(centre)
+    queue = np.sign((proj ** 3).sum(0))
+    signes[signes == 0] = queue[signes == 0]
+    signes[signes == 0] = 1
+    return comp * signes[:, None], var, proj * signes
+
+
+def k50(var):
+    return (int(np.searchsorted(np.cumsum(var), 0.5)) + 1) / len(var)
+
+
+def charger_v1(tag):
+    d = np.load(D / f"fenetres_trio_{tag}_med.npz")
+    s_ref = d["surprise"][np.arange(len(d["mot"])), d["ref"]]
+    return pca_sel(zscore(d["fenetres"][s_ref >= SEUIL]))[0]
+
+
+CFG = {"j20": charger("j20"), "3j15": charger("3j15")}
+RES = {t: pca_sel(CFG[t]["Z3"]) for t in CFG}
+V1 = {"j20": charger_v1("j20"), "3j15": charger_v1("3j15")}
+
+
+def planche(tag):
+    c = CFG[tag]
+    comp, var, _ = RES[tag]
+    L = 2 * c["demi"] + 1
+    seg = comp.reshape(-1, 3, L)
+    js = np.arange(-c["demi"], c["demi"] + 1)
+    unite = "jours" if c["pas"] == 1 else "blocs de 3 j"
+    fig, axes = plt.subplots(2, 3, figsize=(9.6, 4.6), sharex=True)
+    for k, ax in enumerate(axes.flat):
+        ax.axhline(0, lw=.6, color=lib.GRILLE)
+        ax.axvline(0, lw=.6, color=lib.GRILLE)
+        for i, md in enumerate(c["medias"]):
+            ax.plot(js, seg[k][i], lw=1.2, color=COULEURS[md],
+                    label=NOMS[md] if k == 0 else None)
+        ax.set_title(f"composante {k + 1} — {var[k] * 100:.1f} %".replace(".", ","),
+                     fontsize=8.5, color=lib.ENCRE2)
+        ax.set_xticks([-c["demi"], 0, c["demi"]])
+        ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+        ax.set_axisbelow(True)
+    axes[0, 0].legend(frameon=False, fontsize=7.5)
+    for ax in axes[1]:
+        ax.set_xlabel(f"{unite} autour du pic unifié")
+    fig.tight_layout()
+    plt.show()
+
+
+def tableau(df, defs, figsize, col0):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.axis("off")
+    Table(df, ax=ax,
+          column_definitions=[ColumnDefinition(col0, title="", width=2.3,
+                                               textprops={"ha": "left", "fontsize": 9.5})]
+          + [ColumnDefinition(c, title=t, width=w,
+                              textprops={"ha": "right", "fontsize": 9.5})
+             for c, t, w in defs],
+          row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
+          textprops={"fontsize": 9.5})
+    plt.show()
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 1): set text(size: 14.5pt)
+#show heading.where(level: 2): set text(size: 12.5pt)
+```
+
+Ce document reprend l'analyse factorielle multiple des sauts sur *Le Monde*,
+*Le Figaro* et *Ouest-France* avec un protocole différent du premier rapport.
+Les dates ne sont plus obtenues en appariant les pics des trois journaux : elles
+viennent des **pics du corpus unifié** (les 36 médias réunis, vocabulaire des
+10 000 mots du *Monde*, période de janvier 2008 à mars 2024), détectés par la loi
+BNB et filtrés par NMS. Pour chaque pic unifié de surprise supérieure ou égale à 6,
+la même fenêtre est extraite dans chacun des trois journaux autour de cette date,
+que le journal ait ou non un pic à lui ; les trois segments sont z-scorés
+séparément puis concaténés, et la PCA tourne sur ces vecteurs. Deux grilles sont
+présentées : journalière (±20 jours) et en blocs de 3 jours (±15 blocs).
+
+## Corpus et fenêtres
+
+Le vocabulaire commun aux trois journaux compte 7 035 mots. Une seconde passe de
+NMS à la largeur de la fenêtre garantit que deux fenêtres d'un même mot ne se
+recouvrent jamais, et une fenêtre est écartée si son bloc central est vide dans
+un des journaux, si un segment dépasse 50 % de blocs interpolés, ou si un segment
+est plat (le mot n'y apparaît pas : 11 cas en journalier, 2 en blocs de 3 jours).
+Pour chaque fenêtre on note l'**écho** de chaque journal : un pic qui lui est
+propre, de surprise supérieure ou égale à 3, à moins de 7 jours de la date unifiée.
+
+```{python}
+#| fig-align: center
+def ligne_effectifs(tag, pics_csv):
+    c, (comp, var, _) = CFG[tag], RES[tag]
+    u = pd.read_csv(Path("../data/pics_unifie") / pics_csv)
+    ne = c["echo"].sum(1)
+    return [esp(((u["supprime_nms"] == 0) & (u["surprise"] >= SEUIL)).sum()),
+            esp(c["n"]),
+            *[vir(c["echo"][:, i].mean() * 100, 0) for i in range(3)],
+            vir((ne == 0).mean() * 100, 0), vir((ne == 3).mean() * 100, 0),
+            vir(var[0] * 100, 1), vir(k50(var))]
+
+eff = pd.DataFrame(
+    {"mesure": ["Pics unifiés gardés par le NMS (≥ 6)", "Fenêtres retenues",
+                "Écho Le Monde (%)", "Écho Le Figaro (%)", "Écho Ouest-France (%)",
+                "Aucun écho (%)", "Écho dans les trois (%)",
+                "Variance de la composante 1 (%)", "Concentration K50"],
+     "j": ligne_effectifs("j20", "pics_unifie_bnb_nms.csv"),
+     "b3": ligne_effectifs("3j15", "pics_unifie3j_bnb_nms.csv")}).set_index("mesure")
+tableau(eff, [("j", "Journalier (±20 j)", 1.4), ("b3", "Blocs de 3 j (±15)", 1.4)],
+        (6.8, 3.4), "mesure")
+```
+
+Un peu plus de la moitié des pics unifiés donnent une fenêtre exploitable dans
+les trois journaux. Dans un cas sur cinq, aucun des trois titres n'a de pic
+propre autour de la date : l'événement est porté par d'autres médias. Les trois
+échos ne sont réunis que dans 16 à 18 % des fenêtres, ce qui correspond à
+l'ancien corpus de triplets — 84 % des triplets journaliers du premier rapport se
+retrouvent parmi les fenêtres V2.
+
+```{=typst}
+#pagebreak()
+```
+
+## Configuration journalière (±20 jours)
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes journalières (surprise unifiée ≥ 6), un segment par média."
+planche("j20")
+```
+
+Le spectre est plus étalé que dans l'analyse par triplets (K50 de 0,28 contre
+0,14) : les fenêtres où un journal reste muet ajoutent du bruit sans structure.
+La **composante 1** est un pic confiné au jour du saut, identique dans les trois
+journaux (corrélation entre segments 0,99), et son score suit le nombre de
+journaux qui font écho (corrélation 0,53) : c'est un axe d'intensité de la
+couverture, absent par construction de l'analyse par triplets. La **composante 2**
+oppose le jour du saut chez *Ouest-France* à la veille chez les deux nationaux :
+l'axe de désynchronisation identifié en cinquième position dans le premier
+rapport passe ici au second rang, et son score est corrélé à −0,53 à l'écho
+d'*Ouest-France* — il sépare d'abord les événements que le régional reprend de
+ceux qu'il ignore. Les composantes 3 (changement de
+niveau bas avant, haut après), 4 (pic la veille) et 6 (montée puis creux) sont
+des formes communes ; la **composante 5** oppose *Le Monde* au *Figaro* au jour du
+saut (corrélation entre segments 0,03 ; le score dépend de l'écho du *Figaro*,
+corrélation 0,30 en valeur absolue, pas de celui du *Monde*, 0,11).
+Plus loin, la composante 7 est une oscillation de période 7 jours partagée par
+les trois titres.
+
+```{=typst}
+#pagebreak()
+```
+
+## Configuration en blocs de 3 jours (±15 blocs)
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes en blocs de 3 jours (surprise unifiée ≥ 6), un segment par média."
+planche("3j15")
+```
+
+Le catalogue est celui du grain journalier, sans le décalage d'un jour : pic au
+bloc du saut (composante 1, corrélation 0,96, score corrélé à 0,54 au nombre
+d'échos), changement de niveau (composante 2, 0,94), montée progressive puis
+pic et retombée (composante 3, 0,72, pic plus marqué chez *Ouest-France* et score
+corrélé à 0,46 à son écho), creux puis pic (composante 5, 0,90). La
+**composante 4** est propre à *Ouest-France* : un pic au bloc du saut alors que
+les deux nationaux restent plats, score corrélé à +0,38 à l'écho d'*Ouest-France*
+et à −0,24 à celui du *Figaro* — l'axe des événements que le régional reprend
+sans les nationaux.
+
+## Le corpus de triplets comme sous-ensemble
+
+Les fenêtres V2 se laissent stratifier par le nombre de journaux qui font écho.
+Pour chaque strate, la PCA est refaite sur ses seules fenêtres et ses six
+premières composantes sont reprojetées sur les six premières de l'analyse par
+triplets du premier rapport (même seuil, centrage médiane) ; le recouvrement
+minimal mesure la part de norme conservée par la composante la moins bien
+retrouvée.
+
+```{python}
+#| fig-align: center
+def strates(tag):
+    c = CFG[tag]
+    ne = c["echo"].sum(1)
+    lignes = []
+    for nom, sel in (("Toutes les fenêtres", np.ones(c["n"], bool)),
+                     ("Écho dans les trois", ne == 3), ("Au moins deux échos", ne >= 2),
+                     ("Aucun écho", ne == 0)):
+        comp, var, _ = pca_sel(c["Z3"], sel)
+        rec = np.linalg.norm(comp[:6] @ V1[tag][:6].T, axis=1).min()
+        lignes.append([nom, esp(sel.sum()), vir(k50(var)), vir(rec)])
+    return pd.DataFrame(lignes, columns=["strate", f"n_{tag}", f"k_{tag}", f"r_{tag}"])
+
+st = strates("j20").merge(strates("3j15"), on="strate").set_index("strate")
+tableau(st, [("n_j20", "n (j)", 0.9), ("k_j20", "K50 (j)", 0.9), ("r_j20", "Rec. (j)", 0.9),
+             ("n_3j15", "n (3 j)", 0.9), ("k_3j15", "K50 (3 j)", 0.9),
+             ("r_3j15", "Rec. (3 j)", 0.9)], (8.2, 1.9), "strate")
+```
+
+Restreinte aux fenêtres où les trois journaux font écho, la PCA V2 retrouve le
+sous-espace de l'analyse par triplets (recouvrement minimal 0,85 en journalier,
+0,69 en blocs de 3 jours) et sa concentration (0,15 et 0,12). À l'autre bout, les
+fenêtres sans aucun écho ont un spectre presque plat (K50 de 0,35 et 0,31) :
+elles pèsent un cinquième du corpus et sont responsables de l'étalement du
+spectre global. Le protocole V2 contient donc l'ancien comme cas particulier,
+et lui ajoute deux axes que l'exigence du triple accord rendait invisibles :
+l'intensité de la couverture (composante 1) et la couverture par un seul
+titre (composante 4 en blocs de 3 jours).
