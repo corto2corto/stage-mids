@@ -1,0 +1,315 @@
+---
+title: "PCA des sauts — corpus unifié, vocabulaire étendu, blocs de 1 jour"
+subtitle: "36 médias, 11 780 mots, fenêtres ±15 jours, seuils 4 et 6"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 11pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figures calculees ici depuis campagne_pca/data/pics_etendu/ : aucun png sur
+# le disque. Vocabulaire ETENDU (top-10 000 du Monde + 1 780 mots du top par
+# occurrences 2000-2025, rupture/vocab_etendu.py) ; fenetres produites sur
+# gallica par la chaine standard (masse_unifie -> pics_masse ->
+# nms -> fenetres_masse) avec media=etendu.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+import campagne_pca.scripts.figures_lib as lib   # style matplotlib du projet
+from rupture.pca import normaliser, pca
+
+D = Path("../data/pics_etendu")
+fen = np.load(D / "fenetres_etendu.npz")
+
+BLEU_S4, BLEU_S6 = "#e0949a", lib.BLEU
+
+res = {}                                          # PCA aux deux seuils
+for s in (4, 6):
+    m = fen["surprise"] >= s
+    Z, garde = normaliser(fen["fenetres"][m].astype(np.float64), "z")
+    comp, var, proj = pca(Z)
+    # composantes orientees vers la queue lourde des projections
+    signes = np.sign((proj ** 3).sum(axis=0))
+    comp, proj = comp * signes[:, None], proj * signes
+    res[s] = dict(comp=comp, var=var, proj=proj, Z=Z, n=len(Z),
+                  mot=fen["mot"][m][garde], date=fen["date"][m][garde],
+                  X=fen["X_t"][m][garde])
+
+# le signe d'une composante est arbitraire et la regle queue-lourde peut
+# trancher differemment selon le seuil : le seuil 4 est aligne sur le seuil 6
+ali = np.sign(np.einsum("ij,ij->i", res[4]["comp"], res[6]["comp"]))
+ali[ali == 0] = 1
+res[4]["comp"] = res[4]["comp"] * ali[:, None]
+res[4]["proj"] = res[4]["proj"] * ali
+
+PARLANT = set(Path(D / "vocab_parlant_etendu.txt").read_text().split("\n"))
+js = np.arange(-15, 16)
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 2): set text(size: 13pt)
+```
+
+Le vocabulaire est **étendu** : aux 10 000 mots du top du *Monde* (classés par
+jours de présence sur toute l'archive) s'ajoutent 1 780 mots du top par occurrences
+sur 2000-2025, absents du premier classement parce que récents (« ukraine »,
+« macron », « covid », « confinement », « hamas », « gilets »…), soit 11 780 mots.
+Les séries ont été extraites sur les bases de l'ENS : mêmes 36 médias, mais
+*Le Figaro*, *Les Échos* et *Le Monde* y sont plus complets que dans le corpus
+unifié d'origine (*Le Figaro* et *Les Échos* jusqu'en août 2026 au lieu de mars et
+octobre 2024, *Le Monde* jusqu'en août 2026 au lieu de décembre 2025), soit 2,6 %
+de tokens en plus.
+La détection donne 228 272 pics,
+dont 109 476 gardés par le NMS ; après exclusion de 1 060 pics trop près des
+bords de la grille, on obtient 108 416 fenêtres de ±15 jours au seuil 4 et
+40 462 au seuil 6 (19 103 et 7 285 portées par les mots ajoutés). Chaque fenêtre est z-scorée sur elle-même, puis la PCA
+est faite séparément aux deux seuils.
+
+## Les quatre premières composantes
+
+```{python}
+#| label: fig-composantes
+#| fig-cap: "Les quatre premières composantes aux deux seuils (parts de variance du seuil 6 en titre)."
+comp4, comp6 = res[4]["comp"], res[6]["comp"]
+fig, axes = plt.subplots(2, 2, figsize=(6.8, 3.9), sharex=True)
+for k, ax in enumerate(axes.flat):
+    ax.axhline(0, lw=.6, color=lib.GRILLE)
+    ax.axvline(0, lw=.6, color=lib.GRILLE)
+    ax.plot(js, comp4[k], lw=1.2, color=BLEU_S4, ls="--",
+            label="seuil 4" if k == 0 else None)
+    ax.plot(js, comp6[k], lw=1.6, color=BLEU_S6,
+            label="seuil 6" if k == 0 else None)
+    ax.set_title(f"composante {k + 1} ({res[6]['var'][k]:.0%})".replace("%", " %"),
+                 fontsize=8.5, color=lib.ENCRE2)
+    ax.set_xticks([-15, 0, 15])
+    ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+    ax.set_axisbelow(True)
+axes[0, 0].legend(frameon=False, fontsize=8, loc="upper left")
+for ax in axes[1]:
+    ax.set_xlabel("jours autour du pic")
+fig.tight_layout()
+plt.show()
+```
+
+Les composantes sont celles de la PCA du corpus unifié à vocabulaire d'origine :
+cosinus de 0,98 à 1,00 avec les composantes correspondantes, parts de variance
+identiques au dixième près. Les profils sont stables d'un seuil à l'autre. La composante 1 oppose
+l'activité après le pic à l'activité avant : à un bout les chocs exogènes
+(invasion de l'Ukraine, 7 octobre, confinement), à l'autre les événements
+anticipés. La composante 2 est une montée qui culmine la veille du pic
+puis s'éteint (Noël, fins de campagne). La composante 3 est une bascule
+sèche : creux la veille, maximum le lendemain — la forme des scrutins,
+où le vocabulaire de campagne s'arrête au vote et celui des résultats
+démarre le lendemain. La composante 4 porte des rebonds à ±7 jours, le
+rythme hebdomadaire de parution (rubriques revenant le même jour de la
+semaine).
+
+```{=typst}
+#pagebreak()
+```
+
+## Tranches de projection
+
+Pour chaque composante, les fenêtres sont triées par leur
+projection et découpées en trois tranches par les quantiles 10 % et
+90 % — les deux tranches extrêmes isolent les fenêtres qui ressemblent le
+plus à la composante (d'un côté et de l'autre), la tranche centrale
+rassemble les 80 % restants — puis on trace le profil moyen de chaque
+tranche.
+
+```{python}
+#| label: fig-tranches
+#| fig-cap: "Profils moyens des fenêtres par tranche de projection sur chacune des quatre premières composantes. Tranches délimitées par les quantiles 10 % et 90 % des projections."
+QUANTILES = [0, .10, .90, 1]
+TITRES = ["tranche basse (10 %)", "milieu (80 %)", "tranche haute (10 %)"]
+fig, axes = plt.subplots(4, 3, figsize=(7.6, 8.2), sharex=True, sharey="row")
+for k in range(4):
+    for s, coul, lw, ls in ((4, BLEU_S4, 1.2, "--"), (6, BLEU_S6, 1.6, "-")):
+        p = res[s]["proj"][:, k]
+        bords = np.quantile(p, QUANTILES)
+        for b, ax in enumerate(axes[k]):
+            sel = (p >= bords[b]) & (p <= bords[b + 1])
+            ax.plot(js, res[s]["Z"][sel].mean(axis=0), lw=lw, ls=ls, color=coul,
+                    label=f"seuil {s}" if (k, b) == (0, 0) else None)
+            if s == 6:
+                titre = f"{TITRES[b]} — {sel.sum()} fenêtres" if k == 0 \
+                    else f"{sel.sum()} fenêtres"
+                ax.set_title(titre, fontsize=8.5, color=lib.ENCRE2)
+                ax.axhline(0, lw=.6, color=lib.GRILLE)
+                ax.axvline(0, lw=.6, color=lib.GRILLE)
+                ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+                ax.set_axisbelow(True)
+                if b == 0:
+                    ax.set_ylabel(f"composante {k + 1}", fontsize=9)
+axes[0, 0].legend(frameon=False, fontsize=8, loc="upper left")
+for ax in axes[-1]:
+    ax.set_xticks([-15, 0, 15])
+axes[-1, 1].set_xlabel("jours autour du pic")
+fig.tight_layout()
+plt.show()
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Fenêtres archétypes
+
+Pour chaque composante, les quatre fenêtres réelles (seuil 6) dont la
+projection sur elle est la plus forte, parmi les mots du vocabulaire
+« parlant » (vocab600 étendu aux mots ajoutés) et **avec au moins 20
+occurrences au pic** : sans ce plancher, des mots quasi absents de l'union
+(« dsk » après 2012, « annan », 2 à 7 occurrences au pic) prennent la tête de la
+composante 4 avec des formes de bruit. L'étiquette entre parenthèses situe le
+contexte du saut, posé à la main d'après les autres mots qui piquent le même
+
+```{python}
+#| label: fig-archetypes
+#| fig-cap: "Fenêtres archétypes (seuil 6) : les quatre sauts réels les plus alignés sur chacune des quatre premières composantes."
+d6 = res[6]
+eligibles = np.where(np.isin(d6["mot"], list(PARLANT)) & (d6["X"] >= 20))[0]
+CONTEXTES = {
+    ("russes", 20220228): "Ukraine",
+    ("ecosse", 20140919): "référendum",
+    ("dsk", 20120507): "présidentielle, 2d tour",
+    ("dsk", 20111103): "référendum grec",
+    ("canicule", 20260624): "canicule",
+    ("hamas", 20231009): "7 octobre",
+    ("moyen", 20260303): "Moyen-Orient",
+    ("feu", 20220814): "incendies",
+    ("mccain", 20081105): "élection d'Obama",
+    ("écossais", 20140919): "référendum",
+    ("liste", 20200315): "municipales",
+    ("candidats", 20260315): "municipales",
+    ("heure", 20200919): "Journées du patrimoine",
+    ("fillon", 20170423): "présidentielle, 1er tour",
+    ("gilets", 20190112): "gilets jaunes, acte IX",
+    ("catalogne", 20171102): "indépendance catalane",
+    ("possibilité", 20200524): "déconfinement",
+    ("sud", 20200620): "météo",
+}
+fig, axes = plt.subplots(4, 4, figsize=(9.2, 6.8), sharex=True)
+for k in range(4):
+    meilleurs = eligibles[np.argsort(d6["proj"][eligibles, k])[-4:][::-1]]
+    for c, i in enumerate(meilleurs):
+        ax = axes[k, c]
+        ax.axhline(0, lw=.6, color=lib.GRILLE)
+        ax.axvline(0, lw=.6, color=lib.GRILLE)
+        ax.plot(js, d6["Z"][i], lw=1.4, color=BLEU_S6)
+        ax.scatter([0], [d6["Z"][i, 15]], s=16, color=lib.ROUGE, zorder=3)
+        quand = pd.to_datetime(str(d6["date"][i])).strftime("%d/%m/%Y")
+        ctx = CONTEXTES.get((str(d6["mot"][i]), int(d6["date"][i])))
+        nom = f"{d6['mot'][i]} ({ctx})" if ctx else str(d6["mot"][i])
+        ax.set_title(f"{nom} — {quand}\n{int(d6['X'][i])} occ. au pic",
+                     fontsize=8, color=lib.ENCRE2)
+        ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+        ax.set_axisbelow(True)
+        if c == 0:
+            ax.set_ylabel(f"comp. {k + 1}", fontsize=8.5)
+for ax in axes[-1]:
+    ax.set_xticks([-15, 0, 15])
+axes[-1, 1].set_xlabel("jours autour du pic", x=1.0)
+fig.tight_layout()
+plt.show()
+```
+
+## Fichiers du dossier
+
+`composantes_etendu1j.npz` — les quatre premières composantes (31 valeurs
+chacune, axe `blocs` de −15 à +15) et leurs parts de variance, aux deux
+seuils.
+
+`valeurs_propres_etendu1j.csv` — les 31 valeurs propres de la matrice de
+covariance des fenêtres z-scorées (convention S²/(n−1) après centrage des
+colonnes), une colonne par seuil ; n = 108 416 fenêtres au seuil 4,
+40 462 au seuil 6.
+
+`projections_etendu1j.csv` — une ligne par fenêtre (mot, date, surprise)
+avec ses coefficients sur les quatre premières composantes, aux deux
+seuils ; chaque seuil ayant sa propre PCA, les colonnes `c*_s6` sont
+vides quand la surprise est entre 4 et 6.
+
+`tops_mots_composantes_etendu1j.csv` — pour chaque seuil, chaque
+composante et chaque côté (projections les plus positives et les plus
+négatives), les quinze fenêtres les mieux alignées, avec un drapeau
+`parlant` (vocab600 étendu aux mots ajoutés, `vocab_parlant_etendu.txt`)
+pour filtrer les mots parlants.
+
+```{=typst}
+#pagebreak()
+```
+
+## Annexe — archétypes des deux côtés
+
+Les composantes ont été orientées vers la queue lourde de leurs
+projections, et la figure des archétypes ne montre que ce côté-là. Une
+composante décrit pourtant une opposition : son côté négatif — la forme
+inversée — a lui aussi ses fenêtres réelles. Pour chaque composante, les
+deux fenêtres (seuil 6, parlant, ≥ 20 occurrences au pic) dont la projection est la plus positive,
+puis les deux dont elle est la plus négative.
+
+```{python}
+#| label: fig-archetypes-signes
+#| fig-cap: "Fenêtres archétypes des deux côtés (seuil 6) : pour chaque composante, les deux sauts réels de projection la plus positive (à gauche) et les deux de projection la plus négative (à droite)."
+CONTEXTES.update({
+    ("chef", 20180806): "Robuchon",
+    ("planche", 20140714): "finale du Mondial",
+    ("ukraine", 20220224): "invasion",
+    ("lendemain", 20151114): "13 Novembre",
+    ("prise", 20240823): "artefact La Provence",
+    ("vieillissement", 20240823): "artefact La Provence",
+    ("vendée", 20250114): "Vendée Globe",
+    ("bureau", 20200628): "municipales, 2d tour",
+})
+fig, axes = plt.subplots(4, 4, figsize=(9.4, 8.8), sharex=True)
+for k in range(4):
+    ordre = eligibles[np.argsort(d6["proj"][eligibles, k])]
+    for c, i in enumerate([*ordre[-2:][::-1], *ordre[:2]]):
+        ax = axes[k, c]
+        ax.axhline(0, lw=.6, color=lib.GRILLE)
+        ax.axvline(0, lw=.6, color=lib.GRILLE)
+        ax.plot(js, d6["Z"][i], lw=1.4, color=BLEU_S6)
+        ax.scatter([0], [d6["Z"][i, 15]], s=16, color=lib.ROUGE, zorder=3)
+        quand = pd.to_datetime(str(d6["date"][i])).strftime("%d/%m/%Y")
+        ctx = CONTEXTES.get((str(d6["mot"][i]), int(d6["date"][i])))
+        nom = f"{d6['mot'][i]} ({ctx})" if ctx else str(d6["mot"][i])
+        p = f"{d6['proj'][i, k]:+.1f}".replace(".", ",")
+        ax.set_title(f"{nom}\n{quand} — {int(d6['X'][i])} occ. au pic, proj. {p}",
+                     fontsize=8, color=lib.ENCRE2)
+        ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+        ax.set_axisbelow(True)
+        if c == 0:
+            ax.set_ylabel(f"comp. {k + 1}", fontsize=8.5)
+for ax in axes[-1]:
+    ax.set_xticks([-15, 0, 15])
+axes[-1, 1].set_xlabel("jours autour du pic", x=1.0)
+fig.tight_layout(rect=(0, 0, 1, 0.965))
+# en-tetes des deux groupes de colonnes + separateur
+for c, txt in ((0, "côté positif"), (2, "côté négatif")):
+    x = (axes[0, c].get_position().x0 + axes[0, c + 1].get_position().x1) / 2
+    fig.text(x, 0.985, txt, ha="center", va="top", fontsize=9.5, color=lib.ENCRE2)
+xm = (axes[0, 1].get_position().x1 + axes[0, 2].get_position().x0) / 2
+fig.add_artist(plt.Line2D([xm, xm], [0.04, 0.975], color=lib.GRILLE, lw=.8,
+                          transform=fig.transFigure))
+plt.show()
+```

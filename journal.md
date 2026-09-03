@@ -1819,6 +1819,42 @@ les différences éditoriales quand elles existent : le résultat du trio
 généraliste est un vrai résultat. Cache `appariement_paires.csv` et fenêtres
 `_mdp`/`_mdp_med` dans `campagne_pca/data/trio/`.
 
+## Vocabulaire étendu pour la PCA unifiée (03/09/2026)
+
+Le top-10 000 du *Monde* classé par jours actifs sur 1944-2025 écarte le
+vocabulaire récent : « ukraine » (4 906 jours), « macron » (4 042), « covid »,
+« confinement » n'y sont pas, alors que « guerre », « inflation », « retraites »
+y sont. Le petit vocabulaire des matrices mot × mot (`vocab600.txt`, top-600 par
+occurrences sur 2000-2025) n'aidait pas : il contient « covid » et « trump » mais
+ni « macron » (rang 661) ni « ukraine » (rang 2 080). `rupture/vocab_etendu.py`
+complète donc le top-10 000 par le top-10 000 par **occurrences sur 2000-2025**
+(`vocab_lemonde_2000.csv`) : 1 780 mots ajoutés, 11 780 au total, les 10 000
+premiers inchangés et dans le même ordre ; `vocab_parlant_etendu.txt` = vocab600
++ les ajouts, pour le filtre des archétypes.
+
+La chaîne standard a été rejouée telle quelle avec `media=etendu` — mais sur
+l'**ENS**, gallica affichant une charge de 380 sur 20 cœurs (l'extraction y
+plafonnait à 3 % de CPU). `masse_unifie.py` prend désormais un nom de sortie, un
+fichier de vocabulaire et `CORPUS_DIR` (bases fusionnées `<media>_ngram.db`, une
+par média, sans archives à part) : 44 min d'extraction, 13 + 6 min de fits
+(journalier et 3 j), NMS et fenêtres en moins d'une minute. Résultats dans
+`campagne_pca/data/pics_etendu/`, rapports et CSV de présentation dans
+`campagne_pca/pca_vocab_etendu/` (`presentation_etendu1j` et `3j`), produits par
+`campagne_pca/scripts/exporter_presentation.py`, validé en régénérant à
+l'identique les fichiers `unifie1j` déjà livrés. Rien de l'ancienne PCA n'est
+touché.
+
+Contrôle des anciennes colonnes contre `vocab_series_unifie.npz` : les 32 médias
+du pipeline quotidien sont identiques jour par jour ; les quatre archives
+diffèrent parce que les bases de l'ENS sont plus complètes — *Le Figaro* +5,8 %
+avant mars 2024 puis 97 M tokens jusqu'en août 2026, *Les Échos* +2,8 % puis 17 M,
+*Le Monde* +0,2 % puis 20 M en 2026, Mediapart identique — soit +2,6 % de tokens.
+Les composantes n'en bougent pas (cosinus 0,98-1,00 avec la PCA unifiée, parts de
+variance identiques) ; au seuil 4, 19 103 fenêtres journalières sur 108 416 et
+8 817 sur 47 722 en 3 j sont portées par les mots ajoutés. Les archétypes exigent
+désormais 20 occurrences au pic : sans plancher, des séries quasi nulles (« dsk »
+après 2012, « annan », 2 à 7 occurrences) prenaient la tête de la composante 4.
+
 A FAIRE : 
 - Section d'une page où il faudra décrire le corpus 
 - Choix du vocabulaire 

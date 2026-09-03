@@ -1,0 +1,26 @@
+strauss	ValueError: zero-size array to reduction operation maximum which has no identity
+rocard	ValueError: zero-size array to reduction operation maximum which has no identity
+div	ValueError: zero-size array to reduction operation maximum which has no identity
+villepin	ValueError: zero-size array to reduction operation maximum which has no identity
+laden	LinAlgError: Singular matrix
+kahn	ValueError: zero-size array to reduction operation maximum which has no identity
+kosovo	LinAlgError: Singular matrix
+kadhafi	ValueError: zero-size array to reduction operation maximum which has no identity
+laguiller	LinAlgError: Singular matrix
+ogm	LinAlgError: Singular matrix
+gbagbo	ValueError: zero-size array to reduction operation maximum which has no identity
+voynet	LinAlgError: Singular matrix
+bettencourt	ValueError: p-valeurs non finies
+mnr	LinAlgError: Singular matrix
+lcr	ValueError: zero-size array to reduction operation maximum which has no identity
+prg	LinAlgError: Singular matrix
+dl	LinAlgError: Singular matrix
+abidjan	LinAlgError: Singular matrix
+kouchner	LinAlgError: Singular matrix
+fukushima	ValueError: zero-size array to reduction operation maximum which has no identity
+dsk	ValueError: zero-size array to reduction operation maximum which has no identity
+g8	ValueError: zero-size array to reduction operation maximum which has no identity
+oussama	LinAlgError: Singular matrix
+prd	ValueError: zero-size array to reduction operation maximum which has no identity
+prodi	LinAlgError: Singular matrix
+mpf	LinAlgError: Singular matrix
