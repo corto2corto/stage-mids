@@ -1,0 +1,19 @@
+id,famille,corpus,vocabulaire,pas_jours,demi,unite,seuils,n_fenetres,fenetres_annoncees,plancher_archetypes,source
+unifie1j,corpus unifié,corpus unifié (36 médias),top-10 000 du Monde (jours actifs 1944-2025),1,15,jours,4;6,89591;32939,,20;20,pics_unifie/fenetres_unifie.npz
+unifie3j,corpus unifié,corpus unifié (36 médias),top-10 000 du Monde (jours actifs 1944-2025),3,15,blocs de 3 jours,4;6,38856;15903,,20;20,pics_unifie/fenetres_unifie3j.npz
+etendu1j,corpus unifié,corpus unifié (36 médias),"étendu, 11 780 mots (top-10 000 + 1 780 mots récents)",1,15,jours,4;6,108416;40462,,20;20,pics_etendu/fenetres_etendu.npz
+etendu3j,corpus unifié,corpus unifié (36 médias),"étendu, 11 780 mots (top-10 000 + 1 780 mots récents)",3,15,blocs de 3 jours,4;6,47722;19933,,20;20,pics_etendu/fenetres_etendu3j.npz
+configA,campagne par média,Le Monde,top-10 000 du média,3,15,blocs de 3 jours,6,14102,14102,56,cache_pca/configA.npz
+configC,campagne par média,Le Monde,top-10 000 du média,3,15,blocs de 3 jours,5,24593,24593,50,cache_pca/configC.npz
+configD,campagne par média,Les Échos,top-10 000 du média,1,12,jours,5,21073,21073,50,cache_pca/configD.npz
+configF,campagne par média,Mediapart,top-10 000 du média,1,5,jours,4,20237,20237,50,cache_pca/configF.npz
+configG,campagne par média,Le Figaro,top-10 000 du média,1,15,jours,5,17939,17939,50,cache_pca/configG.npz
+configH,campagne par média,Le Figaro,top-10 000 du média,3,15,blocs de 3 jours,4,18375,18375,51,cache_pca/configH.npz
+hebdoMonde,campagne par média,Le Monde,top-10 000 du média,7,10,semaines,4,27707,27707,60,cache_pca/hebdoMonde.npz
+hebdoFigaro,campagne par média,Le Figaro,top-10 000 du média,7,10,semaines,4,11311,11311,85,cache_pca/hebdoFigaro.npz
+hebdoEchos,campagne par média,Les Échos,top-10 000 du média,7,10,semaines,4,8633,8633,58,cache_pca/hebdoEchos.npz
+hebdoMediapart,campagne par média,Mediapart,top-10 000 du média,7,10,semaines,4,5483,5483,50,cache_pca/hebdoMediapart.npz
+optimale,campagne par média,Le Monde,top-10 000 du média,7,10,semaines,6,8764,8764,0,cache_pca/optimale.npz
+lemonde,campagne par média,Le Monde,top-10 000 du média,1,15,jours,4,121805,121805,0,cache_pca/lemonde.npz
+lemonde3j,campagne par média,Le Monde,top-10 000 du média,3,15,blocs de 3 jours,4,49771,49771,0,cache_pca/lemonde3j.npz
+lemonde7j,campagne par média,Le Monde,top-10 000 du média,7,15,semaines,4,26457,26457,0,cache_pca/lemonde7j.npz
