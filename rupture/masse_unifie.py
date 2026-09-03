@@ -21,7 +21,11 @@
 #                             chaque mot du top du Monde devient sur l'union
 # - N_par_media_unifie.csv  : date x media, pour la figure des bascules de
 #                             panel (entrees et sorties de journaux)
-# Usage (sur gallica) : python -m rupture.masse_unifie [debut] [fin]
+# Variante : un 3e argument nomme la sortie et un 4e donne un autre fichier de
+# vocabulaire (meme format mot, cle, ...), ex. `etendu vocab_etendu.csv` ->
+# vocab_series_etendu.npz, couverture_etendu.csv, N_par_media_etendu.csv, sans
+# toucher aux fichiers unifie.
+# Usage (sur gallica) : python -m rupture.masse_unifie [debut] [fin] [sortie] [vocab.csv]
 import glob
 import os
 import sqlite3
@@ -35,7 +39,8 @@ DEBUT = int(sys.argv[1]) if len(sys.argv) > 1 else 20080101
 FIN = int(sys.argv[2]) if len(sys.argv) > 2 else 20261231
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 CORPUS = f"{DOSSIER}/corpus"
-VOCAB = f"{DOSSIER}/vocab_lemonde_top10000.csv"
+SORTIE = sys.argv[3] if len(sys.argv) > 3 else "unifie"
+VOCAB = f"{DOSSIER}/{sys.argv[4] if len(sys.argv) > 4 else 'vocab_lemonde_top10000.csv'}"
 PAS = 500           # ids par tranche de lecture (comme masse.py)
 # Bases d'archives a ids LOCAUX (numerotation propre a chaque base, filtre > 10
 # sur le total global du mot) : raccordees par le mot, comme les autres.
@@ -124,13 +129,13 @@ for numero, (media, db) in enumerate(bases, start=1):
 # 4. Sorties + controles
 ja = (X > 0).sum(axis=0)
 totaux = X.sum(axis=0, dtype=np.int64)
-np.savez_compressed(f"{DOSSIER}/vocab_series_unifie.npz",
+np.savez_compressed(f"{DOSSIER}/vocab_series_{SORTIE}.npz",
                     X=X, dates=dates, N=N, mots=mots, cles=v["cle"].to_numpy(str))
 pd.DataFrame({"mot": mots, "total": totaux, "jours_actifs": ja,
               "n_medias": presence.sum(axis=0)}
-             ).to_csv(f"{DOSSIER}/couverture_unifie.csv", index=False)
+             ).to_csv(f"{DOSSIER}/couverture_{SORTIE}.csv", index=False)
 pd.DataFrame(N_media, index=dates).rename_axis("date").to_csv(
-    f"{DOSSIER}/N_par_media_unifie.csv")
+    f"{DOSSIER}/N_par_media_{SORTIE}.csv")
 
 muets = np.where(totaux == 0)[0]
 print(f"grille : {int((N == 0).sum())} jour(s) a N_t = 0, mediane N_t = "
@@ -139,5 +144,5 @@ print(f"vocabulaire : {len(muets)} mot(s) du top du Monde jamais vus sur la "
       f"periode{' : ' + ', '.join(mots[muets][:10]) if len(muets) else ''}", flush=True)
 print(f"jours actifs : mediane {int(np.median(ja))}/{len(dates)}, "
       f"{int((ja == len(dates)).sum())} mots presents tous les jours", flush=True)
-print(f"FINI : {len(mots)} mots x {len(dates)} jours -> vocab_series_unifie.npz "
+print(f"FINI : {len(mots)} mots x {len(dates)} jours -> vocab_series_{SORTIE}.npz "
       f"en {(time.time() - debut) / 60:.1f} min", flush=True)
