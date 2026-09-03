@@ -25,6 +25,8 @@
 # vocabulaire (meme format mot, cle, ...), ex. `etendu vocab_etendu.csv` ->
 # vocab_series_etendu.npz, couverture_etendu.csv, N_par_media_etendu.csv, sans
 # toucher aux fichiers unifie.
+# Sur l'ENS : CORPUS_DIR=/opt/bazoulay/stage-mids/data (bases <media>_ngram.db,
+# une par media, pas d'archives a part) et VOCAB_DIR = dossier des sorties.
 # Usage (sur gallica) : python -m rupture.masse_unifie [debut] [fin] [sortie] [vocab.csv]
 import glob
 import os
@@ -38,7 +40,7 @@ import pandas as pd
 DEBUT = int(sys.argv[1]) if len(sys.argv) > 1 else 20080101
 FIN = int(sys.argv[2]) if len(sys.argv) > 2 else 20261231
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
-CORPUS = f"{DOSSIER}/corpus"
+CORPUS = os.environ.get("CORPUS_DIR", f"{DOSSIER}/corpus")
 SORTIE = sys.argv[3] if len(sys.argv) > 3 else "unifie"
 VOCAB = f"{DOSSIER}/{sys.argv[4] if len(sys.argv) > 4 else 'vocab_lemonde_top10000.csv'}"
 PAS = 500           # ids par tranche de lecture (comme masse.py)
@@ -49,7 +51,11 @@ debut = time.time()
 
 bases = [(os.path.basename(f)[:-len("_1gram.db")], f)
          for f in sorted(glob.glob(f"{CORPUS}/*_1gram.db"))]
-bases += [(m, f"{CORPUS}/{m}_ngram.db") for m in ARCHIVES]
+if bases:                       # gallica : pipeline quotidien + archives
+    bases += [(m, f"{CORPUS}/{m}_ngram.db") for m in ARCHIVES]
+else:                           # ENS : une base fusionnee <media>_ngram.db par media
+    bases = [(os.path.basename(f)[:-len("_ngram.db")], f)
+             for f in sorted(glob.glob(f"{CORPUS}/*_ngram.db"))]
 
 # 1. Vocabulaire : le top du Monde, tel quel
 v = pd.read_csv(VOCAB, dtype={"mot": str, "cle": str}, keep_default_na=False)
