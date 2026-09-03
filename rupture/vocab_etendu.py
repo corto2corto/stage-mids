@@ -6,8 +6,9 @@
 # Les 10 000 premiers mots restent identiques, meme ordre : les colonnes de
 # vocab_series_etendu.npz prolongent celles de vocab_series_unifie.npz.
 # Memes exclusions que masse.py (mots outils, chiffres, une lettre), pas
-# d'absorption OCR (periode recente). Pour les mots ajoutes, jours_actifs et
-# total sont ceux de 2000-2025.
+# d'absorption OCR (periode recente). Les jours_actifs et total des mots ajoutes
+# sont repris du recensement complet 1944-2025 (vocab_lemonde_unigram.csv),
+# comme ceux du top-10 000 : le classement 2000-2025 ne sert qu'a les choisir.
 # Sorties dans <VOCAB_DIR>/ :
 # - vocab_etendu.csv         : mot, cle, jours_actifs, total (top-10 000 puis ajouts)
 # - vocab_parlant_etendu.txt : vocab600 du depot + tous les mots ajoutes — filtre
@@ -38,6 +39,10 @@ v = v[v["mot"].str.len() > 1]
 v = v[~v["mot"].str.contains("'")]
 recent = v.sort_values("total", ascending=False).head(K)
 ajouts = recent[~recent["mot"].isin(set(base["mot"]))].copy()
+complet = pd.read_csv(f"{DOSSIER}/vocab_lemonde_unigram.csv", dtype={"mot": str},
+                      keep_default_na=False).set_index("mot")
+ajouts["jours_actifs"] = ajouts["mot"].map(complet["jours_actifs"]).astype(int).to_numpy()
+ajouts["total"] = ajouts["mot"].map(complet["total"]).astype(int).to_numpy()
 ajouts["cle"] = [unicodedata.normalize("NFD", m).encode("ascii", "ignore").decode()
                  for m in ajouts["mot"]]
 etendu = pd.concat([base, ajouts[["mot", "cle", "jours_actifs", "total"]]],
