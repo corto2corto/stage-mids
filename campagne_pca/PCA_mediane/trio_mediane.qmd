@@ -1,0 +1,228 @@
+---
+title: "PCA multiple V2 en médiane et quantiles"
+subtitle: "Monde, Figaro, Ouest-France — fenêtres autour des pics du corpus unifié"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 11pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figures calculees ici depuis campagne_pca/data/trio/ : aucun png sur le
+# disque. Memes fenetres que rapport_trioV2.qmd ; seule la normalisation des
+# segments change (rupture.pca.centrer : mediane et ecart interquartile).
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from plottable import Table, ColumnDefinition
+
+import campagne_pca.scripts.figures_lib as lib
+from rupture.pca import centrer, pca
+
+D = Path("../data/trio")
+CENTRE, ECHELLE = "med", "quantiles"
+COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860", "ouestfrance": "#c8102e"}
+NOMS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro", "ouestfrance": "Ouest-France"}
+SEUIL = 6
+esp = lambda x: f"{int(x):,}".replace(",", " ")
+vir = lambda x, k=2: f"{x:.{k}f}".replace(".", ",")
+
+
+def charger(tag):
+    d = np.load(D / f"fenetres_trioV2_{tag}.npz")
+    m = d["surprise"] >= SEUIL
+    F = d["fenetres"][m]
+    return dict(Z3=centrer(F, CENTRE, ECHELLE), Zc=centrer(F), n=int(m.sum()),
+                demi=int(d["demi"]), pas=int(d["pas"]),
+                medias=[str(x) for x in d["medias"]], echo=(d["echo"][m] > 0))
+
+
+def pca_sel(Z3, sel=None):
+    Z = Z3 if sel is None else Z3[sel]
+    comp, var, proj = pca(Z.reshape(len(Z), -1))
+    L = Z3.shape[2]
+    # signe : forme commune positive au bloc central (queue lourde sinon)
+    centre = comp.reshape(len(comp), 3, L)[:, :, L // 2].mean(1)
+    signes = np.sign(centre)
+    queue = np.sign((proj ** 3).sum(0))
+    signes[signes == 0] = queue[signes == 0]
+    signes[signes == 0] = 1
+    return comp * signes[:, None], var, proj * signes
+
+
+def k50(var):
+    return (int(np.searchsorted(np.cumsum(var), 0.5)) + 1) / len(var)
+
+
+def charger_v1(tag):
+    d = np.load(D / f"fenetres_trio_{tag}_med.npz")
+    s_ref = d["surprise"][np.arange(len(d["mot"])), d["ref"]]
+    return pca_sel(centrer(d["fenetres"][s_ref >= SEUIL], CENTRE, ECHELLE))[0]
+
+
+CFG = {"j20": charger("j20"), "3j15": charger("3j15")}
+RES = {t: pca_sel(CFG[t]["Z3"]) for t in CFG}
+CLASSIQUE = {t: pca_sel(CFG[t]["Zc"])[1] for t in CFG}
+V1 = {"j20": charger_v1("j20"), "3j15": charger_v1("3j15")}
+
+
+def planche(tag):
+    c = CFG[tag]
+    comp, var, _ = RES[tag]
+    L = 2 * c["demi"] + 1
+    seg = comp.reshape(-1, 3, L)
+    js = np.arange(-c["demi"], c["demi"] + 1)
+    unite = "jours" if c["pas"] == 1 else "blocs de 3 j"
+    fig, axes = plt.subplots(2, 3, figsize=(9.6, 4.6), sharex=True)
+    for k, ax in enumerate(axes.flat):
+        ax.axhline(0, lw=.6, color=lib.GRILLE)
+        ax.axvline(0, lw=.6, color=lib.GRILLE)
+        for i, md in enumerate(c["medias"]):
+            ax.plot(js, seg[k][i], lw=1.2, color=COULEURS[md],
+                    label=NOMS[md] if k == 0 else None)
+        ax.set_title(f"composante {k + 1} — {var[k] * 100:.1f} %".replace(".", ","),
+                     fontsize=8.5, color=lib.ENCRE2)
+        ax.set_xticks([-c["demi"], 0, c["demi"]])
+        ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+        ax.set_axisbelow(True)
+    axes[0, 0].legend(frameon=False, fontsize=7.5)
+    for ax in axes[1]:
+        ax.set_xlabel(f"{unite} autour du pic unifié")
+    fig.tight_layout()
+    plt.show()
+
+def tableau(df, defs, figsize, col0, l0=2.3):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.axis("off")
+    Table(df, ax=ax,
+          column_definitions=[ColumnDefinition(col0, title="", width=l0,
+                                               textprops={"ha": "left", "fontsize": 9.5})]
+          + [ColumnDefinition(c, title=t, width=w,
+                              textprops={"ha": "right", "fontsize": 9.5})
+             for c, t, w in defs],
+          row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
+          textprops={"fontsize": 9.5})
+    plt.show()
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 1): set text(size: 14.5pt)
+#show heading.where(level: 2): set text(size: 12.5pt)
+```
+
+Ce document reprend l'analyse du rapport V2 (mêmes fenêtres autour des pics du
+corpus unifié, seuil 6, grilles journalière ±20 j et en blocs de 3 j ±15) en
+changeant la normalisation des segments : chaque segment est centré sur sa
+médiane et divisé par son écart interquartile (q25–q75) au lieu de sa moyenne et
+de son écart-type.
+
+```{python}
+#| fig-align: center
+def colonne(tag):
+    var = RES[tag][1]
+    return [esp(CFG[tag]["n"]), vir(var[0] * 100, 1), vir(var[:3].sum() * 100, 1),
+            vir(k50(var)), vir(k50(CLASSIQUE[tag]))]
+
+eff = pd.DataFrame(
+    {"mesure": ["Fenêtres", "Variance de la composante 1 (%)",
+                "Variance des composantes 1 à 3 (%)", "Concentration K50",
+                "K50 en moyenne / écart-type"],
+     "j": colonne("j20"), "b3": colonne("3j15")}).set_index("mesure")
+tableau(eff, [("j", "Journalier (±20 j)", 1.4), ("b3", "Blocs de 3 j (±15)", 1.4)],
+        (6.8, 2.2), "mesure")
+```
+
+Les trois premières composantes portent la moitié de la variance et la
+quatrième tombe sous 4 % : le K50 passe de 0,28 et 0,24 à 0,02 et 0,03.
+
+```{=typst}
+#pagebreak()
+```
+
+## Configuration journalière (±20 jours)
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes journalières (surprise unifiée ≥ 6), un segment par média."
+planche("j20")
+```
+
+Les trois premières composantes sont un pic confiné au jour du saut. La
+première est commune aux trois journaux (corrélation entre segments 0,99), la
+deuxième oppose *Le Monde* au *Figaro* et à *Ouest-France*, la troisième oppose
+*Le Figaro* aux deux autres : à elles trois, elles décrivent les trois hauteurs
+de pic, une par journal. L'écart interquartile d'une fenêtre de comptages vaut
+quelques occurrences et la valeur au pic n'est plus bornée, si bien que la PCA
+classe d'abord les fenêtres par hauteur de pic. Le score de la composante 1 est
+moins lié au nombre de journaux qui font écho (corrélation 0,28 contre 0,53 en
+z-score). Les formes du rapport V2 (pic la veille, changement de niveau,
+désynchronisation d'*Ouest-France*) reviennent au-delà, sous 3 % chacune.
+
+```{=typst}
+#pagebreak()
+```
+
+## Configuration en blocs de 3 jours (±15 blocs)
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes en blocs de 3 jours (surprise unifiée ≥ 6), un segment par média."
+planche("3j15")
+```
+
+Même structure : pic commun au bloc du saut (composante 1, corrélation 0,99,
+score corrélé à 0,38 au nombre d'échos), puis *Ouest-France* contre les deux
+nationaux (composante 2, score corrélé à 0,42 à l'écho d'*Ouest-France*), puis
+*Le Monde* contre *Le Figaro* (composante 3). L'axe « régional seul » qui était
+en quatrième position dans le rapport V2 monte au deuxième rang, mais comme
+contraste de hauteur au bloc du saut plutôt que comme forme.
+
+## Le corpus de triplets comme sous-ensemble
+
+Même stratification que dans le rapport V2 par nombre de journaux qui font
+écho ; l'analyse par triplets de référence est recalculée avec la même
+normalisation.
+
+```{python}
+#| fig-align: center
+def strates(tag):
+    c = CFG[tag]
+    ne = c["echo"].sum(1)
+    lignes = []
+    for nom, sel in (("Toutes les fenêtres", np.ones(c["n"], bool)),
+                     ("Écho dans les trois", ne == 3), ("Au moins deux échos", ne >= 2),
+                     ("Aucun écho", ne == 0)):
+        comp, var, _ = pca_sel(c["Z3"], sel)
+        rec = np.linalg.norm(comp[:6] @ V1[tag][:6].T, axis=1).min()
+        lignes.append([nom, esp(sel.sum()), vir(k50(var)), vir(rec)])
+    return pd.DataFrame(lignes, columns=["strate", f"n_{tag}", f"k_{tag}", f"r_{tag}"])
+
+st = strates("j20").merge(strates("3j15"), on="strate").set_index("strate")
+tableau(st, [("n_j20", "n (j)", 0.9), ("k_j20", "K50 (j)", 0.9), ("r_j20", "Rec. (j)", 0.9),
+             ("n_3j15", "n (3 j)", 0.9), ("k_3j15", "K50 (3 j)", 0.9),
+             ("r_3j15", "Rec. (3 j)", 0.9)], (8.2, 1.9), "strate")
+```
+
+La concentration ne dépend plus de la strate tant qu'au moins un journal fait
+écho (K50 de 0,02 à 0,05) ; elle ne se relâche que pour les fenêtres sans aucun
+écho (0,24 et 0,26), où aucune hauteur de pic ne domine. Le recouvrement avec
+l'analyse par triplets tombe à 0,67 et 0,52 sur l'ensemble des fenêtres, contre
+0,85 et 0,69 en z-score.

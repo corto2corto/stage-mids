@@ -1,0 +1,262 @@
+---
+title: "PCA des sauts en médiane et quantiles — corpus unifié"
+subtitle: "Les 36 médias, grilles journalière et en blocs de 3 jours (fenêtre ±15), aux seuils 4 et 6"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 11pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figures calculees ici depuis campagne_pca/data/pics_unifie/ : aucun png sur
+# le disque. Memes fenetres que corpus_unifie.qmd (3 j) et
+# presentation_unifie1j.qmd (1 j) ; seule la normalisation change
+# (rupture.pca.centrer : mediane et ecart interquartile).
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("../..").resolve()))
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from plottable import Table, ColumnDefinition
+
+import campagne_pca.scripts.figures_lib as lib
+from rupture.pca import centrer, pca
+
+D = Path("../data/pics_unifie")
+FICHIERS = {"1j": "fenetres_unifie.npz", "3j": "fenetres_unifie3j.npz"}
+UNITE = {"1j": "jours", "3j": "blocs de 3 jours"}
+BLEU_S4, BLEU_S6 = "#e0949a", lib.BLEU
+esp = lambda x: f"{int(x):,}".replace(",", " ")
+vir = lambda x, k=2: f"{x:.{k}f}".replace(".", ",")
+js = np.arange(-15, 16)
+
+
+def k50(var):
+    return (int(np.searchsorted(np.cumsum(var), 0.5)) + 1) / len(var)
+
+
+def analyser(F, **opts):
+    Z = centrer(F, **opts)
+    comp, var, proj = pca(Z)
+    signes = np.sign((proj ** 3).sum(axis=0))           # queue lourde
+    return dict(Z=Z, comp=comp * signes[:, None], var=var, proj=proj * signes)
+
+
+res, classique = {}, {}
+for g, fic in FICHIERS.items():
+    fen = np.load(D / fic)
+    for s in (4, 6):
+        m = fen["surprise"] >= s
+        F = fen["fenetres"][m].astype(np.float64)
+        garde = F.std(axis=1) > 0
+        r = analyser(F[garde], centre="med", echelle="quantiles")
+        r.update(mot=fen["mot"][m][garde], date=fen["date"][m][garde],
+                 X=fen["X_t"][m][garde], F=F[garde])
+        res[(g, s)] = r
+        classique[(g, s)] = analyser(F[garde])["var"]
+    # seuil 4 aligne sur le seuil 6 (signe arbitraire)
+    ali = np.sign(np.einsum("ij,ij->i", res[(g, 4)]["comp"], res[(g, 6)]["comp"]))
+    ali[ali == 0] = 1
+    res[(g, 4)]["comp"] = res[(g, 4)]["comp"] * ali[:, None]
+    res[(g, 4)]["proj"] = res[(g, 4)]["proj"] * ali
+
+VOCAB600 = set(Path(D / "vocab600.txt").read_text().split("\n"))
+
+def tableau(df, defs, figsize, col0, l0=2.3):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.axis("off")
+    Table(df, ax=ax,
+          column_definitions=[ColumnDefinition(col0, title="", width=l0,
+                                               textprops={"ha": "left", "fontsize": 9.5})]
+          + [ColumnDefinition(c, title=t, width=w,
+                              textprops={"ha": "right", "fontsize": 9.5})
+             for c, t, w in defs],
+          row_dividers=True, footer_divider=True, even_row_color="#f4f3ee",
+          textprops={"fontsize": 9.5})
+    plt.show()
+
+
+def composantes(g):
+    comp4, comp6 = res[(g, 4)]["comp"], res[(g, 6)]["comp"]
+    fig, axes = plt.subplots(2, 3, figsize=(9.6, 4.0), sharex=True)
+    for k, ax in enumerate(axes.flat):
+        ax.axhline(0, lw=.6, color=lib.GRILLE)
+        ax.axvline(0, lw=.6, color=lib.GRILLE)
+        ax.plot(js, comp4[k], lw=1.2, color=BLEU_S4, ls="--",
+                label="seuil 4" if k == 0 else None)
+        ax.plot(js, comp6[k], lw=1.6, color=BLEU_S6,
+                label="seuil 6" if k == 0 else None)
+        ax.set_title(f"composante {k + 1} ({res[(g, 6)]['var'][k] * 100:.1f} %)".replace(".", ","),
+                     fontsize=8.5, color=lib.ENCRE2)
+        ax.set_xticks([-15, 0, 15])
+        ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+        ax.set_axisbelow(True)
+    axes[0, 0].legend(frameon=False, fontsize=8, loc="upper left")
+    for ax in axes[1]:
+        ax.set_xlabel(f"{UNITE[g]} autour du pic")
+    fig.tight_layout()
+    plt.show()
+
+
+CONTEXTES = {
+    ("voix", 20120610): "législatives 2012", ("voix", 20200315): "municipales 2020",
+    ("voix", 20190527): "européennes 2019", ("journalistes", 20131102): "RFI, Kidal",
+    ("proposition", 20200312): "confinement", ("figure", 20220612): "législatives 2022",
+    ("participation", 20220612): "législatives 2022",
+    ("résultats", 20260315): "municipales 2026",
+    ("participation", 20260315): "municipales 2026",
+    ("figure", 20220611): "législatives 2022", ("participation", 20220611): "législatives 2022",
+    ("taux", 20220611): "législatives 2022", ("guerre", 20230224): "un an de guerre en Ukraine",
+    ("débat", 20120504): "présidentielle 2012",
+}
+
+
+def archetypes(g):
+    d6 = res[(g, 6)]
+    eligibles = np.where(np.isin(d6["mot"], list(VOCAB600)))[0]
+    fig, axes = plt.subplots(4, 3, figsize=(9.2, 6.6), sharex=True)
+    for k in range(4):
+        meilleurs = eligibles[np.argsort(d6["proj"][eligibles, k])[-3:][::-1]]
+        for c, i in enumerate(meilleurs):
+            ax = axes[k, c]
+            ax.axhline(0, lw=.6, color=lib.GRILLE)
+            ax.axvline(0, lw=.6, color=lib.GRILLE)
+            ax.plot(js, d6["Z"][i], lw=1.4, color=BLEU_S6)
+            ax.scatter([0], [d6["Z"][i, 15]], s=16, color=lib.ROUGE, zorder=3)
+            quand = pd.to_datetime(str(d6["date"][i])).strftime("%d/%m/%Y")
+            ctx = CONTEXTES.get((str(d6["mot"][i]), int(d6["date"][i])))
+            nom = f"{d6['mot'][i]} ({ctx})" if ctx else str(d6["mot"][i])
+            ax.set_title(f"{nom} — {quand}\n{int(d6['X'][i])} occ. au pic",
+                         fontsize=8.5, color=lib.ENCRE2)
+            ax.grid(True, axis="y", lw=.5, color=lib.GRILLE)
+            ax.set_axisbelow(True)
+            if c == 0:
+                ax.set_ylabel(f"comp. {k + 1}", fontsize=8.5)
+    for ax in axes[-1]:
+        ax.set_xticks([-15, 0, 15])
+        ax.set_xlabel(f"{UNITE[g]} autour du pic")
+    fig.tight_layout()
+    plt.show()
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+#show heading.where(level: 1): set text(size: 14.5pt)
+#show heading.where(level: 2): set text(size: 12.5pt)
+```
+
+Ce document reprend la PCA des sauts du corpus unifié (36 médias, vocabulaire des
+10 000 mots du *Monde*, pics BNB filtrés par NMS) en changeant la normalisation
+des fenêtres : chaque fenêtre est centrée sur sa médiane et divisée par son écart
+interquartile (q25–q75) au lieu de sa moyenne et de son écart-type. Les deux
+grilles (journalière et blocs de 3 jours, fenêtre ±15) et les deux seuils (4 et 6)
+sont présentés.
+
+```{python}
+#| fig-align: center
+def colonne(g, s):
+    r, Z = res[(g, s)], res[(g, s)]["Z"]
+    art = Z[:, 16:].mean(axis=1) - Z[:, :15].mean(axis=1)
+    return [esp(len(Z)), vir(r["var"][0] * 100, 1), vir(k50(r["var"])),
+            vir(k50(classique[(g, s)])), vir(abs(np.corrcoef(r["proj"][:, 0], art)[0, 1]))]
+
+bilan = pd.DataFrame(
+    {"mesure": ["Fenêtres", "Variance de la composante 1 (%)", "Concentration K50",
+                "K50 en moyenne / écart-type",
+                "Corrélation composante 1 – score avant/après"],
+     **{f"{g}{s}": colonne(g, s) for g in FICHIERS for s in (4, 6)}}).set_index("mesure")
+tableau(bilan, [("1j4", "1 j, seuil 4", 1.0), ("1j6", "1 j, seuil 6", 1.0),
+                ("3j4", "3 j, seuil 4", 1.0), ("3j6", "3 j, seuil 6", 1.0)],
+        (8.6, 2.2), "mesure", 2.9)
+```
+
+La première composante porte de 56 à 77 % de la variance et le K50 vaut 0,03
+dans les quatre cas, contre 0,19 à 0,29 en z-score. Elle n'est plus l'asymétrie
+avant/après du rapport précédent (corrélation de 0,08 à 0,22 avec le score
+avant/après, contre 0,9) : c'est la hauteur du pic.
+
+```{python}
+#| fig-align: center
+F = res[("3j", 6)]["F"]
+lignes = []
+for nom, opts in (("Moyenne / écart-type", dict()),
+                  ("Médiane / q25–q75", dict(centre="med", echelle="quantiles")),
+                  ("Médiane / q10–q90", dict(centre="med", echelle="quantiles", q=(.1, .9))),
+                  ("Médiane / q05–q95", dict(centre="med", echelle="quantiles", q=(.05, .95))),
+                  ("Médiane / écart-type", dict(centre="med"))):
+    r = analyser(F, **opts)
+    amp, n2 = np.abs(r["Z"]).max(axis=1), (r["Z"] ** 2).sum(axis=1)
+    part = np.sort(n2)[::-1][:len(F) // 100].sum() / n2.sum()
+    lignes.append([nom, vir(np.median(amp), 1), vir(np.quantile(amp, .99), 1),
+                   vir(amp.max(), 0), vir(r["var"][0] * 100, 1), vir(k50(r["var"])),
+                   vir(part * 100, 0)])
+diag = pd.DataFrame(lignes, columns=["norme", "med", "q99", "max", "v1", "k", "p"]).set_index("norme")
+tableau(diag, [("med", "Ampl. médiane", 1.0), ("q99", "Ampl. q99", 0.9), ("max", "Ampl. max", 0.9),
+               ("v1", "Var. comp. 1 (%)", 1.1), ("k", "K50", 0.7), ("p", "Norme du 1 % (%)", 1.1)],
+        (9.0, 2.2), "norme", 2.0)
+```
+
+Sur la grille de 3 jours au seuil 6, l'écart interquartile d'une fenêtre de
+comptages vaut 1,1 occurrence en médiane. L'amplitude maximale d'une fenêtre
+normalisée, bornée à 5,5 en z-score, atteint 33 pour un centième des fenêtres
+et 381 au maximum, et ce centième porte 39 % de la norme totale : la PCA lit
+ces quelques fenêtres. Élargir les quantiles atténue l'effet sans le supprimer ;
+la médiane divisée par l'écart-type retrouve le spectre du z-score.
+
+```{=typst}
+#pagebreak()
+```
+
+## Grille journalière
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes journalières aux deux seuils."
+composantes("1j")
+```
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Fenêtres archétypes journalières (seuil 6) : les trois sauts les plus alignés sur chacune des quatre premières composantes."
+archetypes("1j")
+```
+
+```{=typst}
+#pagebreak()
+```
+
+## Grille en blocs de 3 jours
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Les six premières composantes en blocs de 3 jours aux deux seuils."
+composantes("3j")
+```
+
+```{python}
+#| fig-align: center
+#| fig-cap: "Fenêtres archétypes en blocs de 3 jours (seuil 6) : les trois sauts les plus alignés sur chacune des quatre premières composantes."
+archetypes("3j")
+```
+
+Aux deux grilles, les archétypes de la composante 1 sont les soirs d'élection
+(« résultat », « participation », « taux », « figure » aux législatives de 2022),
+où le mot passe de quelques occurrences à plusieurs milliers dans les 36 médias
+en même temps. Les composantes suivantes se partagent le reste du pic et ses
+abords immédiats ; les formes lentes du z-score (montée puis retombée,
+changement de niveau) n'apparaissent plus dans les six premières.

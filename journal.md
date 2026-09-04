@@ -1887,3 +1887,27 @@ A FAIRE :
 - Concaténer les 3 vecteurs, faire la PCA
 - Refaire tous les fits et extraire les spikes mais dans le corpus unifié 
 - Quels thèmes chassent l'autre 
+
+## Normalisation des segments : médiane et quantiles (04/09/2026)
+
+Le z-score par segment (moyenne, écart-type) est sensible au pic lui-même : un
+saut isolé gonfle l'écart-type et écrase le reste de la fenêtre. Décision :
+centrer sur la médiane et diviser par l'écart interquantile (q25–q75), plus
+résistants aux valeurs extrêmes. `rupture/pca.py` reçoit `centrer(F, centre,
+echelle)` avec les options `moy`/`med` et `ecart_type`/`quantiles` ; le z-score
+classique reste disponible. Écart interquantile nul (fenêtres creuses) : repli
+sur l'écart-type. La PCA V2 est à rejouer avec ce réglage.
+
+## PCA en médiane et quantiles : rejeu (04/09/2026)
+
+Nouveau dossier `campagne_pca/PCA_mediane/` : `trio_mediane.qmd` (V2 j20 et
+3j15) et `corpus_unifie_mediane.qmd` (1 j et 3 j, seuils 4 et 6), mêmes fenêtres,
+normalisation médiane / q25–q75. Résultat : la composante 1 absorbe 56 à 77 %
+de la variance sur l'unifié (19 à 22 % sur le trio, avec les composantes 1 à 3 à
+50 %), K50 0,02-0,03 partout. Cause mesurée (3 j, seuil 6) : écart interquartile
+de 1,1 occurrence en médiane, amplitude au pic non bornée (q99 33, max 381 contre
+5,5 en z-score), 1 % des fenêtres = 39 % de la norme totale. La composante 1
+devient la hauteur du pic (archétypes = soirs d'élection) et ne suit plus
+l'asymétrie avant/après (0,08-0,22 contre 0,9). Quantiles élargis (q10-q90,
+q05-q95) : effet atténué, pas supprimé ; médiane / écart-type retrouve le
+spectre du z-score. Le choix médiane + quantiles est à rediscuter.

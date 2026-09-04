@@ -41,14 +41,38 @@ DEMI = 15
 SORTIES = f"{os.path.dirname(os.path.abspath(__file__))}/sorties"
 
 
-def normaliser(F, norme):
-    """Matrice normalisee + indices des fenetres gardees."""
+def centrer(F, centre="moy", echelle="ecart_type", q=(0.25, 0.75)):
+    """Normalise chaque segment sur son dernier axe : (F - centre) / echelle.
+    centre : "moy" ou "med" ; echelle : "ecart_type" ou "quantiles" (ecart
+    entre les quantiles q, remplace par l'ecart-type quand il est nul).
+    Un segment plat est mis a 0."""
+    F = F.astype(np.float64)
+    if centre == "moy":
+        c = F.mean(axis=-1, keepdims=True)
+    elif centre == "med":
+        c = np.median(F, axis=-1, keepdims=True)
+    else:
+        raise ValueError(f"centre inconnu : {centre}")
+    sd = F.std(axis=-1, keepdims=True)
+    if echelle == "ecart_type":
+        e = sd
+    elif echelle == "quantiles":
+        e = (np.quantile(F, q[1], axis=-1, keepdims=True)
+             - np.quantile(F, q[0], axis=-1, keepdims=True))
+        e = np.where(e == 0, sd, e)
+    else:
+        raise ValueError(f"echelle inconnue : {echelle}")
+    return (F - c) / np.where(e == 0, 1, e)
+
+
+def normaliser(F, norme, **opts):
+    """Matrice normalisee + indices des fenetres gardees. Pour "z", opts est
+    passe a centrer (centre, echelle, q)."""
     F = F.astype(np.float64)
     if norme == "z":
         ecart = F.std(axis=1)
         garde = ecart > 0
-        F = F[garde]
-        F = (F - F.mean(axis=1, keepdims=True)) / F.std(axis=1, keepdims=True)
+        F = centrer(F[garde], **opts)
     elif norme == "01":
         amplitude = F.max(axis=1) - F.min(axis=1)
         garde = amplitude > 0

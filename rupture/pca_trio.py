@@ -11,7 +11,9 @@
 # - <VOCAB_DIR>/pca_trio_<tag>_s<seuil>.npz : composantes, variance,
 #   projections float32, garde (indices dans le npz de triplets)
 # - rupture/sorties/pca_trio_<tag>_s<seuil>_{variance,communes,medias}.png
-# Usage : python -m rupture.pca_trio [tag] [seuil_ref]     (defauts : j20 4)
+# Usage : python -m rupture.pca_trio [tag] [seuil_ref] [centre] [echelle]
+#         (defauts : j20 4 moy ecart_type ; centre moy/med, echelle
+#         ecart_type/quantiles, cf. rupture.pca.centrer)
 import os
 import sys
 import time
@@ -22,7 +24,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from rupture.graphes import BLEU, GRILLE, ENCRE2
-from rupture.pca import pca
+from rupture.pca import centrer, pca
 
 COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860", "lesechos": "#b00005",
             "ouestfrance": "#c8102e", "mediapart": "#fc392b"}
@@ -32,6 +34,8 @@ SORTIES = f"{os.path.dirname(os.path.abspath(__file__))}/sorties"
 
 tag = sys.argv[1] if len(sys.argv) > 1 else "j20"
 seuil = float(sys.argv[2]) if len(sys.argv) > 2 else 4.0
+centre = sys.argv[3] if len(sys.argv) > 3 else "moy"
+echelle = sys.argv[4] if len(sys.argv) > 4 else "ecart_type"
 DOSSIER = os.environ.get("VOCAB_DIR", "/data/elias/stage-mids/data")
 debut = time.time()
 
@@ -45,12 +49,10 @@ F = d["fenetres"][m].astype(np.float64)                     # (n, 3, L)
 print(f"{tag} : {len(F)} triplets a reference >= {seuil:g} "
       f"(sur {len(m)}), medias {', '.join(medias)}", flush=True)
 
-# z-score par segment puis concatenation ; un segment plat ecarte le triplet
-mu = F.mean(axis=2, keepdims=True)
-sd = F.std(axis=2, keepdims=True)
-plates = (sd[:, :, 0] == 0).any(axis=1)
+# normalisation par segment puis concatenation ; un segment plat ecarte le triplet
+plates = (F.std(axis=2) == 0).any(axis=1)
 garde = np.where(m)[0][~plates]
-Z = ((F[~plates] - mu[~plates]) / sd[~plates]).reshape(len(garde), -1)
+Z = centrer(F[~plates], centre, echelle).reshape(len(garde), -1)
 composantes, variance, proj = pca(Z)
 signes = np.sign((proj ** 3).sum(axis=0))
 signes[signes == 0] = 1

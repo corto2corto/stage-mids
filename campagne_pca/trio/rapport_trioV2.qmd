@@ -33,9 +33,11 @@ import matplotlib.pyplot as plt
 from plottable import Table, ColumnDefinition
 
 import campagne_pca.scripts.figures_lib as lib
-from rupture.pca import pca
+from rupture.pca import centrer, pca
 
 D = Path("../data/trio")
+# normalisation des segments : "moy"/"med" et "ecart_type"/"quantiles"
+CENTRE, ECHELLE = "moy", "ecart_type"
 COULEURS = {"lemonde": "#1A171B", "lefigaro": "#163860", "ouestfrance": "#c8102e"}
 NOMS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro", "ouestfrance": "Ouest-France"}
 SEUIL = 6
@@ -44,9 +46,7 @@ vir = lambda x, k=2: f"{x:.{k}f}".replace(".", ",")
 
 
 def zscore(F):
-    F = F.astype(np.float64)
-    sd = F.std(2, keepdims=True)
-    return (F - F.mean(2, keepdims=True)) / np.where(sd == 0, 1, sd)
+    return centrer(F, CENTRE, ECHELLE)
 
 
 def charger(tag):
