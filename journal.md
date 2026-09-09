@@ -1911,3 +1911,10 @@ devient la hauteur du pic (archétypes = soirs d'élection) et ne suit plus
 l'asymétrie avant/après (0,08-0,22 contre 0,9). Quantiles élargis (q10-q90,
 q05-q95) : effet atténué, pas supprimé ; médiane / écart-type retrouve le
 spectre du z-score. Le choix médiane + quantiles est à rediscuter.
+
+Réunion Bouchaud 
+- spike detection seulement sur le passé (on fit chaque jour), en faisant attention aux nombres d'occurrences 
+- regardant sachant qu'il y a un pic, la proba qu'on est un second pic plus tard 
+- pics les + intéressants, faire la fig4 en décile, chercher de l'endogenéité dans les datas
+- faire en sorte qu'on puisse projeter n'importe quels mots sur les composantes 
+- grand continent, l'équipe, libé 
