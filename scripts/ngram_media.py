@@ -1,12 +1,17 @@
-# Comptes uni/bi/trigrammes d'un média, par jour, dans <media>_ngram.db.
+# Comptes uni/bi/trigrammes d'un média, par jour, dans une base <media>_ngram.db.
 # Fusion des anciens ngram_lemonde/lesechos/lefigaro/mediapart.py : même
 # mécanisme partout (staging puis tables finales, filtre > 10), seuls changent
 # le CSV source et la façon d'en tirer la date et le texte.
-# Usage : python -m scripts.ngram_media lemonde|lesechos|lefigaro|mediapart
+#
+# Deux usages :
+#   python -m scripts.ngram_media lemonde|lesechos|lefigaro|mediapart
+#       les corpus du projet, chemins connus d'avance ;
+#   python -m scripts.ngram_media <csv> <sortie.db> <colonne_date> <colonnes_texte>
+#       n'importe quel CSV : on donne la colonne de date (ISO ou AAAAMMJJ) et la
+#       ou les colonnes de texte à coller ensemble, séparées par des virgules.
+#       Ex. : python -m scripts.ngram_media presse.csv presse_ngram.db date titre,contenu
 
 import os
-os.environ["SQLITE_TMPDIR"] = "/data/elias/stage-mids/data"  # gros temp, pas /tmp
-
 import sqlite3
 import sys
 from collections import Counter
@@ -23,12 +28,34 @@ MEDIAS = {
     "mediapart": ("csv/mediapart.csv",   ["date", "contenu"],                    20_000, 4_000_000),
 }
 
-media = sys.argv[1]
-csv, usecols, chunksize, cache_ko = MEDIAS[media]
+if len(sys.argv) < 2:
+    sys.exit("Usage : python -m scripts.ngram_media " + "|".join(MEDIAS) + "\n"
+             "        python -m scripts.ngram_media <csv> <sortie.db> <colonne_date> <colonnes_texte>")
+
+if sys.argv[1] in MEDIAS:  # corpus du projet
+    media = sys.argv[1]
+    csv, usecols, chunksize, cache_ko = MEDIAS[media]
+    csv = f"/data/elias/stage-mids/data/{csv}"
+    db = f"/data/elias/stage-mids/data/corpus/{media}_ngram.db"
+    col_date = None
+else:  # CSV quelconque décrit en ligne de commande
+    csv, db, col_date, cols_txt = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4].split(",")
+    usecols = [col_date, *cols_txt]
+    chunksize, cache_ko = 50_000, 500_000
+    media = None
+
+os.environ["SQLITE_TMPDIR"] = os.path.dirname(os.path.abspath(db))  # gros temp, pas /tmp
 
 
 def preparer(chunk):
     # Normalise un chunk en deux colonnes : date (int YYYYMMDD) et txt.
+    if col_date:  # CSV quelconque : colonnes données en ligne de commande
+        txt = chunk[cols_txt[0]].fillna("").astype(str)
+        for c in cols_txt[1:]:
+            txt = txt + "\n" + chunk[c].fillna("").astype(str)
+        d = pd.to_datetime(chunk[col_date], errors="coerce")
+        chunk = chunk.assign(date=d.dt.strftime("%Y%m%d"), txt=txt)
+        return chunk.dropna(subset=["date"]).astype({"date": int})
     if media == "lemonde":  # date en trois colonnes year/month/day
         chunk = chunk.dropna(subset=["text", "year", "month", "day"]).astype(
             {"year": int, "month": int, "day": int})
@@ -46,7 +73,7 @@ def preparer(chunk):
     return chunk.dropna(subset=["date"]).astype({"date": int})
 
 
-conn = sqlite3.connect(f"/data/elias/stage-mids/data/corpus/{media}_ngram.db")
+conn = sqlite3.connect(db)
 conn.executescript(f"""
     PRAGMA page_size = 65536;       -- 64 ko/page : ~16x moins d'operations sur disque lent
     PRAGMA journal_mode = OFF;
@@ -58,7 +85,7 @@ conn.executescript(f"""
     CREATE TABLE IF NOT EXISTS trigram_staging (w1, w2, w3, date, n);
 """)
 
-reader = pd.read_csv(f"/data/elias/stage-mids/data/{csv}", usecols=usecols, chunksize=chunksize)
+reader = pd.read_csv(csv, usecols=usecols, chunksize=chunksize)
 
 for chunk in reader:
     chunk = preparer(chunk)
@@ -130,4 +157,4 @@ conn.executescript("""
 conn.execute("PRAGMA journal_mode = WAL")
 conn.execute("VACUUM")
 conn.close()
-print(f"FINI : {media}_ngram.db construite")
+print(f"FINI : {db} construite")
