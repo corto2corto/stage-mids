@@ -580,6 +580,29 @@ Problème constaté sur le MCP Agora en production : la requête mot=pouvoir ach
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## garde-fou-session-morte — Garde-fou dans la boucle de scraping : une session Firefox morte brûle toute la file du média
+
+- Ajoutée : 2026-09-10
+- Branche : main
+
+**Contexte** : `boucle_media` (scraping/pipeline.py, ~l. 107-121) ne détecte pas une session Firefox morte. Quand le navigateur tombe, chaque `scraper()` lève aussitôt, `traiter_url` compte un échec ordinaire, l'URL passe 0→1 puis (seconde chance) 1→4 et la file entière est brûlée à ~175 URLs/s. Constaté le 22/07/2026 dans suivi_journal.csv : le_figaro +17 786 échecs en 14 min (05:53-06:07 UTC, d'où le trou 18/05-21/07 dans le corpus), le_nouvel_observateur +204 022 (03:27-04:00). Les deux lots ont été remis en état 0 le 10/09 (sauvegardes data/backup/etat4_vers_0_*_20260910.csv) ; le bug, lui, reste.
+
+**Piste envisagée** : dans `boucle_media`, couper la boucle du média après N échecs instantanés consécutifs (durée < 1 s chacun), en laissant les URLs en état 0/1 pour que le cycle suivant de lancer.sh les reprenne avec une session neuve. Alternative : vérifier la session avant de poser l'état 4.
+
+**Prompt** :
+
+```
+Bug dans la boucle de scraping : quand la session Firefox d'un média meurt en cours de cycle, boucle_media (scraping/pipeline.py, ~l. 107-121) ne s'en aperçoit pas. Chaque appel scraper() lève une exception immédiate, traiter_url la compte comme un échec normal, l'URL passe 0→1 puis en seconde chance 1→4, et toute la file du média est brûlée à ~175 URLs/s. Vu le 22/07/2026 : le_figaro 17 786 URLs en 14 min, le_nouvel_observateur 204 022 en une demi-heure (colonnes reussis/echecs de site/sources/suivi/suivi_journal.csv). Les lots ont été remis en état 0 le 10/09 ; il reste à empêcher que ça se reproduise.
+
+À faire :
+1. Dans boucle_media, compter les échecs consécutifs dont le traitement a duré moins de 1 s (un vrai échec réseau ou paywall prend plusieurs secondes). Au-delà de N (10 par exemple), sortir de la boucle du média avec un message clair dans le log ; lancer.sh relance un cycle avec une session neuve, les URLs restées en 0/1 sont reprises.
+2. Ne pas poser l'état 4 sur une URL traitée pendant cette rafale : la dernière URL avant l'arrêt doit rester retentable (revenir à l'état précédent si besoin).
+3. Test unitaire léger avec une session factice qui lève à chaque appel : vérifier que la boucle s'arrête après N et que les états en base ne bougent pas au-delà.
+4. Vérifier après déploiement (git pull sur gallica, relance tmux scrapping) qu'un cycle normal tourne comme avant.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
 
 ## figure4-composante2 — Refaire la figure 4 de Bouchaud sur la composante 2 (4 tranches)

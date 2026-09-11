@@ -808,6 +808,29 @@ Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
     </div>
   </div>
 
+  <div class="carte" id="tache-garde-fou-session-morte" style="margin-top: 14px">
+    <div class="carte-tete">
+      <div>
+        <div class="carte-titre">Garde-fou dans la boucle de scraping : une session Firefox morte brûle toute la file du média</div>
+        <div class="carte-sous">ajoutée le 10 septembre · main</div>
+      </div>
+      <button class="btn-prompt" data-panneau="prompt-garde-fou-session-morte" aria-expanded="false">Prompt</button>
+    </div>
+    <p class="desc">Quand la session Firefox d'un média meurt, <span style="font-family: var(--mono)">boucle_media</span> (scraping/pipeline.py) compte chaque exception comme un échec ordinaire et brûle la file entière en état 4 à ~175 URLs/s (22/07 : le_figaro 17 786, le_nouvel_observateur 204 022 — lots remis à 0 le 10/09). Piste : couper la boucle du média après N échecs instantanés consécutifs, en laissant les URLs en 0/1 pour le cycle suivant.</p>
+    <div class="panneau-prompt" id="prompt-garde-fou-session-morte" hidden>
+      <pre>Bug dans la boucle de scraping : quand la session Firefox d&#x27;un média meurt en cours de cycle, boucle_media (scraping/pipeline.py, ~l. 107-121) ne s&#x27;en aperçoit pas. Chaque appel scraper() lève une exception immédiate, traiter_url la compte comme un échec normal, l&#x27;URL passe 0→1 puis en seconde chance 1→4, et toute la file du média est brûlée à ~175 URLs/s. Vu le 22/07/2026 : le_figaro 17 786 URLs en 14 min, le_nouvel_observateur 204 022 en une demi-heure (colonnes reussis/echecs de site/sources/suivi/suivi_journal.csv). Les lots ont été remis en état 0 le 10/09 ; il reste à empêcher que ça se reproduise.
+
+À faire :
+1. Dans boucle_media, compter les échecs consécutifs dont le traitement a duré moins de 1 s (un vrai échec réseau ou paywall prend plusieurs secondes). Au-delà de N (10 par exemple), sortir de la boucle du média avec un message clair dans le log ; lancer.sh relance un cycle avec une session neuve, les URLs restées en 0/1 sont reprises.
+2. Ne pas poser l&#x27;état 4 sur une URL traitée pendant cette rafale : la dernière URL avant l&#x27;arrêt doit rester retentable (revenir à l&#x27;état précédent si besoin).
+3. Test unitaire léger avec une session factice qui lève à chaque appel : vérifier que la boucle s&#x27;arrête après N et que les états en base ne bougent pas au-delà.
+4. Vérifier après déploiement (git pull sur gallica, relance tmux scrapping) qu&#x27;un cycle normal tourne comme avant.
+
+Me demander avant de lancer quoi que ce soit sur le serveur.</pre>
+      <button class="btn-copier" data-copie="prompt-garde-fou-session-morte">Copier</button>
+    </div>
+  </div>
+
   <h2>Runs sur le serveur</h2>
   <div class="grille">
     <div class="carte">
