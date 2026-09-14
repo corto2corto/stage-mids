@@ -15,14 +15,17 @@
 # Echo : pour chaque media, son pic propre le plus fort (pics_<media>_s3, surprise
 # >= --suiveur) a moins de --tol jours de la date unifiee, surprise 0 sinon.
 #
-# Sortie <VOCAB_DIR>/fenetres_trioV2_<tag>.npz (tag = j20, 3j15) :
-#   fenetres float32 (n, 3, L)   f_t pour 10^5 par media, blocs -demi..demi
+# Sortie <VOCAB_DIR>/fenetres_<nom>_<tag>.npz (nom = trioV2 par defaut, tag = j20,
+# 3j15) ; --medias accepte N journaux (3 a l'origine, 6 pour les correlogrammes) :
+#   fenetres float32 (n, M, L)   f_t pour 10^5 par media, blocs -demi..demi
 #   mot, date (YYYYMMDD du pic unifie), surprise (pic unifie), X_t, N_t,
-#   echo (n, 3 surprise propre), decalage (n, 3 jours pic propre - date),
-#   n_interp (n, 3), medias, pas, demi, tol, seuil, n_plat, n_nms
+#   echo (n, M surprise propre ; 0 si pas de pics_<media>_s3), decalage (n, M jours
+#   pic propre - date), n_interp (n, M), medias, pas, demi, tol, seuil, n_plat, n_nms
 # Usage (sur gallica) :
 #   python -m rupture.fenetres_unifie_trio --pas 1 --demi 20
 #   python -m rupture.fenetres_unifie_trio --pas 3 --demi 15
+#   python -m rupture.fenetres_unifie_trio --pas 1 --demi 15 --nom six \
+#       --medias lemonde lefigaro lesechos ouestfrance la_depeche leparisien
 import argparse
 import os
 import time
@@ -31,7 +34,8 @@ import numpy as np
 import pandas as pd
 
 p = argparse.ArgumentParser()
-p.add_argument("--medias", nargs=3, default=["lemonde", "lefigaro", "ouestfrance"])
+p.add_argument("--medias", nargs="+", default=["lemonde", "lefigaro", "ouestfrance"])
+p.add_argument("--nom", default="trioV2", help="prefixe de sortie : fenetres_<nom>_<tag>.npz")
 p.add_argument("--pas", type=int, default=1, help="jours par bloc (impair)")
 p.add_argument("--demi", type=int, default=20, help="blocs de chaque cote du centre")
 p.add_argument("--seuil", type=float, default=5.0, help="surprise min. du pic unifie")
@@ -66,10 +70,10 @@ for m in a.medias:
     d = np.load(f"{DOSSIER}/vocab_series_{m}.npz")
     series.append(dict(X=d["X"], N=d["N"].astype(np.int64),
                        jours=en_jours(d["dates"]), mots=d["mots"].astype(str)))
-ens = set(series[0]["mots"]) & set(series[1]["mots"]) & set(series[2]["mots"])
+ens = set.intersection(*[set(s["mots"]) for s in series])
 commun = np.array([m for m in series[0]["mots"] if m in ens])
 colonne = {m: j for j, m in enumerate(commun)}
-debut = max(s["jours"][0] for s in series)          # periode commune aux trois
+debut = max(s["jours"][0] for s in series)          # periode commune aux medias
 fin = min(s["jours"][-1] for s in series)
 print(f"{' + '.join(a.medias)} : vocabulaire commun {len(commun)} mots, periode "
       f"commune {np.datetime64(int(debut), 'D')} -> {np.datetime64(int(fin), 'D')}, "
@@ -112,10 +116,15 @@ print(f"NMS largeur de fenetre ({PORTEE} j) : {n_nms} pics ecartes, {n} fenetres
       f"extraire, {time.time() - debut_t:.0f} s", flush=True)
 
 # 4. Echo par media : pic propre le plus fort a <= tol jours de la date unifiee
-echo = np.zeros((n, 3), np.float32)
-decalage = np.zeros((n, 3), np.int16)
+M = len(a.medias)
+echo = np.zeros((n, M), np.float32)
+decalage = np.zeros((n, M), np.int16)
 for i, m in enumerate(a.medias):
-    q = pd.read_csv(f"{DOSSIER}/pics_{m}{suffixe}_s3.csv")
+    chemin_pics = f"{DOSSIER}/pics_{m}{suffixe}_s3.csv"
+    if not os.path.exists(chemin_pics):
+        print(f"  {m:12s} pas de pics propres ({chemin_pics}), echo laisse a 0", flush=True)
+        continue
+    q = pd.read_csv(chemin_pics)
     q = q[q["mot"].isin(ens) & (q["surprise"] >= a.suiveur)]
     q["jour"] = en_jours(q["date"].to_numpy())
     par_mot = {mot: (g["jour"].to_numpy(), g["surprise"].to_numpy())
@@ -132,13 +141,13 @@ for i, m in enumerate(a.medias):
     print(f"  {m:12s} echo present dans {(echo[:, i] > 0).mean() * 100:.1f} % des "
           f"fenetres", flush=True)
 
-# 5. Extraction des trois segments, blocs calendaires ancres sur la date
+# 5. Extraction des segments (un par media), blocs calendaires ancres sur la date
 off = (np.arange(-a.demi, a.demi + 1)[:, None] * a.pas
        + (np.arange(a.pas) - a.pas // 2)[None, :])                 # (L, pas)
-fenetres = np.zeros((n, 3, L), np.float32)
-n_interp = np.zeros((n, 3), np.int16)
+fenetres = np.zeros((n, M, L), np.float32)
+n_interp = np.zeros((n, M), np.int16)
 garde = np.ones(n, bool)
-plat = np.zeros((n, 3), bool)
+plat = np.zeros((n, M), bool)
 for i, (m, s) in enumerate(zip(a.medias, series)):
     cal0 = debut - PORTEE - a.pas
     ncal = fin + PORTEE + a.pas - cal0 + 1
@@ -174,7 +183,7 @@ garde &= ~plat.any(axis=1)
 fenetres, mot_t, date_t, surprise_t = fenetres[garde], mot_t[garde], date_t[garde], surprise_t[garde]
 X_t, N_t, echo, decalage, n_interp = X_t[garde], N_t[garde], echo[garde], decalage[garde], n_interp[garde]
 
-chemin = f"{DOSSIER}/fenetres_trioV2_{tag}.npz"
+chemin = f"{DOSSIER}/fenetres_{a.nom}_{tag}.npz"
 np.savez_compressed(chemin, fenetres=fenetres, mot=mot_t, date=date_t,
                     surprise=surprise_t, X_t=X_t, N_t=N_t, echo=echo,
                     decalage=decalage, n_interp=n_interp, medias=np.array(a.medias),
