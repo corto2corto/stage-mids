@@ -1,0 +1,116 @@
+---
+title: "Corrélogrammes croisés autour des pics du corpus unifié"
+subtitle: "Six journaux, fenêtres journalières ±15 jours, 16 883 pics (surprise ≥ 5), vocabulaire commun 6 166 mots, 2010 → mars 2024"
+lang: fr
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 10.5pt
+    fig-cap-location: bottom
+    fig-format: png
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# Figure calculee ici depuis campagne_pca/correlo/correlogrammes_six_j15.csv
+# (scripts/correlogrammes.py sur campagne_pca/data/six/fenetres_six_j15.npz,
+# fenetres produites sur gallica par rupture.fenetres_unifie_trio --nom six).
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+r = pd.read_csv("correlogrammes_six_j15.csv")
+medias = list(dict.fromkeys(r["a"]))
+NOMS = {"lemonde": "Le Monde", "lefigaro": "Le Figaro", "lesechos": "Les Échos",
+        "ouestfrance": "Ouest-France", "la_depeche": "La Dépêche", "leparisien": "Le Parisien"}
+PEARSON, SPEARMAN, BANDE = "#b5312f", "#2f6ea6", "#e6e5e1"
+n = int(r["n"].iloc[0])
+bruit = 1.96 / np.sqrt(n)
+vir = lambda x, k=2: f"{x:.{k}f}".replace(".", ",").replace("-", "−")
+```
+
+```{=typst}
+#set par(justify: true)
+#show figure.caption: set text(size: 8.5pt, fill: rgb("#52514e"))
+#show figure: set block(above: 1.2em, below: 1.4em)
+```
+
+Pour chaque couple ordonné de journaux (A, B) et chaque décalage $k$ de −15 à +15 jours, la corrélation est calculée à travers les fenêtres : les 16 883 couples $(A_0, B_k)$, un par pic, donnent un coefficient de Pearson et un coefficient de Spearman. Chaque segment est au préalable centré et réduit sur sa propre fenêtre, de sorte que le niveau de base du mot dans chaque journal n'intervient pas. Les fenêtres où un journal est muet sur toute la période sont écartées.
+
+```{=typst}
+#v(1fr)
+```
+
+```{python}
+#| fig-cap: "Corrélation entre le journal en ligne au jour du pic et le journal en colonne décalé de $k$ jours. Trait plein : Pearson ; tirets : Spearman ; bande grise : ±1,96/√n. Sur la diagonale, la valeur 1 au décalage 0 sort du cadre."
+fig, axes = plt.subplots(6, 6, figsize=(7.4, 7.0), sharex=True, sharey=True)
+for i, a in enumerate(medias):
+    for j, b in enumerate(medias):
+        ax = axes[i, j]
+        q = r[(r["a"] == a) & (r["b"] == b)]
+        ax.axhspan(-bruit, bruit, color=BANDE, lw=0)
+        ax.axhline(0, color="#9a9a94", lw=0.5)
+        ax.axvline(0, color="#9a9a94", lw=0.4, ls=":")
+        ax.plot(q["lag"], q["pearson_seg"], color=PEARSON, lw=1.1)
+        ax.plot(q["lag"], q["spearman_seg"], color=SPEARMAN, lw=0.9, ls=(0, (3, 2)))
+        ax.tick_params(labelsize=6, length=2, pad=1.5)
+        for s in ("top", "right"):
+            ax.spines[s].set_visible(False)
+        if i == 0:
+            ax.set_title(NOMS[b], fontsize=7.5, pad=3)
+        if j == 0:
+            ax.set_ylabel(NOMS[a], fontsize=7.5)
+        if i == 5:
+            ax.set_xticks([-14, -7, 0, 7, 14])
+axes[0, 0].set_ylim(-0.12, 0.36)
+axes[0, 0].set_yticks([0, 0.1, 0.2, 0.3])
+fig.supxlabel("décalage $k$ (jours)", fontsize=7.5, y=0.01)
+fig.tight_layout(h_pad=0.5, w_pad=0.4)
+plt.show()
+```
+
+```{=typst}
+#v(1fr)
+#pagebreak()
+#v(1fr)
+```
+
+```{python}
+#| output: asis
+lignes = []
+for i, a in enumerate(medias):
+    for b in medias[i + 1:]:
+        q = r[(r["a"] == a) & (r["b"] == b)].set_index("lag")
+        qi = r[(r["a"] == b) & (r["b"] == a)].set_index("lag")
+        lignes.append((f"{NOMS[a]} · {NOMS[b]}", q.loc[0, "pearson"], q.loc[0, "pearson_seg"],
+                       q.loc[0, "spearman_seg"], q.loc[1, "pearson_seg"], qi.loc[1, "pearson_seg"]))
+lignes.sort(key=lambda t: -t[2])
+cellules = "\n".join(f"  [{nom}], [{vir(b0)}], [{vir(s0)}], [{vir(sp0)}], [{vir(s1)}], [{vir(s1i)}],"
+                     for nom, b0, s0, sp0, s1, s1i in lignes)
+print(f"""```{{=typst}}
+#set text(size: 9pt)
+#figure(
+  table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr),
+    align: (left, right, right, right, right, right),
+    stroke: none,
+    inset: (x: 6pt, y: 3.2pt),
+    table.hline(stroke: 0.6pt),
+    table.header([*Couple A · B*], [*Brut*], [*Segment*], [*Spearman*], [*$A_0$, $B_(+1)$*], [*$B_0$, $A_(+1)$*]),
+    table.hline(stroke: 0.4pt),
+{cellules}
+    table.hline(stroke: 0.6pt),
+  ),
+  caption: [Corrélations au jour du pic ($k = 0$) pour les quinze couples, triées par la valeur segment. « Brut » : Pearson sur les fréquences telles quelles ; « Segment » et « Spearman » : Pearson et Spearman sur les segments centrés-réduits. Les deux dernières colonnes donnent la corrélation segment (Pearson) au lendemain du pic dans chaque sens.],
+)
+#set text(size: 10.5pt)
+#v(1fr)
+```""")
+```
