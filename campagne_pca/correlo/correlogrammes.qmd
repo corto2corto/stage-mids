@@ -49,7 +49,7 @@ Pour chaque couple ordonné de journaux (A, B) et chaque décalage $k$ de −15 
 ```
 
 ```{python}
-#| fig-cap: "Corrélation entre le journal en ligne au jour du pic et le journal en colonne décalé de $k$ jours. Trait plein : Pearson ; tirets : Spearman ; bande grise : ±1,96/√n. Sur la diagonale, la valeur 1 au décalage 0 sort du cadre."
+#| fig-cap: "Corrélation entre le journal en ligne au jour du pic et le journal en colonne décalé de $k$ jours. Barres : Pearson ; points : Spearman ; bande grise : ±1,96/√n. Sur la diagonale, la valeur 1 au décalage 0 sort du cadre."
 fig, axes = plt.subplots(6, 6, figsize=(7.4, 7.0), sharex=True, sharey=True)
 for i, a in enumerate(medias):
     for j, b in enumerate(medias):
@@ -58,8 +58,8 @@ for i, a in enumerate(medias):
         ax.axhspan(-bruit, bruit, color=BANDE, lw=0)
         ax.axhline(0, color="#9a9a94", lw=0.5)
         ax.axvline(0, color="#9a9a94", lw=0.4, ls=":")
-        ax.plot(q["lag"], q["pearson_seg"], color=PEARSON, lw=1.1)
-        ax.plot(q["lag"], q["spearman_seg"], color=SPEARMAN, lw=0.9, ls=(0, (3, 2)))
+        ax.bar(q["lag"], q["pearson_seg"], width=0.8, color=PEARSON, lw=0)
+        ax.plot(q["lag"], q["spearman_seg"], ls="none", marker="o", ms=1.6, mew=0, color=SPEARMAN)
         ax.tick_params(labelsize=6, length=2, pad=1.5)
         for s in ("top", "right"):
             ax.spines[s].set_visible(False)
