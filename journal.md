@@ -1918,3 +1918,23 @@ Réunion Bouchaud
 - pics les + intéressants, faire la fig4 en décile, chercher de l'endogenéité dans les datas
 - faire en sorte qu'on puisse projeter n'importe quels mots sur les composantes 
 - grand continent, l'équipe, libé 
+## Corrélogrammes croisés à six journaux (14/09/2026)
+
+Proposition de Simon C. : corrélation « à travers les pics » entre $A_0$ et
+$B_k$ ($k$ de −15 à +15) pour chaque couple ordonné de journaux, lags positifs
+et négatifs car la fenêtre n'est pas stationnaire. Journaux actés : Le Monde,
+Le Figaro, Les Échos, Ouest-France, La Dépêche, Le Parisien (six gros à
+couverture continue ; Mediapart trop petit). Séries et pics de La Dépêche et
+du Parisien fabriqués sur gallica ; `rupture/fenetres_unifie_trio.py` généralisé
+à N journaux (`--medias`, `--nom`) → `campagne_pca/data/six/fenetres_six_j15.npz`
+: 190 158 pics unifiés, 51 948 après NMS à surprise ≥ 5, 22 107 dans le
+vocabulaire commun (6 166 mots) et la période 2010 → mars 2024, 16 883 gardés
+(5 223 écartés pour jours quasi vides, presque tous La Dépêche). Calcul dans
+`campagne_pca/correlo/scripts/correlogrammes.py`, rapport `correlogrammes.pdf`.
+Deux lectures : brute (dominée par le niveau de base du mot, Monde·Monde encore
+0,54 à 15 j) et segment centré-réduit, retenue. En segment : pic étroit à
+$k = 0$ (Monde·Figaro 0,33, Figaro·Échos 0,28, Ouest-France·nationaux ≈ 0,10),
+retour dans le bruit dès ±2 j, Pearson et Spearman confondus. Asymétrie au
+lendemain : corr($B_0$, Monde$_{+1}$) ≈ 0,19 contre corr(Monde$_0$, $B_{+1}$)
+≈ 0,10 pour Figaro, Échos, Parisien — Le Monde arrive un jour après ; idem La
+Dépêche derrière Ouest-France et Le Figaro. Bande de bruit 1,96/√n indicative.
