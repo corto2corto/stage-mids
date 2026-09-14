@@ -603,6 +603,31 @@ Bug dans la boucle de scraping : quand la session Firefox d'un média meurt en c
 Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## trou-valeurs-actuelles-2025 — Valeurs Actuelles : trou de couverture en 2025
+
+- Ajoutée : 2026-09-14
+- Branche : main
+
+**Contexte** : signalé en séance le 14/09/2026 — le corpus Valeurs Actuelles (`valeurs_actuelles`, moteur firefox, extraction `json_ld` + corps `div.post__content`, cf `scraping/medias.py:37`) présente un trou sur l'année 2025. Même famille de problème que la tâche `couverture-telegramme-sudouest` (faite le 22/08), mais sur une période intermédiaire et non une coupure en fin de corpus : il ne s'agit pas d'un arrêt net mais d'une année manquante ou fortement creuse au milieu du corpus. L'ampleur exacte (mois concernés, volume attendu) n'a pas été mesurée en séance — le diagnostic est à faire.
+
+**Piste envisagée** : d'abord mesurer le trou (comptage d'articles par mois dans `valeurs_actuelles.csv` et dans la base n-grammes), puis remonter la chaîne : URLs jamais listées côté récolte (sitemaps/archives incomplets sur 2025), URLs listées mais brûlées en état 4, ou dates mal extraites (articles présents mais datés ailleurs — le `json_ld` peut retomber sur une date de republication). Le même diagnostic que Le Télégramme/Sud Ouest, mais en distinguant bien ces trois causes avant de relancer quoi que ce soit.
+
+**Prompt** :
+
+```
+Le corpus Valeurs Actuelles a un trou de couverture sur l'année 2025 (signalé le 14/09/2026, ampleur exacte non mesurée). Média `valeurs_actuelles` dans scraping/medias.py (moteur firefox, strategie json_ld, corps div.post__content). À diagnostiquer avant toute correction — même famille que la tâche couverture-telegramme-sudouest (faite), mais ici le trou est au milieu du corpus, pas en fin.
+
+À faire, dans cet ordre :
+1. Mesurer le trou : comptage d'articles par mois sur 2024-2026 dans data/csv/valeurs_actuelles.csv (sur gallica), et le même comptage dans la base n-grammes du média. Comparer les deux : si le CSV est complet et la base creuse, le problème est à la construction ; sinon il est en amont.
+2. Si le trou est bien dans le CSV, trancher entre les trois causes possibles, en requêtes indexées sur urls.db (jamais de COUNT(*) ni de scan complet) :
+   - URLs jamais listées : rien en base pour les URLs 2025 → problème de récolte (sitemaps/archives).
+   - URLs listées mais perdues : compter les états 1/4/5 pour le média, voir si un lot 2025 a été brûlé (cf le bug de session Firefox morte, tâche garde-fou-session-morte).
+   - Dates mal extraites : articles présents mais datés hors 2025 — vérifier ce que le json_ld renvoie sur quelques articles 2025 connus (date de publication vs date de republication).
+3. Rendre compte du diagnostic (quelle cause, quel volume) AVANT de proposer une correction. Ne pas relancer de récolte ni modifier d'états en base dans la foulée.
+
+Ne pas resynchroniser les bases ngram après une éventuelle reprise de scraping (décision actée). Me demander avant de lancer quoi que ce soit sur le serveur.
+```
+
 ## Faites
 
 ## figure4-composante2 — Refaire la figure 4 de Bouchaud sur la composante 2 (4 tranches)
