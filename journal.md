@@ -1938,3 +1938,27 @@ retour dans le bruit dès ±2 j, Pearson et Spearman confondus. Asymétrie au
 lendemain : corr($B_0$, Monde$_{+1}$) ≈ 0,19 contre corr(Monde$_0$, $B_{+1}$)
 ≈ 0,10 pour Figaro, Échos, Parisien — Le Monde arrive un jour après ; idem La
 Dépêche derrière Ouest-France et Le Figaro. Bande de bruit 1,96/√n indicative.
+
+## Retouches et tâches ouvertes (15/09/2026)
+
+Figure des corrélogrammes retouchée : Pearson en barres, Spearman en points,
+plus lisible que deux courbes superposées.
+
+Deux tâches notées dans `taches.md` :
+
+- Trou de couverture de *Valeurs Actuelles* sur 2025, signalé en séance le
+  14/09. Ampleur pas encore mesurée ; diagnostic à faire avant toute correction
+  (URLs jamais listées, lot brûlé en état 4, ou dates mal extraites par le
+  `json_ld`), en distinguant bien les trois causes.
+- Intervalle de confiance sur les graphes de fréquences. $f_t$ est tracé comme
+  une valeur exacte alors que c'est une proportion estimée sur $N_t$ mots : un
+  jour de faible publication donne une fréquence instable sans que rien ne le
+  montre. Piste : bande binomiale (intervalle de Wilson, qui tient quand
+  $X_t = 0$) dans `fig_serie` de `rupture/fiches.py`, commune au rapport, au
+  recueil et au skill `/fiche-mot`. Reste à trancher : bande sur la courbe
+  quotidienne ou sur la moyenne mobile 7 j, et niveau de confiance cohérent
+  avec le seuil des pics ($p_t < 10^{-4}$) pour que bande et points rouges ne
+  se contredisent pas.
+
+Point d'avancement : 19,4 M d'articles collectés, La Dépêche rattrapée ; il
+reste 3,7 M d'URLs en file, presque toutes sur *Le Télégramme*.

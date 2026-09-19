@@ -628,6 +628,34 @@ Le corpus Valeurs Actuelles a un trou de couverture sur l'année 2025 (signalé 
 Ne pas resynchroniser les bases ngram après une éventuelle reprise de scraping (décision actée). Me demander avant de lancer quoi que ce soit sur le serveur.
 ```
 
+## ic-graphes-frequences — Intervalle de confiance sur les graphes de fréquences
+
+- Ajoutée : 2026-09-15
+- Branche : main
+
+**Contexte** : demandé par Corto le 15/09/2026. Les graphes de fréquences tracent $f_t$ comme une valeur exacte, alors que c'est une estimation bruitée : $f_t = 10^5 \times X_t / N_t$ (`rupture/fiches.py:171`), donc une proportion estimée sur $N_t$ mots. Un jour où le journal publie peu, $N_t$ est petit et $f_t$ est beaucoup plus instable — rien ne le montre à l'œil. Même problème sur les séries de l'API et sur les figures des rapports PCA. Sans bande d'incertitude, un lecteur ne peut pas distinguer une vraie variation d'un artefact de petit dénominateur.
+
+**Piste envisagée** : bande de confiance binomiale autour de $f_t$, tracée en aire translucide sous la courbe quotidienne. $X_t$ occurrences sur $N_t$ mots se traite comme une proportion $\hat{p} = X_t / N_t$ ; l'intervalle de Wilson est préférable à l'intervalle normal, qui dégénère quand $X_t$ vaut 0 ou est très petit (fréquent sur les mots rares, cf la règle « fit dégénéré » du skill /fiche-mot). Commencer par `fig_serie` dans `rupture/fiches.py:241`, qui est la bibliothèque partagée entre `rapport.qmd`, le recueil `fiches_mots.qmd` et le skill /fiche-mot — un seul changement y sert les trois. Décider ensuite si on propage aux figures de `campagne_pca/scripts/figures_lib.py` et à l'API.
+
+**Points à trancher en séance** : la bande doit-elle porter sur la courbe quotidienne (très bruitée, la bande risque de saturer la figure) ou sur la moyenne mobile 7 jours (plus lisible, mais l'intervalle n'est alors plus celui d'une observation isolée) ? Et le niveau : 95 % par défaut, mais les pics sont détectés à $p_t < 10^{-4}$, donc une bande à 95 % dira « anormal » bien plus souvent que les points rouges — il faut éviter que les deux se contredisent visuellement.
+
+**Prompt** :
+
+```
+Ajouter un intervalle de confiance sur les graphes de fréquences (demandé le 15/09/2026).
+
+Constat : f_t est tracé comme une valeur exacte alors que c'est une proportion estimée — f_t = 1e5 * X_t / N_t (rupture/fiches.py:171), estimée sur N_t mots publiés ce jour-là. Quand N_t est petit, f_t est très instable et rien ne le signale sur la figure. On ne peut pas distinguer une vraie variation d'un artefact de petit dénominateur.
+
+À faire :
+1. Dans fig_serie (rupture/fiches.py:241), calculer une bande de confiance binomiale autour de f_t. Utiliser l'intervalle de Wilson, pas l'intervalle normal : le normal dégénère quand X_t = 0 ou est très petit, ce qui arrive souvent sur les mots rares. Tracer la bande en aire translucide (fill_between) sous la courbe quotidienne, dans le gris déjà utilisé pour le quotidien, et l'ajouter à la légende.
+2. Avant de coder, me demander deux choses : (a) la bande porte-t-elle sur la courbe quotidienne ou sur la moyenne mobile 7 jours ? (b) quel niveau — 95 % par défaut, mais les pics sont détectés à p_t < 1e-4 et je ne veux pas que la bande et les points rouges se contredisent à l'œil.
+3. rupture/fiches.py est la bibliothèque partagée par rapport.qmd, fiches_mots.qmd et le skill /fiche-mot : le changement doit servir les trois sans casser leur rendu. Ne pas toucher à paper/donnees_maths/fiche.py, qui ne fait qu'assembler la page.
+4. Vérifier sur deux mots aux profils opposés : un mot fréquent et un mot rare (où la bande doit être visiblement large). Générer les fiches avec `python paper/donnees_maths/fiche.py "<mot>"` dans le venv, puis regarder les PDF — vérifier que la bande ne sature pas la figure et que l'axe des ordonnées ne part pas dans le négatif.
+5. Me rendre compte avant de propager la bande aux figures des rapports PCA (campagne_pca/scripts/figures_lib.py) ou à l'API : on décidera ensuite.
+
+Les PDF de fiches/ sont gitignorés — donner le chemin local, ne pas tenter de les committer. Ne rien installer sans mon accord.
+```
+
 ## Faites
 
 ## figure4-composante2 — Refaire la figure 4 de Bouchaud sur la composante 2 (4 tranches)
