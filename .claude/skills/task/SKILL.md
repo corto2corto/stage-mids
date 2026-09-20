@@ -1,21 +1,22 @@
 ---
 name: task
-description: Note une tâche identifiée au fil de la discussion (contexte + piste de résolution envisagée) dans taches.md et l'ajoute à la section « Tâches en attente » du dashboard, avec un prompt de reprise prêt à coller dans une future session Claude. Utiliser quand Corto veut garder une tâche pour plus tard (« /task », « note ça pour plus tard »), ou pour marquer une tâche faite.
+description: Note une tâche identifiée au fil de la discussion (contexte + piste de résolution envisagée) sous forme d'issue GitHub, avec un prompt de reprise prêt à coller dans une future session Claude. Utiliser quand Corto veut garder une tâche pour plus tard (« /task », « note ça pour plus tard »), ou pour marquer une tâche faite.
 ---
 
 # Skill /task
 
-Capture une tâche discutée dans la session courante, pour la reprendre plus tard depuis le dashboard.
+Capture une tâche discutée dans la session courante sous forme d'issue GitHub, pour la reprendre plus tard.
 
 ## Références fixes
 
-- **Source de vérité des tâches** : `.claude/taches.md`.
-- **Dashboard** : fichier local versionné `site/static/dashboard.html` (dans le dépôt). Publié sur GitHub Pages à `https://corto2corto.github.io/stage-mids/dashboard.html` (Evidence copie `site/static/` à la racine du build). On l'édite directement, puis on push sur main pour publier. Plus d'artifact Claude (abandonné le 12/07/2026).
+- **Source de vérité des tâches** : les issues du dépôt `corto2corto/stage-mids`, label `tâche`. Plus de `.claude/taches.md` ni de dashboard : ne pas y écrire.
+- **Outil** : `gh` (connecté au compte `corto2corto`, protocole SSH).
+- **Le dépôt est public** : tout ce qui est écrit dans l'issue est visible de tous.
 
 ## Étape 1 — Comprendre la tâche depuis la conversation
 
 Relire la discussion et en extraire :
-- un **titre court** (une ligne) et un **slug** kebab-case (servira d'id HTML) ;
+- un **titre court** (une ligne) ;
 - le **contexte** : ce qui a été constaté, où, pourquoi c'est un problème ;
 - la **piste de résolution** discutée — celle qui a été retenue, pas l'inventaire des options ;
 - les **fichiers, bases et commandes** concernés, avec les détails précis établis dans la conversation (noms exacts, numéros de ligne, décisions prises).
@@ -32,20 +33,39 @@ Le prompt sera collé dans une **nouvelle session Claude sur ce dépôt** : CLAU
 - comment vérifier le résultat à la fin ;
 - si la tâche touche au serveur, terminer par « Me demander avant de lancer quoi que ce soit sur le serveur. »
 
-Ton : instructions directes à Claude, en français, 10-20 lignes. Voir l'entrée `stopwords-tops` de taches.md comme modèle.
+Ton : instructions directes à Claude, en français, 10-20 lignes. Voir l'issue n°2 (`stopwords-tops`) comme modèle.
 
-## Étape 3 — Enregistrer dans taches.md
+## Étape 3 — Vérifier qu'il n'y a rien de sensible
 
-Ajouter l'entrée AVANT la section « ## Faites », au format existant : `## <slug> — <titre>`, date d'ajout, branche, **Contexte**, **Piste envisagée**, **Prompt** en bloc de code. Ce fichier est la source de vérité — le dashboard n'est qu'un affichage.
+L'issue est publique. Avant de créer, relire le texte : ni identifiant, mot de passe, jeton, adresse IP, e-mail, ni nom de compte dans un chemin serveur (écrire `/opt/<compte>/…`, `/data/<compte>`). En cas de doute, retirer le détail ou demander à Corto.
 
-## Étape 4 — Mettre à jour le dashboard
+## Étape 4 — Créer l'issue
 
-Éditer directement `site/static/dashboard.html` (Edit, pas de récupération distante) : ajouter une carte dans la section « Tâches en attente », sur le modèle d'une carte existante — `carte-titre` (titre), `carte-sous` (date + branche), bouton `btn-prompt` avec `data-panneau="prompt-<slug>"`, `p.desc` (une phrase : constat + piste), panneau `panneau-prompt` d'id `prompt-<slug>` contenant le `<pre>` du prompt et un bouton `btn-copier` avec `data-copie="prompt-<slug>"`. Attention : dans le `<pre>`, échapper `<`, `>` et `&` en `&lt;`, `&gt;`, `&amp;`. Le `<script>` en bas de page gère déjà tous les boutons — ne rien y ajouter.
+Écrire le corps dans un fichier du scratchpad (jamais dans le dépôt), au format :
+
+```
+- Ajoutée : <date>
+- Branche : <branche>
+
+**Contexte** : ...
+
+**Piste envisagée** : ...
+
+**Prompt** :
+
+<bloc de code avec le prompt de reprise>
+```
+
+Puis :
+
+```
+gh issue create -R corto2corto/stage-mids --title "<titre>" --label tâche --body-file <fichier>
+```
 
 ## Tâche terminée
 
-Si Corto dit qu'une tâche est faite : déplacer son entrée de taches.md vers « ## Faites » (garder la trace, on peut retirer le prompt), et supprimer sa carte de `site/static/dashboard.html` (Edit).
+Si Corto dit qu'une tâche est faite : retrouver son numéro (`gh issue list -R corto2corto/stage-mids --label tâche`), puis `gh issue close <n> -R corto2corto/stage-mids --comment "<une ligne sur ce qui a été fait>"`. Une issue peut aussi être fermée par un commit contenant « closes #<n> ».
 
 ## Étape 5 — Rendre compte
 
-Une ou deux lignes : la tâche notée, où (taches.md + dashboard local), et rappeler que la publication sur GitHub Pages se fait via un push sur main (`/github`). Ne pas push soi-même sans que Corto le demande.
+Une ligne : la tâche notée, son numéro et l'URL de l'issue. Rien à push, les issues ne passent pas par git.

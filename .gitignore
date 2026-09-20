@@ -93,9 +93,6 @@ rupture/sorties/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 
-# Dashboard local, hors suivi git
-site/static/dashboard.html
-
 # Sorties regenerables de rupture/ (fenetres, planches)
 rupture/sorties/
 

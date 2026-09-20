@@ -14,8 +14,7 @@ Un CSV par titre du groupe, comme les autres médias du pipeline. Attention :
 Ouest-France sort dans `ouest_france2.csv` et NON `ouest_france.csv` — ce
 dernier appartient à l'autre chaîne de scraping et ne doit pas être touché.
 
-La colonne `auteur` reste vide : l'index n'a pas d'auteur (cf. la tâche
-auteur-ouest-france dans .claude/taches.md).
+La colonne `auteur` reste vide : l'index n'a pas d'auteur.
 
 Les clés ne valent que ~24 h. Le script en récupère une au démarrage si
 OF_ALGOLIA_KEY n'est pas posée, et la renouvelle tout seul quand elle expire,
@@ -159,7 +158,7 @@ def ligne_csv(article):
         "id": article.get("objectID", ""),
         "url": url,
         "titre": article.get("titre", ""),
-        "auteur": "",                       # absent de l'index, voir taches.md
+        "auteur": "",                       # absent de l'index
         "date": date,
         "section": section,
         "free": "non" if article.get("payant") else "oui",

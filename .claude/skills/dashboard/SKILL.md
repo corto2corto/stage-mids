@@ -10,7 +10,7 @@ Met à jour le dashboard local depuis l'état frais du serveur, puis l'ouvre dan
 
 ## Références fixes
 
-- **Fichier dashboard** : `site/static/dashboard.html` — fichier local, HORS suivi git (.gitignore), plus de publication GitHub Pages depuis le 19/07/2026. Consultation locale uniquement.
+- **Fichier dashboard** : `site/static/dashboard.html` — fichier local suivi par git (comme le reste du dépôt), plus de publication GitHub Pages depuis le 19/07/2026. Consultation locale uniquement.
 - **Source de données** : relevé en direct par ssh (lecture seule) — la session tmux `statut` et `statut_serveur.txt` n'existent plus.
 - Rafraîchissement de l'affichage : `<meta http-equiv="refresh" content="600">` — l'onglet ouvert se recharge tout seul toutes les 10 min. Les données, elles, ne changent qu'en relançant la mise à jour.
 
@@ -35,7 +35,6 @@ D'après le résumé imprimé par le script, mettre à jour avec Edit — unique
 - section « Avancement du mémoire » si pertinent
 - cartes « Runs sur le serveur » (croiser tmux + process + panes)
 - pastilles « État » du tableau des bases si un statut a changé
-- section « Tâches en attente » : ne PAS y toucher ici — gérée par le skill /task, source `.claude/taches.md`.
 
 Si rien de notable n'a bougé côté serveur, sauter cette étape.
 
