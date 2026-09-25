@@ -1,6 +1,7 @@
 # Découpage du texte en tokens — LA référence unique, importée par les builds
 # (ngram_*.py), la MAJ quotidienne (maj_ngram.py), le précalcul des tops
-# (top_ngram.py) et l'API (api/app.py).
+# (top_ngram.py) et l'API du site (ngram-press, api/app_agora.py).
+# Propriétaire : stage-mids ; ngram-press en garde une copie à l'identique.
 # ATTENTION : toute modification ici change le découpage, donc invalide les bases
 # construites avant — ne pas toucher sans reconstruire les bases.
 

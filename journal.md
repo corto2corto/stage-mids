@@ -1962,3 +1962,19 @@ Deux tâches notées dans `taches.md` :
 
 Point d'avancement : 19,4 M d'articles collectés, La Dépêche rattrapée ; il
 reste 3,7 M d'URLs en file, presque toutes sur *Le Télégramme*.
+
+## Rapport de stage publié par erreur (23/09/2026)
+
+`paper/rapport_stage/` a été poussé sur GitHub par le commit `78449c4`
+(`rapport_stage.qmd`, `refs.bib`, trois figures). À nettoyer plus tard :
+retirer ces fichiers de l'historique et faire un push forcé sur `main`.
+`paper/soutenance/` est ajouté au `.gitignore` pour ne jamais être commité.
+
+## Frontière avec ngram-press (25/09/2026)
+
+Chaque outil a désormais un seul dépôt propriétaire, règle écrite dans les deux
+`CLAUDE.md`. stage-mids garde `scripts/tokenisation.py` et `rupture/pca.py`
+(copiés dans ngram-press), ainsi que `top_ngram.py` en attendant les tops sur le
+site. `api/` est retiré : l'ancienne API n'a reçu aucune requête depuis le 21/07,
+le site passe par `app_agora.py` sur gram. Le process `python -m api.app`
+(port 8501) est arrêté sur gallica et sa session tmux `api` fermée.
