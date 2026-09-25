@@ -101,3 +101,6 @@ campagne_pca/data/data_local/
 
 # Soutenance (locale)
 paper/soutenance/
+
+# Rapport de stage (local, jamais publié)
+paper/rapport_stage/
